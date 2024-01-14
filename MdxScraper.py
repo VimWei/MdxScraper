@@ -14,6 +14,7 @@ Description:
 import os
 import sys
 import json
+import platform
 import argparse
 from enum import IntEnum
 from pathlib import Path
@@ -27,11 +28,28 @@ from chardet import detect  # pip install chardet
 from base64 import b64encode  # pip install base64
 from bs4 import BeautifulSoup  # pip install bs4
 
-# 添加mdict-query
+# import mdict_query
 current_script_path = Path(__file__).resolve().parent
 path_to_be_added = current_script_path / "mdict-query"
 sys.path.append(str(path_to_be_added))
 import mdict_query
+
+# Function to locate the path of the wkhtmltopdf
+def find_wkhtmltopdf_path():
+    if platform.system() == 'Windows':
+        # Returns a hardcoded default Windows path to wkhtmltopdf
+        return r'C:\Program Files\wkhtmltopdf\bin\wkhtmltopdf.exe'
+    elif platform.system() == 'Linux':
+        # On Linux, commands are usually put either in /usr/local/bin or /usr/bin
+        if Path('/usr/local/bin/wkhtmltopdf').is_file():
+            return '/usr/local/bin/wkhtmltopdf'
+        else:
+            return '/usr/bin/wkhtmltopdf'
+    elif platform.system() == 'Darwin':
+        # Common installation path on MacOS
+        return '/usr/local/bin/wkhtmltopdf'
+    else:
+        raise ValueError("Unsupported platform")
 
 # Additional styles for HTML output
 ADDITIONAL_STYLES = '''
@@ -202,6 +220,8 @@ def verify_words(dictionary, lessons):
 
 # Function to convert MDX to HTML
 def mdx2html(mdx_name, input_name, output_name, invalid_action=InvalidAction.Collect, with_toc=False):
+    mdx_name = Path(mdx_name)
+
     if output_name != TEMP_FILE :
         currentTime = datetime.now().strftime("%Y%m%d-%H%M%S")
         output_name = currentTime + "-" + output_name
@@ -287,8 +307,7 @@ def mdx2pdf(mdx_name, input_name, output_name, invalid_action=InvalidAction.Coll
     output_name = currentTime + "-" + output_name
 
     # pdfkit.from_file(TEMP_FILE, output_name)
-    path = r'C:\Program Files\wkhtmltopdf\bin\wkhtmltopdf.exe'
-    config = pdfkit.configuration(wkhtmltopdf=path)
+    config = pdfkit.configuration(wkhtmltopdf=find_wkhtmltopdf_path())
     # options src: https://wkhtmltopdf.org/usage/wkhtmltopdf.txt
     pdfkit.from_file(TEMP_FILE, output_name, configuration=config,
                      options={'dpi': '150',

@@ -6,13 +6,14 @@
 
 详情：MdxScraper 是在 [MdxConverter](https://github.com/noword/MdxConverter) 基础上升级改造：
 
-1. 支持同一个页面多次重复引用同一图片的情形（词典中的读音图标多次出现的情形很常见）。
-2. 增加对jpg、jpeg、gif等图片的支持，原程序只支持png图片。
-3. 兼容img标签的各种写法，原程序只支持一种，因此也就兼容各种词典情形。
-7. 兼容无CSS文件的词典。
+1. 全面提升跨平台兼容性，包括wkhtmltopdf、mdx路径名等在跨平台中的多种写法。
+2. 支持同一个页面多次重复引用同一图片的情形（词典中的读音图标多次出现的情形很常见）。
+3. 增加对jpg、jpeg、gif等图片的支持，原程序只支持png图片。
+4. 兼容img标签的各种写法，原程序只支持一种，因此也就兼容各种词典情形。
+5. 兼容无CSS文件的词典。
 6. 增加PDF输出时排版的多个常见配置选项，让用户更加自由定制。
-4. 将mdict-query直接放在同名子目录下，避免繁琐安装。
-5. 以当前时间命名文件名，避免多次输出时覆盖原有的文件。
+7. 将mdict-query直接放在同名子目录下，避免繁琐安装。
+8. 以当前时间命名文件名，避免多次输出时覆盖原有的文件。
 
 ## 用法
     usage: MdxScraper.py [-h] [--type [{pdf,html,jpg}]] [--invalid {0,1,2}] mdx_name input_name [output_name]
@@ -30,15 +31,11 @@
                             1: output warnning message to pdf/html
                             2: collect them to invalid_words.txt (default)
 
-例如：
+例如：MdxScraper.py 某某词典.mdx input.xlsx output.pdf
 
-    MdxScraper 某某词典.mdx input.xlsx output.pdf
+或将mdx放入子目录mdx中：MdxScraper.py "mdx\某某词典.mdx" input.txt output.pdf
 
-建议将mdx放入子目录mdx中，相应的命令则使用：
-
-    MdxScraper "mdx\某某词典.mdx" input.txt output.pdf
-
-## 依赖库安装
+## 依赖库及程序
 
 使用了以下第三方库，请按提示进行安装
 
@@ -48,6 +45,10 @@
     from chardet import detect  # pip install chardet
     from base64 import b64encode  # pip install base64
     from bs4 import BeautifulSoup  # pip install bs4
+
+转PDF用到了wkhtmltopdf，兼容各平台，按需下载安装，并修订本程序中的相关路径：
+
+    https://wkhtmltopdf.org/downloads.html
 
 ## 输入
 ### txt 示例
