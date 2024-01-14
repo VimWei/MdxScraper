@@ -273,7 +273,7 @@ def mdx2html(mdx_name, input_name, output_name, invalid_action=InvalidAction.Col
     open(output_name, "wb").write(html)
 
     if len(invalid_words) > 0:
-        with open(INVALID_WORDS_FILENAME, 'w') as fp:
+        with open(INVALID_WORDS_FILENAME, 'w', encoding='utf-8') as fp:
             for lesson, words in invalid_words.items():
                 fp.write(f'#{lesson}\n')
                 for word in words:
