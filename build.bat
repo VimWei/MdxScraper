@@ -1,1 +1,0 @@
-pyinstaller MdxConverter.py --onefile --exclude-module pandas --exclude-module numpy --exclude-module PyQt4 --exclude-module tkinter --exclude-module PyQt5 --exclude-module PySide2

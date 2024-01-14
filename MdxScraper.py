@@ -1,18 +1,25 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-import mdict_query
+
+import os
+import sys
 import openpyxl
 import json
 import argparse
-import os
 import pdfkit
 import imgkit
 from bs4 import BeautifulSoup
-import sys
 from enum import IntEnum
 from collections import OrderedDict
 from chardet import detect
 from base64 import b64encode
+from datetime import datetime
+
+# 添加mdict-query
+current_script_path = os.path.dirname(os.path.realpath(__file__))
+path_to_be_added = os.path.join(current_script_path, "mdict-query-master")
+sys.path.append(path_to_be_added)
+import mdict_query
 
 ADDITIONAL_STYLES = '''
 a.lesson {font-size:120%; color: #1a237e; text-decoration: none; cursor: pointer; border-bottom: none;}
@@ -26,36 +33,32 @@ div.right {overflow-y: auto; overflow-x: hidden; padding-left: 10px; height: 100
 '''
 
 H1_STYLE = 'color:#FFFFFF; background-color:#003366; padding-left:20px; line-height:initial;'
-H2_STYLE = 'color:#CCFFFF; background-color:#336699; padding-left:20px; line-height:initial;'
+# H2_STYLE = 'color:#CCFFFF; background-color:#336699; padding-left:20px; line-height:initial;'
+H2_STYLE = 'border: 1mm ridge rgba(111, 160, 206, .6); color:#46525F; background-color:#E3EDF5; padding:2px 2px 2px 20px; line-height:initial;'
+# H2_STYLE = 'display:none;'
 
 INVALID_WORDS_FILENAME = 'invalid_words.txt'
 TEMP_FILE = 'temp.html'
-
 
 class InvalidAction(IntEnum):
     Exit = 0
     Output = 1
     Collect = 2
 
-
 def open_encoding_file(name):
     encoding = detect(open(name, 'rb').read())['encoding']
     return open(name, encoding=encoding)
 
-
 def get_words(name):
     ext = os.path.splitext(name)[1].lower()
-    return {
-        '.xls': get_words_from_xls,
-        '.xlsx': get_words_from_xls,
-        '.json': get_words_from_json,
-        '.txt': get_words_from_txt,
-    }[ext](name)
-
+    return {'.xls': get_words_from_xls,
+            '.xlsx': get_words_from_xls,
+            '.json': get_words_from_json,
+            '.txt': get_words_from_txt,
+            }[ext](name)
 
 def get_words_from_json(name):
     return json.load(open_encoding_file(name))
-
 
 def get_words_from_txt(name):
     result = []
@@ -67,10 +70,10 @@ def get_words_from_txt(name):
             result.append({'name': line.strip('#'), 'words': []})
         else:
             if len(result) == 0:
-                result.append({'name': 'Words', 'words': []})
+                currentTime = datetime.now().strftime("%Y%m%d-%H%M%S")
+                result.append({'name': currentTime, 'words': []})
             result[-1]['words'].append(line)
     return result
-
 
 def get_words_from_xls(name):
     wb = openpyxl.load_workbook(name, read_only=True)
@@ -81,7 +84,6 @@ def get_words_from_xls(name):
         words = list(filter(lambda x: x is not None and len(x) > 0, words))
         result.append({'name': name, 'words': words})
     return result
-
 
 def get_css(soup, mdx_path, dictionary):
     css_name = soup.head.link['href']
@@ -96,9 +98,11 @@ def get_css(soup, mdx_path, dictionary):
 
     return css.decode('utf-8')
 
-
 def merge_css(soup, mdx_path, dictionary, append_additinal_styles=True):
-    css = get_css(soup, mdx_path, dictionary)
+    try:
+        css = get_css(soup, mdx_path, dictionary)
+    except Exception as e:
+        return soup
     if append_additinal_styles:
         css += ADDITIONAL_STYLES
 
@@ -107,27 +111,48 @@ def merge_css(soup, mdx_path, dictionary, append_additinal_styles=True):
     soup.head.style.string = css
     return soup
 
+def get_image_format_from_src(src: str) -> str:
+    _, ext = os.path.splitext(src)
+    ext = ext.lower()
+    if ext == '.png':
+        return 'png'
+    elif ext in ['.jpg', '.jpeg']:
+        return 'jpeg'
+    elif ext == '.gif':
+        return 'gif'
+    else:
+        return 'png'
 
 def grab_images(soup, dictionary):
     if not hasattr(dictionary, '_mdd_db'):
         return soup
 
-    grabed = set()
+    cache = {}
     for img in soup.find_all('img'):
-        src = img['src'].replace('/', '\\')
-        if img['src'].startswith('/'):
-            img['src'] = img['src'][1:]
-        if src in grabed:
+        if not img.has_attr('src'):
             continue
-        grabed.add(src)
-        if not src.startswith('\\'):
-            src = '\\' + src
-        imgs = dictionary.mdd_lookup(src.replace('/', '\\'))
-        if len(imgs) > 0:
-            print(f'got image {src}')
-            img['src'] = 'data:image/png;base64, ' + b64encode(imgs[0]).decode('ascii')
-    return soup
 
+        src = img['src']
+        src_path = src.replace('/', '\\')
+
+        if src_path in cache:
+            img['src'] = cache[src_path]
+            continue
+
+        lookup_src = src_path
+        if not lookup_src.startswith('\\'):
+            lookup_src = '\\' + lookup_src
+
+        # Lookup image data
+        imgs = dictionary.mdd_lookup(lookup_src)
+        if len(imgs) > 0:
+            print(f'Got image {src}')
+            image_format = get_image_format_from_src(src)
+            base64_str = f'data:image/{image_format};base64,' + b64encode(imgs[0]).decode('ascii')
+            cache[src_path] = base64_str
+            img['src'] = base64_str
+
+    return soup
 
 def lookup(dictionary, word):
     word = word.strip()
@@ -144,7 +169,6 @@ def lookup(dictionary, word):
     else:
         return definition.strip()
 
-
 def verify_words(dictionary, lessons):
     for lesson in lessons:
         print(lesson['name'])
@@ -152,8 +176,12 @@ def verify_words(dictionary, lessons):
             print('\t', word)
             lookup(dictionary, word)
 
+def mdx2html(mdx_name, input_name, output_name, invalid_action=InvalidAction.Collect, with_toc=False):
 
-def mdx2html(mdx_name, input_name, output_name, invalid_action=InvalidAction.Collect, with_toc=True):
+    if output_name != TEMP_FILE :
+        currentTime = datetime.now().strftime("%Y%m%d-%H%M%S")
+        output_name = currentTime + "-" + output_name
+
     dictionary = mdict_query.IndexBuilder(mdx_name)
     lessons = get_words(input_name)
 
@@ -188,9 +216,7 @@ def mdx2html(mdx_name, input_name, output_name, invalid_action=InvalidAction.Col
                     if lesson['name'] in invalid_words:
                         invalid_words[lesson['name']].append(word)
                     else:
-                        invalid_words[lesson['name']] = [
-                            word,
-                        ]
+                        invalid_words[lesson['name']] = [word, ]
                     continue
             definition = BeautifulSoup(result, 'lxml')
             if right_soup.head is None and definition.head is not None:
@@ -229,38 +255,51 @@ def mdx2html(mdx_name, input_name, output_name, invalid_action=InvalidAction.Col
                 for word in words:
                     fp.write(word + '\n')
 
-
 def mdx2pdf(mdx_name, input_name, output_name, invalid_action=InvalidAction.Collect):
     mdx2html(mdx_name, input_name, TEMP_FILE, invalid_action, False)
-    pdfkit.from_file(TEMP_FILE, output_name, options={'dpi': '150', 'enable-local-file-access': ''})
-    os.remove(TEMP_FILE)
 
+    currentTime = datetime.now().strftime("%Y%m%d-%H%M%S")
+    output_name = currentTime + "-" + output_name
+
+    # pdfkit.from_file(TEMP_FILE, output_name)
+    path = r'C:\Program Files\wkhtmltopdf\bin\wkhtmltopdf.exe'
+    config = pdfkit.configuration(wkhtmltopdf=path)
+    # options src: https://wkhtmltopdf.org/usage/wkhtmltopdf.txt
+    pdfkit.from_file(TEMP_FILE, output_name, configuration=config,
+                     options={'dpi': '150',
+                              'encoding': 'UTF-8',
+                              'header-left': '[title]',
+                              'header-right': '[page]/[toPage]',
+                              'header-spacing': '2',
+                              'margin-top': '15mm',
+                              'margin-bottom': '18mm',
+                              'margin-left': '25mm',
+                              'margin-right': '18mm',
+                              'header-line': True,
+                              'enable-local-file-access': True})
+
+    os.remove(TEMP_FILE)
 
 def mdx2jpg(mdx_name, input_name, output_name, invalid_action=InvalidAction.Collect):
     mdx2html(mdx_name, input_name, TEMP_FILE, invalid_action, False)
+
+    currentTime = datetime.now().strftime("%Y%m%d-%H%M%S")
+    output_name = currentTime + "-" + output_name
+
     imgkit.from_file(TEMP_FILE, output_name, options={'enable-local-file-access': ''})
     os.remove(TEMP_FILE)
 
-
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(
-        formatter_class=argparse.RawTextHelpFormatter,
-    )
+    parser = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter,)
     parser.add_argument('mdx_name', action='store', nargs=1)
     parser.add_argument('input_name', action='store', nargs=1)
     parser.add_argument('output_name', action='store', nargs='?')
     parser.add_argument('--type', action='store', choices=['pdf', 'html', 'jpg'], nargs='?')
-    parser.add_argument(
-        '--invalid',
-        action='store',
-        type=int,
-        default=2,
-        choices=[0, 1, 2],
-        help='action for meeting invalid words\n'
-        '0: exit immediately\n'
-        '1: output warnning message to pdf/html\n'
-        '2: collect them to invalid_words.txt (default)',
-    )
+    parser.add_argument('--invalid', action='store', type=int, default=2, choices=[0, 1, 2],
+                        help='action for meeting invalid words\n'
+                        '0: exit immediately\n'
+                        '1: output warnning message to pdf/html\n'
+                        '2: collect them to invalid_words.txt (default)')
     args = parser.parse_args()
 
     mdx_name = args.mdx_name[0]
@@ -283,6 +322,4 @@ if __name__ == '__main__':
         'pdf': mdx2pdf,
         'html': mdx2html,
         'jpg': mdx2jpg,
-    }[
-        args.type.lower()
-    ](mdx_name, input_name, output_name, args.invalid)
+    }[args.type.lower()](mdx_name, input_name, output_name, args.invalid)
