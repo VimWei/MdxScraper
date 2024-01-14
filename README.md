@@ -1,21 +1,21 @@
-# MdxToPDF
+# MdxScraper
 
-这是一个用来从 mdx 字典中抓取所需的单词，并生成 html，pdf 或 jpg 文件的小工具。
+## 简介
 
-## 加强版说明
+一句话简介：从MDX字典中提取特定单词，并轻松生成PDF、HTML或JPG文件。
 
-对 [原版 MdxConverter](https://github.com/noword/MdxConverter) 做了改造加强：
+详情：MdxScraper 是在 [MdxConverter](https://github.com/noword/MdxConverter) 基础上升级改造：
 
 1. 支持同一个页面多次重复引用同一图片的情形（词典中的读音图标多次出现的情形很常见）。
 2. 增加对jpg、jpeg、gif等图片的支持，原程序只支持png图片。
 3. 兼容img标签的各种写法，原程序只支持一种，因此也就兼容各种词典情形。
-4. 将mdict-query直接放在MdxConverter子目录下，而不是都放在根目录下，这样可以让程序看起来更清爽。
-5. 以当前时间命名文件名，避免多次输出时覆盖原有的文件。
+7. 兼容对无CSS文件的词典。
 6. 增加PDF输出时排版的多个常见配置选项，让用户更加自由定制。
-7. 支持没有独立CSS的词典。
+4. 将mdict-query直接放在子目录mdict-query-master下，使得程序更清爽。
+5. 以当前时间命名文件名，避免多次输出时覆盖原有的文件。
 
 ## 用法
-    usage: MdxConverter.py [-h] [--type [{pdf,html,jpg}]] [--invalid {0,1,2}] mdx_name input_name [output_name]
+    usage: MdxScraper.py [-h] [--type [{pdf,html,jpg}]] [--invalid {0,1,2}] mdx_name input_name [output_name]
 
     positional arguments:
     mdx_name
@@ -32,26 +32,22 @@
 
 例如：
 
-    MdxConverter 某某词典.mdx input.xlsx output.pdf
+    MdxScraper 某某词典.mdx input.xlsx output.pdf
 
-可以将mdx放入子目录mdx中，这样根目录会更清爽，相应的命令则使用：
+建议将mdx放入子目录mdx中，相应的命令则使用：
 
-    MdxConverter "mdx\某某词典.mdx" input.txt output.pdf
+    MdxScraper "mdx\某某词典.mdx" input.txt output.pdf
 
-## 依赖库
-[mdict-query](https://github.com/mmjang/mdict-query) 本程序已包含该库原版，若有更新，直接完整替换本程序子目录mdict-query-master即可。
+## 依赖库安装
 
-[BeautifulSoup4](https://pypi.org/project/beautifulsoup4)
+使用了以下第三方库，请按提示进行安装
 
-[openpyxl](https://pypi.org/project/openpyxl)
-
-[pdfkit](https://github.com/JazzCore/python-pdfkit)
-
-[imgkit](https://github.com/jarrekk/imgkit)
-
-[lxml](https://lxml.de)
-
-[chardet](https://github.com/chardet/chardet)
+    * import imgkit  # pip install imgkit
+    * import pdfkit  # pip install pdfkit
+    * import openpyxl  # pip install openpyxl
+    * from chardet import detect  # pip install chardet
+    * from base64 import b64encode  # pip install base64
+    * from bs4 import BeautifulSoup  # pip install bs4
 
 ## 输入
 ### txt 示例

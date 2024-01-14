@@ -1,26 +1,39 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
+"""
+Module: MdxScraper
+Author: VimWei
+Created: January 14, 2024
+
+Description:
+    Extract specific words from an MDX dictionary and generate PDF, HTML, or JPG files with ease.
+    It's an adaptation and upgrade based on the original MdxConverter: https://github.com/noword/MdxConverter
+"""
+
 import os
 import sys
-import openpyxl
 import json
 import argparse
-import pdfkit
-import imgkit
-from bs4 import BeautifulSoup
 from enum import IntEnum
-from collections import OrderedDict
-from chardet import detect
-from base64 import b64encode
+from pathlib import Path
 from datetime import datetime
+from collections import OrderedDict
+
+import imgkit  # pip install imgkit
+import pdfkit  # pip install pdfkit
+import openpyxl  # pip install openpyxl
+from chardet import detect  # pip install chardet
+from base64 import b64encode  # pip install base64
+from bs4 import BeautifulSoup  # pip install bs4
 
 # 添加mdict-query
-current_script_path = os.path.dirname(os.path.realpath(__file__))
-path_to_be_added = os.path.join(current_script_path, "mdict-query-master")
-sys.path.append(path_to_be_added)
+current_script_path = Path(__file__).resolve().parent
+path_to_be_added = current_script_path / "mdict-query-master"
+sys.path.append(str(path_to_be_added))
 import mdict_query
 
+# Additional styles for HTML output
 ADDITIONAL_STYLES = '''
 a.lesson {font-size:120%; color: #1a237e; text-decoration: none; cursor: pointer; border-bottom: none;}
 a.lesson:hover {background-color: #e3f2fd}
@@ -32,6 +45,7 @@ div.left {width: 150px; overflow: auto; float: left; height: 100%;}
 div.right {overflow-y: auto; overflow-x: hidden; padding-left: 10px; height: 100%;}
 '''
 
+# Styles for HTML output
 H1_STYLE = 'color:#FFFFFF; background-color:#003366; padding-left:20px; line-height:initial;'
 # H2_STYLE = 'color:#CCFFFF; background-color:#336699; padding-left:20px; line-height:initial;'
 H2_STYLE = 'border: 1mm ridge rgba(111, 160, 206, .6); color:#46525F; background-color:#E3EDF5; padding:2px 2px 2px 20px; line-height:initial;'
@@ -40,26 +54,31 @@ H2_STYLE = 'border: 1mm ridge rgba(111, 160, 206, .6); color:#46525F; background
 INVALID_WORDS_FILENAME = 'invalid_words.txt'
 TEMP_FILE = 'temp.html'
 
+# Enumeration for invalid action
 class InvalidAction(IntEnum):
     Exit = 0
     Output = 1
     Collect = 2
 
+# Function to open a file with detected encoding
 def open_encoding_file(name):
     encoding = detect(open(name, 'rb').read())['encoding']
     return open(name, encoding=encoding)
 
+# Function to retrieve words from different file types
 def get_words(name):
-    ext = os.path.splitext(name)[1].lower()
+    ext = Path(name).suffix.lower()
     return {'.xls': get_words_from_xls,
             '.xlsx': get_words_from_xls,
             '.json': get_words_from_json,
             '.txt': get_words_from_txt,
             }[ext](name)
 
+# Function to get words from a JSON file
 def get_words_from_json(name):
     return json.load(open_encoding_file(name))
 
+# Function to get words from a text file
 def get_words_from_txt(name):
     result = []
     for line in open_encoding_file(name).readlines():
@@ -75,6 +94,7 @@ def get_words_from_txt(name):
             result[-1]['words'].append(line)
     return result
 
+# Function to get words from an Excel file
 def get_words_from_xls(name):
     wb = openpyxl.load_workbook(name, read_only=True)
     result = []
@@ -85,19 +105,20 @@ def get_words_from_xls(name):
         result.append({'name': name, 'words': words})
     return result
 
+# Function to retrieve CSS from an MDX dictionary or file
 def get_css(soup, mdx_path, dictionary):
     css_name = soup.head.link['href']
-    css_path = os.path.join(mdx_path, css_name)
-    if os.path.exists(css_path):
-        css = open(css_path, 'rb').read()
+    css_path = Path(mdx_path) / css_name
+    if css_path.exists():
+        css = css_path.read_bytes()
     elif hasattr(dictionary, '_mdd_db'):
         css_key = dictionary.get_mdd_keys('*' + css_name)[0]
         css = dictionary.mdd_lookup(css_key)[0]
     else:
         css = b''
-
     return css.decode('utf-8')
 
+# Function to merge CSS into the HTML soup
 def merge_css(soup, mdx_path, dictionary, append_additinal_styles=True):
     try:
         css = get_css(soup, mdx_path, dictionary)
@@ -111,9 +132,9 @@ def merge_css(soup, mdx_path, dictionary, append_additinal_styles=True):
     soup.head.style.string = css
     return soup
 
+# Function to determine image format based on file extension
 def get_image_format_from_src(src: str) -> str:
-    _, ext = os.path.splitext(src)
-    ext = ext.lower()
+    ext = Path(src).suffix.lower()
     if ext == '.png':
         return 'png'
     elif ext in ['.jpg', '.jpeg']:
@@ -123,6 +144,7 @@ def get_image_format_from_src(src: str) -> str:
     else:
         return 'png'
 
+# Function to replace image source with base64 data in HTML soup
 def grab_images(soup, dictionary):
     if not hasattr(dictionary, '_mdd_db'):
         return soup
@@ -154,6 +176,7 @@ def grab_images(soup, dictionary):
 
     return soup
 
+# Function to look up a word in the MDX dictionary
 def lookup(dictionary, word):
     word = word.strip()
     definitions = dictionary.mdx_lookup(word)
@@ -169,6 +192,7 @@ def lookup(dictionary, word):
     else:
         return definition.strip()
 
+# Function to verify words against the MDX dictionary
 def verify_words(dictionary, lessons):
     for lesson in lessons:
         print(lesson['name'])
@@ -176,8 +200,8 @@ def verify_words(dictionary, lessons):
             print('\t', word)
             lookup(dictionary, word)
 
+# Function to convert MDX to HTML
 def mdx2html(mdx_name, input_name, output_name, invalid_action=InvalidAction.Collect, with_toc=False):
-
     if output_name != TEMP_FILE :
         currentTime = datetime.now().strftime("%Y%m%d-%H%M%S")
         output_name = currentTime + "-" + output_name
@@ -241,7 +265,7 @@ def mdx2html(mdx_name, input_name, output_name, invalid_action=InvalidAction.Col
         right_soup.div.wrap(main_div)
         right_soup.div.insert_before(left_soup.div)
 
-    right_soup = merge_css(right_soup, os.path.split(mdx_name)[0], dictionary, with_toc)
+    right_soup = merge_css(right_soup, Path(mdx_name).parent, dictionary, with_toc)
     right_soup = grab_images(right_soup, dictionary)
 
     html = str(right_soup).encode('utf-8')
@@ -255,6 +279,7 @@ def mdx2html(mdx_name, input_name, output_name, invalid_action=InvalidAction.Col
                 for word in words:
                     fp.write(word + '\n')
 
+# Function to convert MDX to PDF
 def mdx2pdf(mdx_name, input_name, output_name, invalid_action=InvalidAction.Collect):
     mdx2html(mdx_name, input_name, TEMP_FILE, invalid_action, False)
 
@@ -277,9 +302,9 @@ def mdx2pdf(mdx_name, input_name, output_name, invalid_action=InvalidAction.Coll
                               'margin-right': '18mm',
                               'header-line': True,
                               'enable-local-file-access': True})
-
     os.remove(TEMP_FILE)
 
+# Function to convert MDX to JPG
 def mdx2jpg(mdx_name, input_name, output_name, invalid_action=InvalidAction.Collect):
     mdx2html(mdx_name, input_name, TEMP_FILE, invalid_action, False)
 
@@ -309,14 +334,12 @@ if __name__ == '__main__':
         if args.type is None:
             raise EnvironmentError('You must choose a file name or a file type')
         else:
-            output_name = os.path.split(input_name)[1]
-            output_name = os.path.splitext(output_name)[0]
-            output_name += '.' + args.type
+            output_name = Path(input_name).stem + '.' + args.type
     else:
         output_name = args.output_name
 
     if args.type is None:
-        args.type = os.path.splitext(output_name)[1][1:]
+        args.type = Path(output_name).suffix[1:]
 
     {
         'pdf': mdx2pdf,
