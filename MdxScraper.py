@@ -29,7 +29,7 @@ from bs4 import BeautifulSoup  # pip install bs4
 
 # 添加mdict-query
 current_script_path = Path(__file__).resolve().parent
-path_to_be_added = current_script_path / "mdict-query-master"
+path_to_be_added = current_script_path / "mdict-query"
 sys.path.append(str(path_to_be_added))
 import mdict_query
 
