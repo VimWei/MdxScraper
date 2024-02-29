@@ -219,7 +219,7 @@ def verify_words(dictionary, lessons):
             lookup(dictionary, word)
 
 # Function to convert MDX to HTML
-def mdx2html(mdx_name, input_name, output_name, invalid_action=InvalidAction.Collect, with_toc=False):
+def mdx2html(mdx_name, input_name, output_name, invalid_action=InvalidAction.Collect, with_toc=True):
     mdx_name = Path(mdx_name)
 
     if output_name != TEMP_FILE :
