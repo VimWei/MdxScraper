@@ -5,21 +5,22 @@
 Module: MdxScraper
 Author: VimWei
 Created: January 14, 2024
+Modified: March 3, 2024
 
 Description:
-    Extract specific words from an MDX dictionary and generate PDF, HTML, or JPG files with ease.
+    Extract specific words from an MDX dictionary and generate HTML, PDF, or JPG files with ease.
     It's an adaptation and upgrade based on the original MdxConverter: https://github.com/noword/MdxConverter
 """
 
 import os
 import sys
+import time
 import json
 import platform
-import argparse
-from enum import IntEnum
+import tempfile
 from pathlib import Path
-from datetime import datetime
 from collections import OrderedDict
+from datetime import datetime, timedelta
 
 import imgkit  # pip install imgkit
 import pdfkit  # pip install pdfkit
@@ -28,55 +29,20 @@ from chardet import detect  # pip install chardet
 from base64 import b64encode  # pip install base64
 from bs4 import BeautifulSoup  # pip install bs4
 
+from settings import (
+    INPUT_PATH, INPUT_NAME,
+    DICTIONARY_PATH, DICTIONARY_NAME,
+    OUTPUT_PATH, OUTPUT_NAME,
+    InvalidAction, INVALID_ACTION, INVALID_WORDS_NAME,
+    PDF_OPTIONS, WKHTMLTOPDF_PATHS,
+    H1_STYLE, SCRAP_STYLE, ADDITIONAL_STYLES,
+)
+
 # import mdict_query
 current_script_path = Path(__file__).resolve().parent
-path_to_be_added = current_script_path / "mdict-query"
+path_to_be_added = current_script_path / "lib/mdict-query"
 sys.path.append(str(path_to_be_added))
 import mdict_query
-
-# Function to locate the path of the wkhtmltopdf
-def find_wkhtmltopdf_path():
-    if platform.system() == 'Windows':
-        # Returns a hardcoded default Windows path to wkhtmltopdf
-        return r'C:\Program Files\wkhtmltopdf\bin\wkhtmltopdf.exe'
-    elif platform.system() == 'Linux':
-        # On Linux, commands are usually put either in /usr/local/bin or /usr/bin
-        if Path('/usr/local/bin/wkhtmltopdf').is_file():
-            return '/usr/local/bin/wkhtmltopdf'
-        else:
-            return '/usr/bin/wkhtmltopdf'
-    elif platform.system() == 'Darwin':
-        # Common installation path on MacOS
-        return '/usr/local/bin/wkhtmltopdf'
-    else:
-        raise ValueError("Unsupported platform")
-
-# Additional styles for HTML output
-ADDITIONAL_STYLES = '''
-a.lesson {font-size:120%; color: #1a237e; text-decoration: none; cursor: pointer; border-bottom: none;}
-a.lesson:hover {background-color: #e3f2fd}
-a.word {color: #1565c0; text-decoration: none; cursor: pointer; font-variant: normal; font-weight: normal; border-bottom: none;}
-a.word:hover {background-color: #e3f2fd;}
-a.invalid_word {color: #909497;}
-div.main {width: 100%; height: 100%;}
-div.left {width: 150px; overflow: auto; float: left; height: 100%;}
-div.right {overflow-y: auto; overflow-x: hidden; padding-left: 10px; height: 100%;}
-'''
-
-# Styles for HTML output
-H1_STYLE = 'color:#FFFFFF; background-color:#003366; padding-left:20px; line-height:initial;'
-# H2_STYLE = 'color:#CCFFFF; background-color:#336699; padding-left:20px; line-height:initial;'
-H2_STYLE = 'border: 1mm ridge rgba(111, 160, 206, .6); color:#46525F; background-color:#E3EDF5; padding:2px 2px 2px 20px; line-height:initial;'
-# H2_STYLE = 'display:none;'
-
-INVALID_WORDS_FILENAME = 'invalid_words.txt'
-TEMP_FILE = 'temp.html'
-
-# Enumeration for invalid action
-class InvalidAction(IntEnum):
-    Exit = 0
-    Output = 1
-    Collect = 2
 
 # Function to open a file with detected encoding
 def open_encoding_file(name):
@@ -186,7 +152,7 @@ def grab_images(soup, dictionary):
         # Lookup image data
         imgs = dictionary.mdd_lookup(lookup_src)
         if len(imgs) > 0:
-            print(f'Got image {src}')
+            # print(f'Got image {src}')
             image_format = get_image_format_from_src(src)
             base64_str = f'data:image/{image_format};base64,' + b64encode(imgs[0]).decode('ascii')
             cache[src_path] = base64_str
@@ -210,31 +176,24 @@ def lookup(dictionary, word):
     else:
         return definition.strip()
 
-# Function to verify words against the MDX dictionary
-def verify_words(dictionary, lessons):
-    for lesson in lessons:
-        print(lesson['name'])
-        for word in lesson['words']:
-            print('\t', word)
-            lookup(dictionary, word)
-
 # Function to convert MDX to HTML
-def mdx2html(mdx_name, input_name, output_name, invalid_action=InvalidAction.Collect, with_toc=True):
-    mdx_name = Path(mdx_name)
+def mdx2html(mdx_file, input_file, output_file, invalid_action=InvalidAction.Collect, with_toc=True):
+    print(f'Looking up words in the dictionary and generating HTML output...\n')
 
-    if output_name != TEMP_FILE :
-        currentTime = datetime.now().strftime("%Y%m%d-%H%M%S")
-        output_name = currentTime + "-" + output_name
+    found_count = 0
+    not_found_count = 0
 
-    dictionary = mdict_query.IndexBuilder(mdx_name)
-    lessons = get_words(input_name)
+    mdx_file = Path(mdx_file)
+
+    dictionary = mdict_query.IndexBuilder(mdx_file)
+    lessons = get_words(input_file)
 
     right_soup = BeautifulSoup('<body style="font-family:Arial Unicode MS;"><div class="right"></div></body>', 'lxml')
     left_soup = BeautifulSoup('<div class="left"></div>', 'lxml')
     invalid_words = OrderedDict()
 
     for lesson in lessons:
-        print(lesson['name'])
+        # print(lesson['name'])
         h1 = right_soup.new_tag('h1', id='lesson_' + lesson['name'], style=H1_STYLE)
         h1.string = lesson['name']
         right_soup.div.append(h1)
@@ -246,31 +205,41 @@ def mdx2html(mdx_name, input_name, output_name, invalid_action=InvalidAction.Col
 
         invalid = False
         for word in lesson['words']:
-            print('\t', word)
+            # print('\t', word)
             result = lookup(dictionary, word)
             if len(result) == 0:  # not found
-                print(f'WARNING: "{word}" not found', file=sys.stderr)
+                not_found_count += 1
                 if invalid_action == InvalidAction.Exit:
-                    print('*** Exit now. Do nothing. ***')
                     sys.exit()
-                elif invalid_action == InvalidAction.Output:
-                    invalid = True
-                    result = f'<span><b>WARNING:</b> "{word}" not found</span>'
-                else:  # invalid_action == InvalidAction.Collect
+                elif invalid_action == InvalidAction.Collect:
                     if lesson['name'] in invalid_words:
                         invalid_words[lesson['name']].append(word)
                     else:
                         invalid_words[lesson['name']] = [word, ]
                     continue
+                elif invalid_action == InvalidAction.OutputWarning:
+                    invalid = True
+                    result = f'<div style="padding:0 0 15px 0"><b>WARNING:</b> "{word}" not found</div>'
+                else:  # invalid_action == InvalidAction.Collect_OutputWarning
+                    if lesson['name'] in invalid_words:
+                        invalid_words[lesson['name']].append(word)
+                    else:
+                        invalid_words[lesson['name']] = [word, ]
+                    invalid = True
+                    result = f'<div style="padding:0 0 15px 0"><b>WARNING:</b> "{word}" not found</div>'
+            else:
+                found_count += 1
+
             definition = BeautifulSoup(result, 'lxml')
             if right_soup.head is None and definition.head is not None:
                 right_soup.html.insert_before(definition.head)
                 right_soup.head.append(right_soup.new_tag('meta', charset='utf-8'))
 
-            h2 = right_soup.new_tag('h2', id='word_' + word, style=H2_STYLE)
-            h2.string = word
-            right_soup.div.append(h2)
-            right_soup.div.append(definition.body)
+            new_div = right_soup.new_tag("div", style=SCRAP_STYLE)
+            new_div['id'] = 'word_' + word
+            new_div['class'] = 'scrapedword'
+            new_div.append(definition.body)
+            right_soup.div.append(new_div)
 
             a = left_soup.new_tag('a', href='#word_' + word, **{'class': 'word' + (' invalid_word' if invalid else '')})
             invalid = False
@@ -285,83 +254,99 @@ def mdx2html(mdx_name, input_name, output_name, invalid_action=InvalidAction.Col
         right_soup.div.wrap(main_div)
         right_soup.div.insert_before(left_soup.div)
 
-    right_soup = merge_css(right_soup, Path(mdx_name).parent, dictionary, with_toc)
+    right_soup = merge_css(right_soup, Path(mdx_file).parent, dictionary, with_toc)
     right_soup = grab_images(right_soup, dictionary)
 
     html = str(right_soup).encode('utf-8')
     html = html.replace(b'<body>', b'').replace(b'</body>', b'', html.count(b'</body>') - 1)
-    open(output_name, "wb").write(html)
+    open(output_file, "wb").write(html)
 
     if len(invalid_words) > 0:
-        with open(INVALID_WORDS_FILENAME, 'w', encoding='utf-8') as fp:
+        with open(invalid_words_file, 'w', encoding='utf-8') as fp:
             for lesson, words in invalid_words.items():
                 fp.write(f'#{lesson}\n')
                 for word in words:
                     fp.write(word + '\n')
 
+    return found_count, not_found_count
+
+# Function to find wkhtmltopdf path
+def find_wkhtmltopdf_path():
+    if platform.system() == 'Windows':
+        return WKHTMLTOPDF_PATHS['Windows']
+    elif platform.system() == 'Linux':
+        return WKHTMLTOPDF_PATHS['Linux'] if Path(WKHTMLTOPDF_PATHS['Linux']).is_file() else WKHTMLTOPDF_PATHS['Linux_alt']
+    elif platform.system() == 'Darwin':
+        return WKHTMLTOPDF_PATHS['Darwin']
+    else:
+        raise ValueError("Unsupported platform")
+
 # Function to convert MDX to PDF
-def mdx2pdf(mdx_name, input_name, output_name, invalid_action=InvalidAction.Collect):
-    mdx2html(mdx_name, input_name, TEMP_FILE, invalid_action, False)
+def mdx2pdf(mdx_file, input_file, output_file, invalid_action=InvalidAction.Collect):
+    with tempfile.NamedTemporaryFile(suffix='.html', delete=False) as temp:
+        TEMP_FILE = temp.name
+        result = mdx2html(mdx_file, input_file, TEMP_FILE, invalid_action, False)
 
-    currentTime = datetime.now().strftime("%Y%m%d-%H%M%S")
-    output_name = currentTime + "-" + output_name
-
-    # pdfkit.from_file(TEMP_FILE, output_name)
+    print(f'Converting HTML to PDF...\n')
     config = pdfkit.configuration(wkhtmltopdf=find_wkhtmltopdf_path())
-    # options src: https://wkhtmltopdf.org/usage/wkhtmltopdf.txt
-    pdfkit.from_file(TEMP_FILE, output_name, configuration=config,
-                     options={'dpi': '150',
-                              'encoding': 'UTF-8',
-                              'header-left': '[title]',
-                              'header-right': '[page]/[toPage]',
-                              'header-spacing': '2',
-                              'margin-top': '15mm',
-                              'margin-bottom': '18mm',
-                              'margin-left': '25mm',
-                              'margin-right': '18mm',
-                              'header-line': True,
-                              'enable-local-file-access': True})
+    pdfkit.from_file(TEMP_FILE, output_file, configuration=config, options=PDF_OPTIONS)
     os.remove(TEMP_FILE)
+    return result
 
 # Function to convert MDX to JPG
-def mdx2jpg(mdx_name, input_name, output_name, invalid_action=InvalidAction.Collect):
-    mdx2html(mdx_name, input_name, TEMP_FILE, invalid_action, False)
+def mdx2jpg(mdx_file, input_file, output_file, invalid_action=InvalidAction.Collect):
+    with tempfile.NamedTemporaryFile(suffix='.html', delete=False) as temp:
+        TEMP_FILE = temp.name
+        result = mdx2html(mdx_file, input_file, TEMP_FILE, invalid_action, False)
 
-    currentTime = datetime.now().strftime("%Y%m%d-%H%M%S")
-    output_name = currentTime + "-" + output_name
-
-    imgkit.from_file(TEMP_FILE, output_name, options={'enable-local-file-access': ''})
+    print(f'Converting HTML to JPG...\n')
+    imgkit.from_file(TEMP_FILE, output_file, options={'enable-local-file-access': ''})
     os.remove(TEMP_FILE)
+    return result
+
+def human_readable_duration(seconds):
+    time_delta = timedelta(seconds=seconds)
+    hours, remainder = divmod(time_delta.total_seconds(), 3600)
+    minutes, int_seconds = divmod(remainder, 60)
+    milliseconds = int((seconds - int(hours) * 3600 - int(minutes) * 60 - int(int_seconds)) * 1000)
+
+    parts = []
+    if int(hours) > 0:
+        parts.append(f'{int(hours):02d} hours')
+    if int(minutes) > 0 or int(hours) > 0:
+        parts.append(f'{int(minutes):02d} minutes')
+    parts.append(f'{int(int_seconds):02d}.{milliseconds:03d} seconds')
+
+    human_readable_time = ''.join(parts)
+    return human_readable_time
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(formatter_class=argparse.RawTextHelpFormatter,)
-    parser.add_argument('mdx_name', action='store', nargs=1)
-    parser.add_argument('input_name', action='store', nargs=1)
-    parser.add_argument('output_name', action='store', nargs='?')
-    parser.add_argument('--type', action='store', choices=['pdf', 'html', 'jpg'], nargs='?')
-    parser.add_argument('--invalid', action='store', type=int, default=2, choices=[0, 1, 2],
-                        help='action for meeting invalid words\n'
-                        '0: exit immediately\n'
-                        '1: output warnning message to pdf/html\n'
-                        '2: collect them to invalid_words.txt (default)')
-    args = parser.parse_args()
 
-    mdx_name = args.mdx_name[0]
-    input_name = args.input_name[0]
+    print(f'Welcome MdxScraper：extract specific words from an MDX dictionary and generate HTML, PDF, or JPG files with ease！\n')
+    start_time = time.time()
 
-    if args.output_name is None:
-        if args.type is None:
-            raise EnvironmentError('You must choose a file name or a file type')
-        else:
-            output_name = Path(input_name).stem + '.' + args.type
+    input_file = Path(INPUT_PATH) / INPUT_NAME
+    mdx_file = Path(DICTIONARY_PATH) / DICTIONARY_NAME
+
+    currentTime = datetime.now().strftime("%Y%m%d-%H%M%S")
+    if OUTPUT_NAME is None:
+        OUTPUT_NAME = currentTime + '-' + Path(INPUT_NAME).stem + '.html'
+        output_file = Path(OUTPUT_PATH) / OUTPUT_NAME
     else:
-        output_name = args.output_name
+        OUTPUT_NAME = currentTime + '-' + OUTPUT_NAME
+        output_file = Path(OUTPUT_PATH) / OUTPUT_NAME
 
-    if args.type is None:
-        args.type = Path(output_name).suffix[1:]
+    invalid_words_file = Path(OUTPUT_PATH) / (currentTime + '-' + INVALID_WORDS_NAME)
 
-    {
-        'pdf': mdx2pdf,
+    output_type = Path(output_file).suffix[1:]
+    found, not_found = {
         'html': mdx2html,
+        'pdf': mdx2pdf,
         'jpg': mdx2jpg,
-    }[args.type.lower()](mdx_name, input_name, output_name, args.invalid)
+    }[output_type](mdx_file, input_file, output_file, INVALID_ACTION)
+
+    end_time = time.time()
+    duration = human_readable_duration(end_time - start_time)
+    print(f"Success: {found} words extracted from {DICTIONARY_NAME}. Refer to {output_file}.\n")
+    print(f"Failure: {not_found} words not in {DICTIONARY_NAME}. Check {invalid_words_file}.\n")
+    print(f"The entire process took a total of {duration}.")

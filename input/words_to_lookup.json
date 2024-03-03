@@ -1,0 +1,19 @@
+```javascript
+ [
+ {
+     "name": "Lesson 1",
+     "words": [
+         "hello",
+         "world"
+     ]
+ },
+ {
+     "name": "Lesson 2",
+     "words": [
+         "python",
+         "is",
+         "awesome"
+     ]
+ }
+ ]
+```

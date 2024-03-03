@@ -1,0 +1,8 @@
+# Lesson 1
+hello
+world
+
+# Lesson 2
+python
+is
+awesome
