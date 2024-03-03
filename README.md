@@ -63,10 +63,10 @@
 ## 案例演示
 
 * 输入（支持txt、json和excel）
-    input\words_to_lookup.txt
-    input\words_to_lookup.json
-    input\words_to_lookup.xlsx
+    * input\words_to_lookup.txt
+    * input\words_to_lookup.json
+    * input\words_to_lookup.xlsx
 
 * 输出（支持html、pdf和jpg）
-    ![html](lib/images/html.jpg)
-    ![pdf](lib/images/pdf.jpg)
+    * ![html](lib/images/html.jpg)
+    * ![pdf](lib/images/pdf.jpg)
