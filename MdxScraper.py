@@ -329,14 +329,15 @@ if __name__ == '__main__':
     mdx_file = Path(DICTIONARY_PATH) / DICTIONARY_NAME
 
     currentTime = datetime.now().strftime("%Y%m%d-%H%M%S")
+    OUTPUT_PATH = Path(OUTPUT_PATH)
+    OUTPUT_PATH.mkdir(parents=True, exist_ok=True)
     if OUTPUT_NAME is None:
         OUTPUT_NAME = currentTime + '-' + Path(INPUT_NAME).stem + '.html'
-        output_file = Path(OUTPUT_PATH) / OUTPUT_NAME
+        output_file = OUTPUT_PATH / OUTPUT_NAME
     else:
         OUTPUT_NAME = currentTime + '-' + OUTPUT_NAME
-        output_file = Path(OUTPUT_PATH) / OUTPUT_NAME
-
-    invalid_words_file = Path(OUTPUT_PATH) / (currentTime + '-' + INVALID_WORDS_NAME)
+        output_file = OUTPUT_PATH / OUTPUT_NAME
+    invalid_words_file = OUTPUT_PATH / (currentTime + '-' + INVALID_WORDS_NAME)
 
     output_type = Path(output_file).suffix[1:]
     found, not_found = {
