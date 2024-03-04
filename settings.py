@@ -17,12 +17,12 @@ dictionaries = {
         '汉语辞海/汉语辞海20190923重排.mdx',
     ],
     "English": [
+        '简明英汉增强升级必应版/concise-bing.mdx',
         'Collins COBUILD 8th/Collins COBUILD 8th.mdx',
         '牛津小学生英汉双解词典/OxfordPrimary.mdx',
         'Longman Active Study Dictionary/LASD 5th.mdx',
         '朗文当代高级英语辞典/朗文当代高级英语辞典4th.mdx',
         '普通高中英语课程标准词汇简明字典/《词汇表》简明字典2023版国庆节.mdx',
-        '简明英汉增强升级必应版/concise-bing.mdx',
     ],
     "Others": [
         '牛津外研社英汉汉英词典/Oxford·FLTRP EC-CE Dictionary.mdx',
@@ -31,11 +31,11 @@ dictionaries = {
     ],
 }
 # 选择要查询的词典：类别（需要引号）和编号（从零开始）
-DICTIONARY_NAME = dictionaries['Chinese'][1]
+DICTIONARY_NAME = dictionaries['English'][0]
 
 # 设置输出文件的位置及名称，支持html、pdf和jpg
 OUTPUT_PATH = 'output'
-OUTPUT_NAME = 'lookup_results.pdf'
+OUTPUT_NAME = 'lookup_results.html'
 
 # 设置无效单词的处理方式
 from enum import IntEnum
@@ -72,7 +72,7 @@ PDF_OPTIONS = {
 
 # 配置CSS样式
 H1_STYLE = 'color:#FFFFFF; background-color:#003366; padding-left:20px; line-height:initial;'
-SCRAP_STYLE ='margin: 20px 0 0 0; border-bottom: 0.5mm ridge rgba(111, 160, 206, .6);'
+SCRAP_STYLE ='padding: 10px 0 10px 0; border-bottom: 0.5mm ridge rgba(111, 160, 206, .6);'
 ADDITIONAL_STYLES = '''
 a.lesson {font-size:120%; color: #1a237e; text-decoration: none; cursor: pointer; border-bottom: none;}
 a.lesson:hover {background-color: #e3f2fd}
