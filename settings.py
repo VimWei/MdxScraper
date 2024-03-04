@@ -31,10 +31,11 @@ dictionaries = {
     ],
 }
 # 选择要查询的词典：类别（需要引号）和编号（从零开始）
-DICTIONARY_NAME = dictionaries['English'][0]
+DICTIONARY_NAME = dictionaries['English'][3]
 
-# 设置输出文件的位置及名称，支持html、pdf和jpg
+# 设置输出文件的位置
 OUTPUT_PATH = 'output'
+# 设置输出文件名，支持html、pdf和jpg；若为空，则采用'输入文件名.html'
 OUTPUT_NAME = 'lookup_results.html'
 
 # 设置无效单词的处理方式

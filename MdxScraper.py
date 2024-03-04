@@ -338,7 +338,7 @@ def human_readable_duration(seconds):
 
 if __name__ == '__main__':
 
-    print(f'Welcome MdxScraper：extract specific words from an MDX dictionary and generate HTML, PDF, or JPG files with ease！\n')
+    print(f'Welcome to MdxScraper：extract specific words from an MDX dictionary and generate HTML, PDF, or JPG with ease！\n')
     start_time = time.time()
 
     input_file = Path(INPUT_PATH) / INPUT_NAME
@@ -362,8 +362,15 @@ if __name__ == '__main__':
         'jpg': mdx2jpg,
     }[output_type](mdx_file, input_file, output_file, INVALID_ACTION)
 
+    if found >0 or INVALID_ACTION in [InvalidAction.OutputWarning, InvalidAction.Collect_OutputWarning]:
+        print(f"Success: {found} words extracted from {Path(DICTIONARY_NAME).name}. Refer to {output_file}.\n")
+    else:
+        print(f"Success: {found} words extracted from {Path(DICTIONARY_NAME).name}.\n")
+    if not_found > 0:
+        print(f"Failure: {not_found} words not in {Path(DICTIONARY_NAME).name}. Check {invalid_words_file}.\n")
+    else:
+        print(f"Failure: {not_found} words not in {Path(DICTIONARY_NAME).name}.\n")
+
     end_time = time.time()
     duration = human_readable_duration(end_time - start_time)
-    print(f"Success: {found} words extracted from {Path(DICTIONARY_NAME).name}. Refer to {output_file}.\n")
-    print(f"Failure: {not_found} words not in {Path(DICTIONARY_NAME).name}. Check {invalid_words_file}.\n")
     print(f"The entire process took a total of {duration}.")
