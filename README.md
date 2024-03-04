@@ -7,10 +7,10 @@
 详情：MdxScraper 是在 [MdxConverter](https://github.com/noword/MdxConverter) 基础上升级改造：
 
 1. 提升词典兼容性：
-    * 内置mdict-query，并升级支持多mdd的词典
+    * 内置并升级mdict-query，支持多mdd的词典。
     * 兼容有或无CSS文件的词典。
-    * 兼容img标签的多种写法。
-    * 兼容支持png、jpg、jpeg、gif等参见图片格式。
+    * 兼容html中img标签的多种写法。
+    * 兼容支持png、jpg、jpeg、gif等常见图片格式。
     * 支持同一个页面多次重复引用同一图片的情形，如读音图标等。
 2. 提升跨平台兼容性：
     * 文件路径名，兼容跨平台的多种的写法。
@@ -41,22 +41,27 @@
 
 ## 高级技巧
 
-* 说明：为了使程序更加可维护和提升使用体验，建议安装和使用环节采用本高级技巧。
-    - 本技巧非必须，是可选项。
-    - 本技巧适用Window平台，其他平台同理。
+* 上述“使用”中的第2条，在实际操作时，其实还挺麻烦的：
+    1. 启动命令行：cmd 或 terminal等
+    2. 查询conda环境：conda env list
+    3. 激活conda环境：conda activate MdxScraper
+    4. 输入命令：python MdxScraper.py
+* 为简化上述步骤，可使用以下高级技巧，只要双击一个快捷键即可完成。
+    - 说明1: 本技巧非必须，是可选项。
+    - 说明2: 本技巧适用Window平台，其他平台同理。
 
-1. 安装：使用miniconda配置独立的运行环境，避免其他程序干扰
-    * 建立环境：conda create -n MdxScraper python
-    * 进入环境：conda activate MdxScraper
-    * 安装第三方库：同上
-2. 配置：在程序根目录下创建快捷键Conda MdxScraper.lnk，并右键/属性/目标
-    * 填入：
+1. 安装：使用miniconda配置独立的MdxScraper运行环境，避免其他程序干扰
+    * 建立conda环境：conda create -n MdxScraper python
+    * 进入conda环境：conda activate MdxScraper
+    * 安装第三方库：同上“安装”章节
+2. 配置：在程序根目录下创建快捷键Conda MdxScraper.lnk
+    * 右键/属性/目标/修订并填入：
     ```
     %windir%\System32\cmd.exe "/K" C:\Users\YOURNAME\miniconda3\Scripts\activate.bat C:\Users\YOURNAME\miniconda3\envs\MdxScraper & cd c:\Apps\MdxScraperLocal\ & MdxScraper.py
     ```
-    * 修订：请根据您的具体情况更改上述miniconda和MdxScraper的相关目录
-    * 目的：该快捷键让我们可一步到位——进入conda的MdxScraper环境，并执行程序MdxScraper.py
-3. 日常使用：
+    * 修订内容：请根据您的电脑配置信息，更改上述miniconda和MdxScraper的相关目录
+    * 目的：双击该快捷键即可一步到位——启动命令行/激活conda中的MdxScraper环境/执行程序MdxScraper.py
+3. 改进后的实际操作：
     * 配置参数：settings.py
     * 运行程序：双击快捷键Conda MdxScraper.lnk，完成
 
