@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# MdxScraper Setting
+# MdxScraper settings
 
 # 设置要查询的词条文件的位置，支持txt、json和excel
 INPUT_PATH = 'input'
