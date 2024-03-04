@@ -198,7 +198,9 @@ def mdx2html(mdx_file, input_file, output_file, invalid_action=InvalidAction.Col
     lessons = get_words(input_file)
 
     right_soup = BeautifulSoup('<body style="font-family:Arial Unicode MS;"><div class="right"></div></body>', 'lxml')
+    right_soup.find('body').insert_before('\n')
     left_soup = BeautifulSoup('<div class="left"></div>', 'lxml')
+
     invalid_words = OrderedDict()
 
     for lesson in lessons:
@@ -211,6 +213,7 @@ def mdx2html(mdx_file, input_file, output_file, invalid_action=InvalidAction.Col
         a.string = lesson['name']
         left_soup.div.append(a)
         left_soup.div.append(left_soup.new_tag('br'))
+        left_soup.div.append('\n')
 
         invalid = False
         for word in lesson['words']:
@@ -247,7 +250,9 @@ def mdx2html(mdx_file, input_file, output_file, invalid_action=InvalidAction.Col
             new_div = right_soup.new_tag("div", style=SCRAP_STYLE)
             new_div['id'] = 'word_' + word
             new_div['class'] = 'scrapedword'
-            new_div.append(definition.body)
+            if definition.body:
+                new_div.append(definition.body)
+            right_soup.div.append('\n')
             right_soup.div.append(new_div)
 
             a = left_soup.new_tag('a', href='#word_' + word, **{'class': 'word' + (' invalid_word' if invalid else '')})
@@ -255,6 +260,7 @@ def mdx2html(mdx_file, input_file, output_file, invalid_action=InvalidAction.Col
             a.string = word
             left_soup.div.append(a)
             left_soup.div.append(left_soup.new_tag('br'))
+            left_soup.div.append('\n')
 
         left_soup.div.append(left_soup.new_tag('br'))
 
@@ -268,7 +274,8 @@ def mdx2html(mdx_file, input_file, output_file, invalid_action=InvalidAction.Col
 
     html = str(right_soup).encode('utf-8')
     html = html.replace(b'<body>', b'').replace(b'</body>', b'', html.count(b'</body>') - 1)
-    open(output_file, "wb").write(html)
+    with open(output_file, "wb") as file:
+        file.write(html)
 
     if len(invalid_words) > 0:
         with open(invalid_words_file, 'w', encoding='utf-8') as fp:
@@ -336,7 +343,6 @@ if __name__ == '__main__':
 
     input_file = Path(INPUT_PATH) / INPUT_NAME
     mdx_file = Path(DICTIONARY_PATH) / DICTIONARY_NAME
-    print(mdx_file)
 
     currentTime = datetime.now().strftime("%Y%m%d-%H%M%S")
     OUTPUT_PATH = Path(OUTPUT_PATH)
@@ -358,6 +364,6 @@ if __name__ == '__main__':
 
     end_time = time.time()
     duration = human_readable_duration(end_time - start_time)
-    print(f"Success: {found} words extracted from {DICTIONARY_NAME}. Refer to {output_file}.\n")
-    print(f"Failure: {not_found} words not in {DICTIONARY_NAME}. Check {invalid_words_file}.\n")
+    print(f"Success: {found} words extracted from {Path(DICTIONARY_NAME).name}. Refer to {output_file}.\n")
+    print(f"Failure: {not_found} words not in {Path(DICTIONARY_NAME).name}. Check {invalid_words_file}.\n")
     print(f"The entire process took a total of {duration}.")
