@@ -45,9 +45,18 @@ sys.path.append(str(path_to_be_added))
 import mdict_query
 
 # Function to open a file with detected encoding
-def open_encoding_file(name):
-    encoding = detect(open(name, 'rb').read())['encoding']
-    return open(name, encoding=encoding)
+def open_encoding_file(name, default_encoding='utf-8'):
+    with open(name, 'rb') as f:
+        raw_data = f.read()
+    if raw_data.count(b'\n') < 1:
+        encoding = default_encoding
+    else:
+        detection_result = detect(raw_data)
+        encoding = detection_result['encoding']
+        confidence = detection_result.get('confidence', 0)
+        if confidence < 0.5:
+            encoding = default_encoding
+    return open(name, encoding=encoding, errors='ignore')
 
 # Function to retrieve words from different file types
 def get_words(name):
@@ -327,6 +336,7 @@ if __name__ == '__main__':
 
     input_file = Path(INPUT_PATH) / INPUT_NAME
     mdx_file = Path(DICTIONARY_PATH) / DICTIONARY_NAME
+    print(mdx_file)
 
     currentTime = datetime.now().strftime("%Y%m%d-%H%M%S")
     OUTPUT_PATH = Path(OUTPUT_PATH)
