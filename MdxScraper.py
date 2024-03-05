@@ -16,6 +16,7 @@ import os
 import sys
 import time
 import json
+import shutil
 import platform
 import tempfile
 from pathlib import Path
@@ -356,12 +357,15 @@ if __name__ == '__main__':
     OUTPUT_PATH = Path(OUTPUT_PATH)
     OUTPUT_PATH.mkdir(parents=True, exist_ok=True)
     if OUTPUT_NAME is None:
-        OUTPUT_NAME = currentTime + '-' + Path(INPUT_NAME).stem + '.html'
+        OUTPUT_NAME = currentTime + '_' + Path(INPUT_NAME).stem + '.html'
         output_file = OUTPUT_PATH / OUTPUT_NAME
     else:
-        OUTPUT_NAME = currentTime + '-' + OUTPUT_NAME
+        OUTPUT_NAME = currentTime + '_' + OUTPUT_NAME
         output_file = OUTPUT_PATH / OUTPUT_NAME
-    invalid_words_file = OUTPUT_PATH / (currentTime + '-' + INVALID_WORDS_NAME)
+    invalid_words_file = OUTPUT_PATH / (currentTime + '_' + INVALID_WORDS_NAME)
+
+    backup_input_file = OUTPUT_PATH / (currentTime + '_backup_' + INPUT_NAME)
+    shutil.copy(str(input_file), str(backup_input_file))
 
     output_type = Path(output_file).suffix[1:]
     found, not_found = {

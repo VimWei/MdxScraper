@@ -81,6 +81,6 @@ a.word {color: #1565c0; text-decoration: none; cursor: pointer; font-variant: no
 a.word:hover {background-color: #e3f2fd;}
 a.invalid_word {color: #909497;}
 div.main {width: 100%; height: 100%;}
-div.left {width: 150px; overflow: auto; float: left; height: 100%;}
+div.left {width: 180px; overflow: auto; float: left; height: 100%;}
 div.right {overflow-y: auto; overflow-x: hidden; padding-left: 10px; height: 100%;}
 '''
