@@ -134,8 +134,16 @@ def get_image_format_from_src(src: str) -> str:
         return 'jpeg'
     elif ext == '.gif':
         return 'gif'
+    elif ext == '.webp':
+        return 'webp'
+    elif ext == '.svg':
+        return 'svg'
+    elif ext in ['.tif', '.tiff']:
+        return 'tiff'
+    elif ext == '.bmp':
+        return 'bmp'
     else:
-        return 'png'
+        return 'jpg'
 
 # Function to replace image source with base64 data in HTML soup
 def grab_images(soup, dictionary):
