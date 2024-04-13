@@ -385,4 +385,4 @@ if __name__ == '__main__':
 
     end_time = time.time()
     duration = human_readable_duration(end_time - start_time)
-    print(f"The entire process took a total of {duration}.")
+    print(f"The entire process took a total of {duration}.\n")
