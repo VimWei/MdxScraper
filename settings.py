@@ -6,7 +6,11 @@
 INPUT_PATH = 'input'
 INPUT_NAME = 'words_to_lookup.txt'
 
-# 设置词典文件的存放位置
+# 设置要查询的词典：类别（需要引号）和序号（从0开始计数）
+dictionary_type = 'English'
+dictionary_order = 1
+
+# 定义词典文件的存放位置
 DICTIONARY_PATH = 'lib/mdict'
 # 定义可用词典列表，可以使用子目录
 dictionaries = {
@@ -30,8 +34,7 @@ dictionaries = {
         'my_dictionary.mdx',
     ],
 }
-# 选择要查询的词典：类别（需要引号）和编号（从零开始）
-DICTIONARY_NAME = dictionaries['English'][3]
+DICTIONARY_NAME = dictionaries[dictionary_type][dictionary_order]
 
 # 设置输出文件的位置
 OUTPUT_PATH = 'output'
