@@ -1,1 +1,22 @@
+# Application data
+# input/
+output/
+
+# Python
+**/__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual environments
+.venv/
+venv/
+
+# IDE
 *.swp
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db

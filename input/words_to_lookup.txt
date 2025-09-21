@@ -1,8 +1,9 @@
 # Lesson 1
-hello
-world
+welcome
+summer
+crime
 
 # Lesson 2
-python
-is
-awesome
+flame
+meat
+camera

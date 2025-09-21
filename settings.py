@@ -8,7 +8,7 @@ INPUT_NAME = 'words_to_lookup.txt'
 
 # 设置要查询的词典：类别（需要引号）和序号（从0开始计数）
 dictionary_type = 'English'
-dictionary_order = 1
+dictionary_order = 0
 
 # 定义词典文件的存放位置
 DICTIONARY_PATH = 'lib/mdict'
@@ -21,6 +21,7 @@ dictionaries = {
         '汉语辞海/汉语辞海20190923重排.mdx',
     ],
     "English": [
+        'sample/Learn These Words First.mdx',
         '简明英汉增强升级必应版/concise-bing.mdx',
         'Collins COBUILD 8th/Collins COBUILD 8th.mdx',
         '牛津小学生英汉双解词典/OxfordPrimary.mdx',

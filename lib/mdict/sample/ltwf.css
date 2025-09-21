@@ -1,0 +1,21 @@
+div {font-family:Ariel,sans-serif;margin:0;border:0;padding:0;}
+p {font-size:1em;margin:10px;border:0;padding:0;}
+ul {margin:10px;border:0;padding:0;}
+li {font-family:Ariel,sans-serif;font-size:1em;margin:10px 10px 10px 30px;border:0;padding:0;}
+a:link {color:blue;}
+a:visited {color:purple;}
+.Header{font-size:1.5em;}
+.Headword {color:red;}
+.Definition {font-size:1.1em;}
+.Caption {font-size:1.1em;}
+.Sense {font-size:1.1em;}
+img {height:auto;width:auto;max-width:100%;border:0;}
+img.Image {width:auto;max-width:100%;height:auto;max-height:400px;}
+img.Gloss {width:auto;max-width:100%;height:auto;max-height:100px;}
+p.Image {margin-left:0;margin-right:0;}
+p.Gloss {margin-left:0;margin-right:0;}
+@media screen and (min-width:940px)
+{
+p.Image {margin-left:10px;margin-right:10px;}
+p.Gloss {margin-left:10px;margin-right:10px;}
+}

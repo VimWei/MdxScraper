@@ -5,11 +5,10 @@
 Module: MdxScraper
 Author: VimWei
 Created: January 14, 2024
-Modified: March 3, 2024
+Modified: September 21, 2025
 
 Description:
     Extract specific words from an MDX dictionary and generate HTML, PDF, or JPG files with ease.
-    It's an adaptation and upgrade based on the original MdxConverter: https://github.com/noword/MdxConverter
 """
 
 import os
@@ -23,12 +22,12 @@ from pathlib import Path
 from collections import OrderedDict
 from datetime import datetime, timedelta
 
-import imgkit  # pip install imgkit
-import pdfkit  # pip install pdfkit
-import openpyxl  # pip install openpyxl
-from chardet import detect  # pip install chardet
-from base64 import b64encode  # pip install base64
-from bs4 import BeautifulSoup  # pip install bs4
+import imgkit
+import pdfkit
+import openpyxl
+from chardet import detect
+from base64 import b64encode
+from bs4 import BeautifulSoup
 
 from settings import (
     INPUT_PATH, INPUT_NAME,
