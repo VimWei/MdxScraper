@@ -4,7 +4,11 @@
 
 一句话：根据指定词汇，从MDX字典提取内容并输出为HTML、PDF或JPG。
 
-详情：MdxScraper 是在 MdxConverter 基础上升级改造：
+![截图](lib/images/screenshot.png)
+
+## 特点
+
+MdxScraper 是在 MdxConverter 基础上升级改造：
 
 1. 提升词典兼容性：
     * 内置并升级mdict-query，支持多mdd的词典。
@@ -26,26 +30,29 @@
 
 To set up the project locally, you will need a working Python environment (Python 3.10+ recommended).
 
-1.  **Clone the repository:**
-    ```bash
-    git clone https://github.com/VimWei/MdxScraper
-    cd MdxScraper
-    ```
+1. **Clone the repository:**
+   ```bash
+   git clone https://github.com/VimWei/MdxScraper
+   cd MdxScraper
+   ```
 
-2.  **Install uv (fast Python package manager):**
-    ```bash
-    # Linux/macOS
-    curl -LsSf https://astral.sh/uv/install.sh | sh
+2. **Install uv (fast Python package manager):**
+   ```bash
+   # Linux/macOS
+   curl -LsSf https://astral.sh/uv/install.sh | sh
 
-    # Windows (PowerShell)
-    iwr https://astral.sh/uv/install.ps1 -UseBasicParsing | iex
-    ```
+   # Windows (PowerShell)
+   iwr https://astral.sh/uv/install.ps1 -UseBasicParsing | iex
+   ```
 
-3.  **Install dependencies:**
-    ```bash
-    # Install all dependencies with exact versions
-    uv sync
-    ```
+3. **Install dependencies:**
+   ```bash
+   # Install all dependencies with exact versions
+   uv sync
+   ```
+
+4. Install wkhtmltopdf (for PDF)
+   * https://wkhtmltopdf.org/downloads.html
 
 ## 日常使用
 
@@ -53,3 +60,7 @@ To set up the project locally, you will need a working Python environment (Pytho
 2. 运行程序：
     * 方法1: (windows) 直接双击运行文件 `MdxScraper.vbs`
     * 方法2: (Windows/Linux/macOS) 命令行输入 `uv run python MdxScraper.py`
+
+## 案例
+
+![输出 html](lib/images/html.png)
