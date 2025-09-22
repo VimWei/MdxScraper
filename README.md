@@ -51,7 +51,7 @@ To set up the project locally, you will need a working Python environment (Pytho
    uv sync
    ```
 
-4. Install wkhtmltopdf (for PDF)
+4. **Install wkhtmltopdf (optional, for PDF):**
    * https://wkhtmltopdf.org/downloads.html
 
 ## 日常使用

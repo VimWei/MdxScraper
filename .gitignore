@@ -1,6 +1,5 @@
 # Application data
-# input/
-output/
+# data/
 
 # Python
 **/__pycache__/

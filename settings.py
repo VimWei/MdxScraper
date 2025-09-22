@@ -3,7 +3,7 @@
 # MdxScraper settings
 
 # 设置要查询的词条文件的位置，支持txt、json和excel
-INPUT_PATH = 'input'
+INPUT_PATH = 'data/input'
 INPUT_NAME = 'words_to_lookup.txt'
 
 # 设置要查询的词典：类别（需要引号）和序号（从0开始计数）
@@ -11,7 +11,7 @@ dictionary_type = 'English'
 dictionary_order = 0
 
 # 定义词典文件的存放位置
-DICTIONARY_PATH = 'lib/mdict'
+DICTIONARY_PATH = 'data/mdict'
 # 定义可用词典列表，可以使用子目录
 dictionaries = {
     "Chinese": [
@@ -21,7 +21,7 @@ dictionaries = {
         '汉语辞海/汉语辞海20190923重排.mdx',
     ],
     "English": [
-        'sample/Learn These Words First.mdx',
+        'Learn These Words First/Learn These Words First.mdx',
         '简明英汉增强升级必应版/concise-bing.mdx',
         'Collins COBUILD 8th/Collins COBUILD 8th.mdx',
         '牛津小学生英汉双解词典/OxfordPrimary.mdx',
@@ -38,7 +38,7 @@ dictionaries = {
 DICTIONARY_NAME = dictionaries[dictionary_type][dictionary_order]
 
 # 设置输出文件的位置
-OUTPUT_PATH = 'output'
+OUTPUT_PATH = 'data/output'
 # 设置输出文件名，支持html、pdf和jpg；若为空，则采用'输入文件名.html'
 OUTPUT_NAME = 'lookup_results.html'
 
