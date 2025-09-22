@@ -28,7 +28,7 @@ MdxScraper 是在 MdxConverter 基础上升级改造：
 
 ## 安装
 
-To set up the project locally, you will need a working Python environment (Python 3.12+ required).
+To set up the project locally, you will need a working Python environment (Python 3.11+ required).
 
 1. **Clone the repository:**
    ```bash

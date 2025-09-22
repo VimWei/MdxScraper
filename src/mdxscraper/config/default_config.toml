@@ -1,0 +1,19 @@
+[input]
+file = "data/input/words_to_lookup.txt"
+
+[dictionary]
+file = "data/mdict/Learn These Words First/Learn These Words First.mdx"
+
+[output]
+file = "data/output/lookup_results.html"
+with_toc = true
+
+[processing]
+invalid_action = "collect_warning"
+parallel = false
+max_workers = 4
+
+[advanced]
+wkhtmltopdf_path = "auto"
+
+

@@ -1,9 +1,9 @@
 [project]
 name = "MdxScraper"
-version = "3.9"
+version = "4.0"
 description = "Scraping web pages and convert to clean, readable Markdown files."
 readme = "README.md"
-requires-python = ">=3.12"
+requires-python = ">=3.11"
 license = { text = "GPL-3.0" }
 authors = [
   { name = "VimWei" }
@@ -15,8 +15,25 @@ dependencies = [
     'chardet>=5.2.0',
     'beautifulsoup4>=4.13.5',
     'lxml>=6.0.1',
+    'tomli-w>=1.0.0',
 ]
 
 [project.urls]
 Homepage = "https://github.com/VimWei/MdxScraper"
 Repository = "https://github.com/VimWei/MdxScraper"
+
+[dependency-groups]
+dev = [
+    'pytest>=8.3.0',
+    'black>=24.8.0',
+    'isort>=5.13.2',
+    'mypy>=1.11.2',
+    'pre-commit>=3.8.0',
+]
+
+[tool.isort]
+profile = "black"
+
+[tool.black]
+line-length = 100
+target-version = ["py311"]

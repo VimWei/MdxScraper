@@ -124,7 +124,7 @@ s
 
 ```bash
 # 安装开发依赖
-uv sync --extra dev
+uv sync --group dev
 
 # 运行测试
 uv run pytest

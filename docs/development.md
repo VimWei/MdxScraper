@@ -155,7 +155,7 @@ MdxScraper/
 ## 技术栈选择
 
 ### 核心依赖
-- **tomllib + tomli_w**: 配置文件处理（Python 3.12+ 完全内置）
+- **tomllib (读) + tomli_w (写)**: 配置文件处理（Python 3.11+ 内置 tomllib 读取；写入用 tomli_w）
 - **BeautifulSoup4 + lxml**: HTML 解析和处理
 - **openpyxl**: Excel 文件处理
 - **chardet**: 文件编码检测
@@ -385,7 +385,7 @@ objShell.Run "uv run python MdxScraper.py", 1, True
 ## 开发环境设置
 
 ### 环境要求
-- Python 3.12+
+- Python 3.11+
 - uv 包管理器
 - Git
 
@@ -395,7 +395,7 @@ objShell.Run "uv run python MdxScraper.py", 1, True
 uv sync
 
 # 安装开发依赖
-uv sync --extra dev
+uv sync --group dev
 
 # 运行程序
 uv run python MdxScraper.py

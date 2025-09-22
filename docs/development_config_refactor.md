@@ -237,16 +237,16 @@ def migrate_from_settings_py():
 
 ## 技术实现要点
 
-### 1. TOML 处理
+### 1. TOML 处理（Python 3.11+）
 ```python
-import tomllib  # Python 3.12+ 内置
-import tomli_w  # Python 3.12+ 内置
+import tomllib  # Python 3.11+ 内置（只读）
+import tomli_w  # 第三方写入器（写入）
 
 # 读取配置
 with open('config.toml', 'rb') as f:
     config = tomllib.load(f)
 
-# 写入配置
+# 写入配置（使用 tomli_w）
 with open('config.toml', 'w', encoding='utf-8') as f:
     tomli_w.dump(config, f)
 ```
