@@ -28,7 +28,7 @@ MdxScraper 是在 MdxConverter 基础上升级改造：
 
 ## 安装
 
-To set up the project locally, you will need a working Python environment (Python 3.10+ recommended).
+To set up the project locally, you will need a working Python environment (Python 3.12+ required).
 
 1. **Clone the repository:**
    ```bash
@@ -42,7 +42,7 @@ To set up the project locally, you will need a working Python environment (Pytho
    curl -LsSf https://astral.sh/uv/install.sh | sh
 
    # Windows (PowerShell)
-   iwr https://astral.sh/uv/install.ps1 -UseBasicParsing | iex
+   powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
    ```
 
 3. **Install dependencies:**

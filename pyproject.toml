@@ -3,7 +3,7 @@ name = "MdxScraper"
 version = "3.9"
 description = "Scraping web pages and convert to clean, readable Markdown files."
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.12"
 license = { text = "GPL-3.0" }
 authors = [
   { name = "VimWei" }
@@ -14,7 +14,7 @@ dependencies = [
     'openpyxl>=3.1.5',
     'chardet>=5.2.0',
     'beautifulsoup4>=4.13.5',
-    'lxml>=6.0.1'
+    'lxml>=6.0.1',
 ]
 
 [project.urls]
