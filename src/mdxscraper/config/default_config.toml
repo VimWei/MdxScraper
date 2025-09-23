@@ -10,9 +10,10 @@ with_toc = true
 add_timestamp = true
 
 [processing]
-invalid_action = "collect_warning"
+invalid_action = "collect_output_warning"
 parallel = false
 max_workers = 4
+invalid_words_file = "data/output/invalid_words.txt"
 
 [advanced]
 wkhtmltopdf_path = "auto"

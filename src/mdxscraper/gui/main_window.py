@@ -385,6 +385,7 @@ class ConversionWorker(QThread):
             
             # Apply timestamp if enabled
             timestamp_enabled = self.cm.get_output_add_timestamp()
+            current_time = None
             if timestamp_enabled:
                 from datetime import datetime
                 current_time = datetime.now().strftime("%Y%m%d-%H%M%S")
@@ -405,7 +406,7 @@ class ConversionWorker(QThread):
             self.log_sig.emit(f"🔄 Running conversion: {mdx_file.name} -> {output_path.name}")
             
             if suffix == '.html':
-                found, not_found = mdx2html(mdx_file, input_file, output_path, invalid_action, True)
+                found, not_found, invalid_words = mdx2html(mdx_file, input_file, output_path, invalid_action, True)
             elif suffix == '.pdf':
                 # Use default PDF options for now
                 pdf_options = {
@@ -417,14 +418,40 @@ class ConversionWorker(QThread):
                     'encoding': "UTF-8",
                     'no-outline': None
                 }
-                found, not_found = mdx2pdf(mdx_file, input_file, output_path, pdf_options, invalid_action)
+                found, not_found, invalid_words = mdx2pdf(mdx_file, input_file, output_path, pdf_options, invalid_action)
             elif suffix in ('.jpg', '.jpeg'):
-                found, not_found = mdx2jpg(mdx_file, input_file, output_path, invalid_action)
+                found, not_found, invalid_words = mdx2jpg(mdx_file, input_file, output_path, invalid_action)
             else:
                 raise RuntimeError(f"Unsupported output extension: {suffix}")
 
-            # Calculate success rate and duration
+            # Calculate success rate
             total = found + not_found
+            if total > 0:
+                success_rate = (found / total) * 100
+                msg = f"Done. Found: {found}, Success rate: {success_rate:.1f}%"
+            else:
+                msg = f"Done. Found: {found}, Success rate: 0%"
+            
+            # Emit success message first
+            self.finished_sig.emit(msg)
+
+            # Write invalid words file if there are any invalid words
+            if invalid_words:
+                from mdxscraper.core.converter import write_invalid_words_file
+                invalid_words_file = self.cm.get_invalid_words_file()
+                if invalid_words_file:
+                    invalid_words_path = self.cm._resolve_path(invalid_words_file)
+                    
+                    # Apply timestamp to invalid words file if enabled
+                    if timestamp_enabled and current_time:
+                        invalid_words_dir = invalid_words_path.parent
+                        invalid_words_name = invalid_words_path.name
+                        invalid_words_path = invalid_words_dir / (current_time + '_' + invalid_words_name)
+                    
+                    write_invalid_words_file(invalid_words, invalid_words_path)
+                    self.log_sig.emit(f"📝 Invalid words saved to: {invalid_words_path}")
+
+            # Calculate and emit duration last
             end_time = time.time()
             duration = end_time - start_time
             
@@ -438,14 +465,6 @@ class ConversionWorker(QThread):
                 seconds = duration % 60
                 duration_str = f"{minutes}m {seconds:.1f}s"
             
-            if total > 0:
-                success_rate = (found / total) * 100
-                msg = f"Done. Found: {found}, Success rate: {success_rate:.1f}%"
-            else:
-                msg = f"Done. Found: {found}, Success rate: 0%"
-            
-            # Emit success message first, then duration
-            self.finished_sig.emit(msg)
             self.log_sig.emit(f"⏱️ The entire process took a total of {duration_str}.")
         except Exception as e:
             self.error_sig.emit(str(e))

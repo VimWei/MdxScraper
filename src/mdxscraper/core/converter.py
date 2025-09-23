@@ -27,7 +27,7 @@ def mdx2html(
     h1_style: str | None = None,
     scrap_style: str | None = None,
     additional_styles: str | None = None,
-) -> Tuple[int, int]:
+) -> Tuple[int, int, OrderedDict]:
     found_count = 0
     not_found_count = 0
 
@@ -117,8 +117,8 @@ def mdx2html(
     with open(output_file, 'wb') as file:
         file.write(html)
 
-    # writing invalid_words file handled by caller in new flow
-    return found_count, not_found_count
+    # Return invalid_words data for caller to handle file output
+    return found_count, not_found_count, invalid_words
 
 
 def mdx2pdf(
@@ -127,16 +127,16 @@ def mdx2pdf(
     output_file: str | Path,
     pdf_options: dict,
     invalid_action: InvalidAction = InvalidAction.Collect,
-) -> tuple[int, int]:
+) -> tuple[int, int, OrderedDict]:
     with tempfile.NamedTemporaryFile(suffix='.html', delete=False) as temp:
         temp_file = temp.name
-        result = mdx2html(mdx_file, input_file, temp_file, invalid_action, with_toc=False)
+        found, not_found, invalid_words = mdx2html(mdx_file, input_file, temp_file, invalid_action, with_toc=False)
 
     config_path = get_wkhtmltopdf_path('auto')
     config = pdfkit.configuration(wkhtmltopdf=config_path)
     pdfkit.from_file(temp_file, str(output_file), configuration=config, options=pdf_options)
     os.remove(temp_file)
-    return result
+    return found, not_found, invalid_words
 
 
 def mdx2jpg(
@@ -144,15 +144,35 @@ def mdx2jpg(
     input_file: str | Path,
     output_file: str | Path,
     invalid_action: InvalidAction = InvalidAction.Collect,
-) -> tuple[int, int]:
+) -> tuple[int, int, OrderedDict]:
     with tempfile.NamedTemporaryFile(suffix='.html', delete=False) as temp:
         temp_file = temp.name
-        result = mdx2html(mdx_file, input_file, temp_file, invalid_action, with_toc=False)
+        found, not_found, invalid_words = mdx2html(mdx_file, input_file, temp_file, invalid_action, with_toc=False)
 
     imgkit.from_file(temp_file, str(output_file), options={'enable-local-file-access': ''})
     os.remove(temp_file)
-    return result
+    return found, not_found, invalid_words
 
+
+def write_invalid_words_file(invalid_words: OrderedDict, output_file: str | Path) -> None:
+    """Write invalid words to a text file in the same format as input files.
+    
+    Args:
+        invalid_words: Dictionary mapping lesson names to lists of invalid words
+        output_file: Path to the output file
+    """
+    if not invalid_words:
+        return
+        
+    output_path = Path(output_file)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    
+    with open(output_path, 'w', encoding='utf-8') as f:
+        for lesson_name, words in invalid_words.items():
+            f.write(f"# {lesson_name}\n")
+            for word in words:
+                f.write(f"{word}\n")
+            f.write("\n")
 
 def human_readable_duration(seconds: float) -> str:
     time_delta = timedelta(seconds=seconds)

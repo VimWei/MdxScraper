@@ -140,6 +140,12 @@ class ConfigManager:
     def set_output_add_timestamp(self, value: bool) -> None:
         self.set("output.add_timestamp", value)
 
+    def get_invalid_words_file(self) -> Optional[str]:
+        return self.get("processing.invalid_words_file")
+
+    def set_invalid_words_file(self, path: str) -> None:
+        self.set("processing.invalid_words_file", self._to_external_path(path))
+
     # ---------- Internal helpers ----------
     def _read_toml(self, path: Path) -> Dict[str, Any]:
         with open(path, "rb") as f:
