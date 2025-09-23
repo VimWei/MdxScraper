@@ -200,6 +200,8 @@ class MainWindow(QMainWindow):
         if file:
             self.cm.set_input_file(file)
             self.edit_input.setText(self.cm.get("input.file"))
+            # Also update output base name to match input base
+            self.on_input_edited()
 
     def choose_dictionary(self):
         current = self.edit_dict.text()
@@ -340,6 +342,16 @@ class MainWindow(QMainWindow):
         text = self.edit_input.text().strip()
         if text:
             self.cm.set_input_file(text)
+            # Auto-adjust output filename base to match input base, keeping path and suffix
+            current_output = self.cm.get("output.file")
+            if current_output:
+                out_path = Path(current_output)
+                new_base = Path(text).stem
+                new_name = new_base + out_path.suffix
+                new_output_path = out_path.with_name(new_name)
+                self.cm.set_output_file(str(new_output_path))
+                # Reflect change in UI
+                self.edit_output.setText(self.cm.get("output.file"))
 
     def on_dictionary_edited(self):
         text = self.edit_dict.text().strip()
@@ -439,17 +451,22 @@ class ConversionWorker(QThread):
             if invalid_words:
                 from mdxscraper.core.converter import write_invalid_words_file
                 invalid_words_file = self.cm.get_invalid_words_file()
+                # Use configured filename if present; otherwise default
                 if invalid_words_file:
-                    invalid_words_path = self.cm._resolve_path(invalid_words_file)
-                    
-                    # Apply timestamp to invalid words file if enabled
-                    if timestamp_enabled and current_time:
-                        invalid_words_dir = invalid_words_path.parent
-                        invalid_words_name = invalid_words_path.name
-                        invalid_words_path = invalid_words_dir / (current_time + '_' + invalid_words_name)
-                    
-                    write_invalid_words_file(invalid_words, invalid_words_path)
-                    self.log_sig.emit(f"📝 Invalid words saved to: {invalid_words_path}")
+                    configured_name = Path(invalid_words_file).name
+                else:
+                    configured_name = "invalid_words.txt"
+
+                # Always save to the same directory as the output file
+                invalid_words_dir = output_path.parent
+                invalid_words_path = invalid_words_dir / configured_name
+
+                # Apply timestamp to invalid words file if enabled
+                if timestamp_enabled and current_time:
+                    invalid_words_path = invalid_words_dir / (current_time + '_' + configured_name)
+
+                write_invalid_words_file(invalid_words, invalid_words_path)
+                self.log_sig.emit(f"📝 Invalid words saved to: {invalid_words_path}")
 
             # Calculate and emit duration last
             end_time = time.time()

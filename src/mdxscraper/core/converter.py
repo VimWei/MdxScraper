@@ -114,6 +114,8 @@ def mdx2html(
 
     html = str(right_soup).encode('utf-8')
     html = html.replace(b'<body>', b'').replace(b'</body>', b'', html.count(b'</body>') - 1)
+    # Ensure output directory exists
+    Path(output_file).parent.mkdir(parents=True, exist_ok=True)
     with open(output_file, 'wb') as file:
         file.write(html)
 
@@ -134,6 +136,8 @@ def mdx2pdf(
 
     config_path = get_wkhtmltopdf_path('auto')
     config = pdfkit.configuration(wkhtmltopdf=config_path)
+    # Ensure output directory exists
+    Path(output_file).parent.mkdir(parents=True, exist_ok=True)
     pdfkit.from_file(temp_file, str(output_file), configuration=config, options=pdf_options)
     os.remove(temp_file)
     return found, not_found, invalid_words
@@ -149,6 +153,8 @@ def mdx2jpg(
         temp_file = temp.name
         found, not_found, invalid_words = mdx2html(mdx_file, input_file, temp_file, invalid_action, with_toc=False)
 
+    # Ensure output directory exists
+    Path(output_file).parent.mkdir(parents=True, exist_ok=True)
     imgkit.from_file(temp_file, str(output_file), options={'enable-local-file-access': ''})
     os.remove(temp_file)
     return found, not_found, invalid_words
