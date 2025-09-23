@@ -259,7 +259,7 @@ class MainWindow(QMainWindow):
                 start_dir = str(self.project_root / "data" / "output")
         file, _ = QFileDialog.getSaveFileName(
             self, "Select output file", start_dir,
-            "HTML files (*.html);;PDF files (*.pdf);;JPG files (*.jpg);;All files (*.*)"
+            "HTML files (*.html);;PDF files (*.pdf);;JPG files (*.jpg);;PNG files (*.png);;WEBP files (*.webp);;All files (*.*)"
         )
         if file:
             self.cm.set_output_file(file)
@@ -442,7 +442,7 @@ class ConversionWorker(QThread):
 
     def run(self):
         try:
-            from mdxscraper.core.converter import mdx2html, mdx2pdf, mdx2jpg
+            from mdxscraper.core.converter import mdx2html, mdx2pdf, mdx2img
             import time
 
             # Start timing
@@ -480,8 +480,8 @@ class ConversionWorker(QThread):
                     'no-outline': None
                 }
                 found, not_found, invalid_words = mdx2pdf(mdx_file, input_file, output_path, pdf_options)
-            elif suffix in ('.jpg', '.jpeg'):
-                found, not_found, invalid_words = mdx2jpg(mdx_file, input_file, output_path)
+            elif suffix in ('.jpg', '.jpeg', '.png', '.webp'):
+                found, not_found, invalid_words = mdx2img(mdx_file, input_file, output_path)
             else:
                 raise RuntimeError(f"Unsupported output extension: {suffix}")
 

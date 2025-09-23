@@ -10,6 +10,7 @@ from typing import Tuple
 import imgkit
 import pdfkit
 from bs4 import BeautifulSoup
+from PIL import Image
 
 from mdxscraper.core.dictionary import Dictionary
 from mdxscraper.core.parser import get_words
@@ -129,18 +130,76 @@ def mdx2pdf(
     return found, not_found, invalid_words
 
 
-def mdx2jpg(
+def mdx2img(
     mdx_file: str | Path,
     input_file: str | Path,
     output_file: str | Path,
+    img_options: dict | None = None,
 ) -> tuple[int, int, OrderedDict]:
+    """Render dictionary results to an image using wkhtmltoimage via imgkit.
+
+    The output format is inferred from the output file suffix (.jpg/.jpeg/.png/.webp).
+    Additional imgkit options can be supplied via img_options.
+    """
     with tempfile.NamedTemporaryFile(suffix='.html', delete=False) as temp:
         temp_file = temp.name
-        found, not_found, invalid_words = mdx2html(mdx_file, input_file, temp_file, with_toc=False)
+        found, not_found, invalid_words = mdx2html(
+            mdx_file, input_file, temp_file, with_toc=False
+        )
 
     # Ensure output directory exists
-    Path(output_file).parent.mkdir(parents=True, exist_ok=True)
-    imgkit.from_file(temp_file, str(output_file), options={'enable-local-file-access': ''})
+    output_path = Path(output_file)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    options = {'enable-local-file-access': ''}
+    if img_options:
+        # Only propagate wkhtmltoimage options here; custom keys handled below
+        options.update({k: v for k, v in img_options.items() if isinstance(k, str)})
+
+    suffix = output_path.suffix.lower()
+    # -------- WEBP --------
+    if suffix == '.webp':
+        # Render to a temporary PNG first, then convert to WEBP via Pillow
+        with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as tmp_png:
+            tmp_png_path = tmp_png.name
+        try:
+            imgkit.from_file(temp_file, str(tmp_png_path), options=options)
+            with Image.open(tmp_png_path) as im:
+                webp_quality = 80 if not img_options else int(img_options.get('webp_quality', 80))
+                webp_lossless = False if not img_options else bool(img_options.get('webp_lossless', False))
+                if webp_lossless:
+                    im.save(str(output_path), format='WEBP', lossless=True, quality=webp_quality)
+                else:
+                    im.save(str(output_path), format='WEBP', quality=webp_quality, method=6)
+        finally:
+            try:
+                os.remove(tmp_png_path)
+            except Exception:
+                pass
+    # -------- PNG --------
+    elif suffix == '.png':
+        # Render to temp, then Pillow optimize and recompress
+        with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as tmp_png:
+            tmp_png_path = tmp_png.name
+        try:
+            imgkit.from_file(temp_file, str(tmp_png_path), options=options)
+            with Image.open(tmp_png_path) as im:
+                png_optimize = True if not img_options else bool(img_options.get('png_optimize', True))
+                png_compress_level = 9 if not img_options else int(img_options.get('png_compress_level', 9))
+                im.save(str(output_path), format='PNG', optimize=png_optimize, compress_level=png_compress_level)
+        finally:
+            try:
+                os.remove(tmp_png_path)
+            except Exception:
+                pass
+    # -------- JPG / JPEG --------
+    elif suffix in ('.jpg', '.jpeg'):
+        # Set default JPEG quality for wkhtmltoimage
+        options.setdefault('quality', '85')
+        imgkit.from_file(temp_file, str(output_path), options=options)
+    # -------- Others (fallback to wkhtmltoimage) --------
+    else:
+        imgkit.from_file(temp_file, str(output_path), options=options)
+
     os.remove(temp_file)
     return found, not_found, invalid_words
 
