@@ -39,6 +39,7 @@ class MainWindow(QMainWindow):
         lbl_in.setFixedWidth(label_w)
         lbl_in.setProperty("class", "field-label")
         self.edit_input = QLineEdit(self.cm.get("input.file", ""), self)
+        self.edit_input.editingFinished.connect(self.on_input_edited)
         btn_input = QPushButton("Choose...", self)
         btn_input.setFixedWidth(btn_w)
         btn_input.clicked.connect(self.choose_input)
@@ -50,6 +51,7 @@ class MainWindow(QMainWindow):
         lbl_dict.setFixedWidth(label_w)
         lbl_dict.setProperty("class", "field-label")
         self.edit_dict = QLineEdit(self.cm.get("dictionary.file", ""), self)
+        self.edit_dict.editingFinished.connect(self.on_dictionary_edited)
         btn_dict = QPushButton("Choose...", self)
         btn_dict.setFixedWidth(btn_w)
         btn_dict.clicked.connect(self.choose_dictionary)
@@ -61,6 +63,7 @@ class MainWindow(QMainWindow):
         lbl_out.setFixedWidth(label_w)
         lbl_out.setProperty("class", "field-label")
         self.edit_output = QLineEdit(self.cm.get("output.file", ""), self)
+        self.edit_output.editingFinished.connect(self.on_output_edited)
         btn_output = QPushButton("Choose...", self)
         btn_output.setFixedWidth(btn_w)
         btn_output.clicked.connect(self.choose_output)
@@ -242,6 +245,11 @@ class MainWindow(QMainWindow):
         event.accept()
 
     def run_conversion(self):
+        # Ensure latest values from inputs are synced to config before running
+        self.on_input_edited()
+        self.on_dictionary_edited()
+        self.on_output_edited()
+
         output = self.cm.get("output.file")
         if not output:
             QMessageBox.warning(self, "Run", "Please set output file first.")
@@ -281,6 +289,22 @@ class MainWindow(QMainWindow):
     def export_session(self):
         # Placeholder for future implementation
         pass
+
+    # --- Field edit handlers ---
+    def on_input_edited(self):
+        text = self.edit_input.text().strip()
+        if text:
+            self.cm.set_input_file(text)
+
+    def on_dictionary_edited(self):
+        text = self.edit_dict.text().strip()
+        if text:
+            self.cm.set_dictionary_file(text)
+
+    def on_output_edited(self):
+        text = self.edit_output.text().strip()
+        if text:
+            self.cm.set_output_file(text)
 
 
 class ConversionWorker(QThread):
