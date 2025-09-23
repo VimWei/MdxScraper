@@ -181,7 +181,7 @@ class MainWindow(QMainWindow):
         self.jpg_quality_value.setFixedWidth(50)
         row_jpg.addWidget(self.jpg_quality_value)
         row_jpg.addItem(QSpacerItem(20, 10, QSizePolicy.Expanding, QSizePolicy.Minimum))
-        _lay_img.addLayout(row_jpg)
+        # will add rows in desired order later
 
         # PNG options (single row)
         row_png = QHBoxLayout()
@@ -208,7 +208,7 @@ class MainWindow(QMainWindow):
         self.png_transparent = QCheckBox("Transparent background", self)
         row_png.addWidget(self.png_transparent)
         row_png.addItem(QSpacerItem(20, 10, QSizePolicy.Expanding, QSizePolicy.Minimum))
-        _lay_img.addLayout(row_png)
+        # will add rows in desired order later
 
         # WEBP options (single row)
         row_webp = QHBoxLayout()
@@ -235,7 +235,11 @@ class MainWindow(QMainWindow):
         self.webp_transparent = QCheckBox("Transparent background", self)
         row_webp.addWidget(self.webp_transparent)
         row_webp.addItem(QSpacerItem(20, 10, QSizePolicy.Expanding, QSizePolicy.Minimum))
+        # Reorder Image tab rows: General, WEBP, PNG, JPG/JPEG
+        _lay_img.addLayout(row_gen)
         _lay_img.addLayout(row_webp)
+        _lay_img.addLayout(row_png)
+        _lay_img.addLayout(row_jpg)
         self.tabs.addTab(self.tab_image, "Image")
 
         # PDF Tab
@@ -273,6 +277,44 @@ class MainWindow(QMainWindow):
         self.css_editor.setPlaceholderText("[style]\n# h1_style=..., scrap_style=..., additional_styles=... (TOML)")
         _lay_css.addWidget(self.css_editor, 1)
         self.tabs.addTab(self.tab_css, "CSS")
+
+        # About Tab
+        self.tab_about = QWidget(self)
+        _lay_about = QVBoxLayout(self.tab_about)
+        _lay_about.setContentsMargins(8, 8, 8, 8)
+        # Center the two-line block vertically and horizontally
+        _lay_about.addStretch(1)
+        _about_block = QVBoxLayout()
+        _about_block.setContentsMargins(0, 0, 0, 0)
+        _about_title = QLabel('<b>Homepage</b>', self)
+        _about_title.setAlignment(Qt.AlignHCenter)
+        _about_block.addWidget(_about_title)
+        _about_link = QLabel('<a href="https://github.com/VimWei/MdxScraper">https://github.com/VimWei/MdxScraper</a>', self)
+        _about_link.setOpenExternalLinks(True)
+        _about_link.setAlignment(Qt.AlignHCenter)
+        _about_block.addWidget(_about_link)
+        _lay_about.addLayout(_about_block)
+        _lay_about.addStretch(1)
+        self.tabs.addTab(self.tab_about, "About")
+
+        # Reorder tabs to: Basic, CSS, Image, PDF
+        try:
+            desired_order = [
+                (self.tab_basic, "Basic"),
+                (self.tab_css, "CSS"),
+                (self.tab_image, "Image"),
+                (self.tab_pdf, "PDF"),
+                (self.tab_about, "About"),
+            ]
+            # Remove all existing tabs
+            while self.tabs.count() > 0:
+                self.tabs.removeTab(0)
+            # Add back in the desired order
+            for widget, label in desired_order:
+                self.tabs.addTab(widget, label)
+        except Exception:
+            # If anything goes wrong, fallback silently keeping existing order
+            pass
 
         root.addWidget(self.tabs)
         # Prefer showing Basic tab first
