@@ -134,6 +134,12 @@ class ConfigManager:
     def set_output_file(self, path: str) -> None:
         self.set("output.file", self._to_external_path(path))
 
+    def get_output_add_timestamp(self) -> bool:
+        return self.get("output.add_timestamp", True)
+
+    def set_output_add_timestamp(self, value: bool) -> None:
+        self.set("output.add_timestamp", value)
+
     # ---------- Internal helpers ----------
     def _read_toml(self, path: Path) -> Dict[str, Any]:
         with open(path, "rb") as f:

@@ -5,7 +5,7 @@ from pathlib import Path
 from PySide6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QPushButton, QLabel,
     QFileDialog, QMessageBox, QTextEdit, QHBoxLayout, QLineEdit, QProgressBar,
-    QGridLayout, QSizePolicy, QSpacerItem
+    QGridLayout, QSizePolicy, QSpacerItem, QCheckBox
 )
 from PySide6.QtCore import QThread, Signal, Qt
 
@@ -65,6 +65,12 @@ class MainWindow(QMainWindow):
         form.addWidget(lbl_out, 2, 0)
         form.addWidget(self.edit_output, 2, 1)
         form.addWidget(btn_output, 2, 2)
+
+        # Add timestamp option below output field
+        self.check_timestamp = QCheckBox("Add timestamp to output filename", self)
+        self.check_timestamp.setChecked(self.cm.get_output_add_timestamp())
+        self.check_timestamp.stateChanged.connect(self.on_timestamp_changed)
+        form.addWidget(self.check_timestamp, 3, 1, 1, 2)  # Span across columns 1-2
         
         # Apply modern styling to all buttons and inputs
         self.apply_modern_styling()
@@ -219,9 +225,19 @@ class MainWindow(QMainWindow):
             self.cm.set_output_file(file)
             self.edit_output.setText(self.cm.get("output.file"))
 
+    def on_timestamp_changed(self, state):
+        """Handle timestamp checkbox state change"""
+        is_checked = state == Qt.CheckState.Checked.value
+        self.cm.set_output_add_timestamp(is_checked)
+
     def save_config(self):
         self.cm.save()
         QMessageBox.information(self, "Config", "Configuration saved.")
+    
+    def closeEvent(self, event):
+        """Handle application close event - save config before closing"""
+        self.cm.save()
+        event.accept()
 
     def run_conversion(self):
         output = self.cm.get("output.file")
@@ -284,10 +300,19 @@ class ConversionWorker(QThread):
             # Start timing
             start_time = time.time()
             
-            cfg = self.cm.load()
+            cfg = self.cm._config  # Use in-memory config instead of reloading from file
             input_file = self.cm._resolve_path(cfg.get('input', {}).get('file'))
             mdx_file = self.cm._resolve_path(cfg.get('dictionary', {}).get('file'))
             output_path = self.cm._resolve_path(cfg.get('output', {}).get('file'))
+            
+            # Apply timestamp if enabled
+            timestamp_enabled = self.cm.get_output_add_timestamp()
+            if timestamp_enabled:
+                from datetime import datetime
+                current_time = datetime.now().strftime("%Y%m%d-%H%M%S")
+                output_dir = output_path.parent
+                output_name = output_path.name
+                output_path = output_dir / (current_time + '_' + output_name)
             invalid_action_str = str(cfg.get('processing', {}).get('invalid_action', 'collect_warning')).lower()
             invalid_action = {
                 'exit': InvalidAction.Exit,
