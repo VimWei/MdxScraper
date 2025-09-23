@@ -27,10 +27,12 @@ class MainWindow(QMainWindow):
 
         # Form grid for aligned elements
         form = QGridLayout()
-        form.setHorizontalSpacing(10)
+        # Reduce horizontal spacing to bring labels, inputs and buttons closer
+        form.setHorizontalSpacing(6)
         form.setVerticalSpacing(8)
 
-        label_w = 90
+        # Slightly narrow label width to reduce gap before inputs
+        label_w = 80
         btn_w = 90
 
         lbl_in = QLabel("Input:")
