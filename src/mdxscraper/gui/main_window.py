@@ -91,18 +91,18 @@ class MainWindow(QMainWindow):
         form.setColumnStretch(1, 1)
         root.addLayout(form)
 
-        # Session buttons centered, compact
+        # Config buttons centered, compact
         row_session = QHBoxLayout()
         row_session.addItem(QSpacerItem(20, 10, QSizePolicy.Expanding, QSizePolicy.Minimum))
-        btn_restore = QPushButton("Restore last session", self)
-        btn_import = QPushButton("import session", self)
-        btn_export = QPushButton("export session", self)
+        btn_restore = QPushButton("Restore last config", self)
+        btn_import = QPushButton("Import config", self)
+        btn_export = QPushButton("Export config", self)
         for b in (btn_restore, btn_import, btn_export):
             b.setFixedWidth(150)
             b.setFixedHeight(32)
-        btn_restore.clicked.connect(self.restore_last_session)
-        btn_import.clicked.connect(self.import_session)
-        btn_export.clicked.connect(self.export_session)
+        btn_restore.clicked.connect(self.restore_last_config)
+        btn_import.clicked.connect(self.import_config)
+        btn_export.clicked.connect(self.export_config)
         row_session.addWidget(btn_restore)
         row_session.addSpacing(12)
         row_session.addWidget(btn_import)
@@ -234,10 +234,6 @@ class MainWindow(QMainWindow):
         """Handle timestamp checkbox state change"""
         is_checked = state == Qt.CheckState.Checked.value
         self.cm.set_output_add_timestamp(is_checked)
-
-    def save_config(self):
-        self.cm.save()
-        QMessageBox.information(self, "Config", "Configuration saved.")
     
     def closeEvent(self, event):
         """Handle application close event - save config before closing"""
@@ -277,18 +273,64 @@ class MainWindow(QMainWindow):
         if not text.startswith("Progress:"):
             self.log.append(text)
 
-    # Session button stubs
-    def restore_last_session(self):
-        # Placeholder for future implementation
-        pass
+    # --- Config buttons ---
+    def restore_last_config(self):
+        try:
+            # Reload latest config from disk and refresh GUI
+            self.cm.load()
+            self.sync_from_config()
+            self.log.append("ℹ️ Restored last saved config.")
+        except Exception as e:
+            self.log.append(f"❌ Failed to restore config: {e}")
 
-    def import_session(self):
-        # Placeholder for future implementation
-        pass
+    def import_config(self):
+        start_dir = str((self.project_root / "data" / "configs").resolve())
+        file, _ = QFileDialog.getOpenFileName(
+            self, "Import config (TOML)", start_dir, "TOML files (*.toml)"
+        )
+        if not file:
+            return
+        try:
+            from pathlib import Path as _P
+            import tomllib as _tomllib
+            with open(_P(file), "rb") as f:
+                cfg = _tomllib.load(f)
+            # Replace in-memory config only; persist on app close
+            self.cm._config = cfg
+            self.sync_from_config()
+            self.log.append(f"✅ Imported config applied: {file}")
+        except Exception as e:
+            self.log.append(f"❌ Failed to import config: {e}")
 
-    def export_session(self):
-        # Placeholder for future implementation
-        pass
+    def export_config(self):
+        start_dir = str((self.project_root / "data" / "configs").resolve())
+        file, _ = QFileDialog.getSaveFileName(
+            self, "Export config as (TOML)", start_dir, "TOML files (*.toml)"
+        )
+        if not file:
+            return
+        try:
+            # Ensure current GUI edits are reflected to config
+            self.on_input_edited()
+            self.on_dictionary_edited()
+            self.on_output_edited()
+            # Validate before export; log issues but proceed
+            result = self.cm.validate()
+            if not result.is_valid:
+                problems = "\n".join(result.errors)
+                self.log.append("⚠️ Config validation issues before export:\n" + problems)
+            # Write selected path
+            from pathlib import Path as _P
+            from mdxscraper.config import config_manager as _cm
+            data = self.cm._config
+            content = _cm.tomli_w.dumps(data)
+            p = _P(file)
+            p.parent.mkdir(parents=True, exist_ok=True)
+            with open(p, "w", encoding="utf-8") as f:
+                f.write(content)
+            self.log.append(f"✅ Exported config to: {file}")
+        except Exception as e:
+            self.log.append(f"❌ Failed to export config: {e}")
 
     # --- Field edit handlers ---
     def on_input_edited(self):
@@ -305,6 +347,13 @@ class MainWindow(QMainWindow):
         text = self.edit_output.text().strip()
         if text:
             self.cm.set_output_file(text)
+
+    def sync_from_config(self):
+        # Refresh GUI fields from in-memory config
+        self.edit_input.setText(self.cm.get("input.file", ""))
+        self.edit_dict.setText(self.cm.get("dictionary.file", ""))
+        self.edit_output.setText(self.cm.get("output.file", ""))
+        self.check_timestamp.setChecked(self.cm.get_output_add_timestamp())
 
 
 class ConversionWorker(QThread):
