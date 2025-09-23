@@ -71,11 +71,22 @@ class MainWindow(QMainWindow):
         form.addWidget(self.edit_output, 2, 1)
         form.addWidget(btn_output, 2, 2)
 
-        # Add timestamp option below output field
+        # Add timestamp and backup options in one row under the output field, left-aligned together
         self.check_timestamp = QCheckBox("Add timestamp to output filename", self)
         self.check_timestamp.setChecked(self.cm.get_output_add_timestamp())
         self.check_timestamp.stateChanged.connect(self.on_timestamp_changed)
-        form.addWidget(self.check_timestamp, 3, 1, 1, 2)  # Span across columns 1-2
+
+        self.check_backup = QCheckBox("Backup input file", self)
+        self.check_backup.setChecked(self.cm.get_backup_input())
+        self.check_backup.stateChanged.connect(self.on_backup_changed)
+
+        options_row = QHBoxLayout()
+        options_row.setContentsMargins(0, 0, 0, 0)
+        options_row.setSpacing(12)
+        options_row.addWidget(self.check_timestamp)
+        options_row.addWidget(self.check_backup)
+        options_row.addItem(QSpacerItem(20, 10, QSizePolicy.Expanding, QSizePolicy.Minimum))
+        form.addLayout(options_row, 3, 1, 1, 2)
         
         # Apply modern styling to all buttons and inputs
         self.apply_modern_styling()
@@ -240,6 +251,11 @@ class MainWindow(QMainWindow):
         is_checked = state == Qt.CheckState.Checked.value
         self.cm.set_output_add_timestamp(is_checked)
     
+    def on_backup_changed(self, state):
+        """Handle backup checkbox state change"""
+        is_checked = state == Qt.CheckState.Checked.value
+        self.cm.set_backup_input(is_checked)
+    
     def closeEvent(self, event):
         """Handle application close event - save config before closing"""
         self.cm.save()
@@ -376,6 +392,7 @@ class MainWindow(QMainWindow):
         self.edit_dict.setText(self.cm.get("dictionary.file", ""))
         self.edit_output.setText(self.cm.get("output.file", ""))
         self.check_timestamp.setChecked(self.cm.get_output_add_timestamp())
+        self.check_backup.setChecked(self.cm.get_backup_input())
 
 
 class ConversionWorker(QThread):
@@ -411,7 +428,7 @@ class ConversionWorker(QThread):
                 output_dir = output_path.parent
                 output_name = output_path.name
                 output_path = output_dir / (current_time + '_' + output_name)
-            invalid_action_str = str(cfg.get('processing', {}).get('invalid_action', 'collect_warning')).lower()
+            invalid_action_str = str(cfg.get('artifacts', {}).get('invalid_action', 'collect_output_warning')).lower()
             invalid_action = {
                 'exit': InvalidAction.Exit,
                 'collect': InvalidAction.Collect,
@@ -443,6 +460,22 @@ class ConversionWorker(QThread):
             else:
                 raise RuntimeError(f"Unsupported output extension: {suffix}")
 
+            # Backup input file to output directory if enabled
+            if self.cm.get_backup_input():
+                try:
+                    src = Path(input_file)
+                    backup_dir = output_path.parent
+                    base_name = src.stem + "_backup" + src.suffix
+                    if timestamp_enabled and current_time:
+                        base_name = current_time + '_' + base_name
+                    dest = backup_dir / base_name
+                    dest.parent.mkdir(parents=True, exist_ok=True)
+                    from shutil import copy2
+                    copy2(src, dest)
+                    self.log_sig.emit(f"📦 Backed up input to: {dest}")
+                except Exception as be:
+                    self.log_sig.emit(f"⚠️ Failed to backup input: {be}")
+
             # Calculate success rate
             total = found + not_found
             if total > 0:
@@ -457,21 +490,13 @@ class ConversionWorker(QThread):
             # Write invalid words file if there are any invalid words
             if invalid_words:
                 from mdxscraper.core.converter import write_invalid_words_file
-                invalid_words_file = self.cm.get_invalid_words_file()
-                # Use configured filename if present; otherwise default
-                if invalid_words_file:
-                    configured_name = Path(invalid_words_file).name
-                else:
-                    configured_name = "invalid_words.txt"
-
-                # Always save to the same directory as the output file
-                invalid_words_dir = output_path.parent
-                invalid_words_path = invalid_words_dir / configured_name
-
-                # Apply timestamp to invalid words file if enabled
+                # Filename pattern: [timestamp_]input_name_invalid.txt
+                input_stem = Path(input_file).stem
+                base_name = f"{input_stem}_invalid.txt"
                 if timestamp_enabled and current_time:
-                    invalid_words_path = invalid_words_dir / (current_time + '_' + configured_name)
-
+                    base_name = f"{current_time}_{base_name}"
+                invalid_words_dir = output_path.parent
+                invalid_words_path = invalid_words_dir / base_name
                 write_invalid_words_file(invalid_words, invalid_words_path)
                 self.log_sig.emit(f"📝 Invalid words saved to: {invalid_words_path}")
 

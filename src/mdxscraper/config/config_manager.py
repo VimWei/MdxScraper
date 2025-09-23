@@ -140,11 +140,17 @@ class ConfigManager:
     def set_output_add_timestamp(self, value: bool) -> None:
         self.set("output.add_timestamp", value)
 
+    def get_backup_input(self) -> bool:
+        return self.get("artifacts.backup_input", True)
+
+    def set_backup_input(self, value: bool) -> None:
+        self.set("artifacts.backup_input", value)
+
     def get_invalid_words_file(self) -> Optional[str]:
-        return self.get("processing.invalid_words_file")
+        return self.get("artifacts.invalid_words_file")
 
     def set_invalid_words_file(self, path: str) -> None:
-        self.set("processing.invalid_words_file", self._to_external_path(path))
+        self.set("artifacts.invalid_words_file", self._to_external_path(path))
 
     # ---------- Internal helpers ----------
     def _read_toml(self, path: Path) -> Dict[str, Any]:
