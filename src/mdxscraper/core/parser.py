@@ -30,6 +30,7 @@ def get_words(name: str) -> List[Dict[str, Any]]:
         ".xlsx": get_words_from_xls,
         ".json": get_words_from_json,
         ".txt": get_words_from_txt,
+        ".md": get_words_from_txt,
     }[ext](name)
 
 

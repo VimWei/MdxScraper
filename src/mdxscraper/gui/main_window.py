@@ -225,7 +225,7 @@ class MainWindow(QMainWindow):
             start_dir = str(self.project_root)
         file, _ = QFileDialog.getOpenFileName(
             self, "Select input file", start_dir,
-            "Text files (*.txt);;JSON files (*.json);;Excel files (*.xlsx);;All files (*.*)"
+            "Text/Markdown files (*.txt *.md);;JSON files (*.json);;Excel files (*.xlsx);;All files (*.*)"
         )
         if file:
             self.cm.set_input_file(file)
