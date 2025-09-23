@@ -20,7 +20,7 @@ MdxScraper 是在 MdxConverter 基础上升级改造：
     * 文件路径名，兼容跨平台的多种的写法。
     * wkhtmltopdf安装目录，兼容跨平台的多种情形。
 3. 重构程序，更加便捷、易用、强健和友好：
-    * 采用配置文件方式，而非命令行参数，配合 uv 可以一键输出，更便捷。
+    * 采用 GUI，而非命令行参数或配置文件，更直观，更便捷。
     * 丰富配置选项，包括输入输出文件、词典文件、PDF排版、CSS等，更强大。
     * 输出信息增加程序状态、查询统计、输出地址、耗时等信息，体验更友好。
     * 备份原始词汇，并与输出文件放在一起，方便归档调阅，数据安全有保障。
@@ -54,13 +54,10 @@ To set up the project locally, you will need a working Python environment (Pytho
 4. **Install wkhtmltopdf (optional, for PDF):**
    * https://wkhtmltopdf.org/downloads.html
 
-## 日常使用
+## 运行程序
 
-1. 配置参数：settings.py
-2. 运行程序：
-    * 方法1: (windows) 直接双击运行文件 `MdxScraper.vbs`
-    * 方法2: (Windows/Linux/macOS) 命令行输入 `uv run python MdxScraper.py`
+* 方法1: (Windows) 直接双击 `MdxScraper.vbs`。
+* 方法2: (Windows/Linux/macOS) 命令行输入：`uv run mdxscraper`
 
-## 案例
 
 ![输出 html](docs/assets/images/html.png)
