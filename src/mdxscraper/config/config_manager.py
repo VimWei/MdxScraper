@@ -208,29 +208,43 @@ class ConfigManager:
             defaults = {}
 
         def reconcile(current: Any, default: Any, path: str = "") -> Any:
+            def count_leaf_fields(node: Any) -> int:
+                if isinstance(node, dict):
+                    total = 0
+                    for _, v in node.items():
+                        total += count_leaf_fields(v)
+                    return total
+                # treat any non-dict value as one leaf field
+                return 1
+
             # If default is not a dict, enforce type by replacing mismatched values
             if not isinstance(default, dict):
                 if (default is None) or isinstance(current, type(default)):
                     return current if current is not None else default
                 # type mismatch → replace
                 self._norm_changed = True
+                # fix one leaf field
                 self._norm_counts["type_fixed"] += 1
                 return default
 
             # default is a dict: current must be a dict, otherwise replace whole node
             if not isinstance(current, dict):
                 self._norm_changed = True
-                # Count as type fix
-                self._norm_counts["type_fixed"] += 1
+                # Count type fixes for all leaves under default subtree
+                self._norm_counts["type_fixed"] += count_leaf_fields(default)
                 # return a deep copy-like structure based on default
                 return reconcile({}, default, path)
 
-            # remove unknown keys
+            # remove unknown keys (count leaf fields removed)
             for k in list(current.keys()):
                 if k not in default:
+                    try:
+                        removed_leafs = count_leaf_fields(current[k])
+                    except Exception:
+                        removed_leafs = 1
                     current.pop(k, None)
                     self._norm_changed = True
-                    self._norm_counts["removed"] += 1
+                    self._norm_counts["removed"] += removed_leafs
 
             # add missing keys and recurse existing keys
             for k, dv in default.items():
@@ -240,7 +254,8 @@ class ConfigManager:
                     # add missing from defaults
                     current[k] = dv
                     self._norm_changed = True
-                    self._norm_counts["added"] += 1
+                    # Count number of leaf fields added under this key
+                    self._norm_counts["added"] += count_leaf_fields(dv)
 
             return current
 

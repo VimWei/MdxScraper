@@ -864,7 +864,7 @@ class ConversionWorker(QThread):
                     additional_styles = style.get('additional_styles')
                 except Exception as ce:
                     self.log_sig.emit(f"⚠️ CSS preset parse failed, using defaults: {ce}")
-
+            
             if suffix == '.html':
                 found, not_found, invalid_words = mdx2html(mdx_file, input_file, output_path, with_toc=True, h1_style=h1_style, scrap_style=scrap_style, additional_styles=additional_styles)
             elif suffix == '.pdf':
