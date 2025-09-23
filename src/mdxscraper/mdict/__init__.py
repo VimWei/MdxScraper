@@ -1,11 +1,11 @@
-"""mdict-query shim package.
+"""mdict package.
 
-Exposes a thin compatibility layer to the vendored mdict-query code
-under src/mdxscraper/mdict/vendor.
+Exports the vendored mdict-query API used by this project.
 """
 
-__all__ = [
-    "mdict_query",
-]
+from .mdict_query import IndexBuilder
 
+__all__ = [
+    "IndexBuilder",
+]
 

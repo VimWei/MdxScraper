@@ -1,39 +1,24 @@
 from __future__ import annotations
 
-"""mdict-query shim package.
+"""mdict-query wrapper.
 
-Exposes a thin compatibility layer to the vendored mdict-query code
-shipped within this repository under src/mdxscraper/mdict/vendor.
+Adds the vendored mdict-query directory to sys.path and imports the upstream
+module unchanged, so we can sync vendor code without edits.
 """
-
-__all__ = [
-    "mdict_query",
-]
 
 from pathlib import Path
 import sys
 
 
-def _import_bundled_mdict_query():
-    """Import the existing mdict_query module from lib/mdict-query.
+# Ensure vendored mdict-query is importable as top-level module names
+_vendor_dir = Path(__file__).resolve().parent / "vendor"
+if str(_vendor_dir) not in sys.path:
+    sys.path.insert(0, str(_vendor_dir))
 
-    Returns the imported module. This keeps the current source of truth
-    in lib/mdict-query and avoids duplication during Phase 1.
-    """
-    project_root = Path(__file__).resolve().parents[3]
-    # Load vendored copy inside src/mdxscraper/mdict/vendor
-    vendor_dir = project_root / "src" / "mdxscraper" / "mdict" / "vendor"
-    if str(vendor_dir) not in sys.path:
-        sys.path.insert(0, str(vendor_dir))
-    import mdict_query as _impl  # type: ignore
+import mdict_query as _mdict_query  # type: ignore
 
-    return _impl
+# Re-export stable API
+IndexBuilder = _mdict_query.IndexBuilder  # noqa: N816 (preserve original name)
 
-
-# Re-export commonly used symbols to provide a stable import surface
-_impl = _import_bundled_mdict_query()
-
-# Allow: from mdxscraper.mdict.mdict_query import IndexBuilder
-IndexBuilder = _impl.IndexBuilder  # noqa: N816 (preserve original name)
-
+__all__ = ["IndexBuilder"]
 
