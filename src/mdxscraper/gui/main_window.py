@@ -91,8 +91,9 @@ class MainWindow(QMainWindow):
         form.setColumnStretch(1, 1)
         root.addLayout(form)
 
-        # Config buttons centered, compact
+        # Config buttons centered, compact - fixed height to prevent expansion
         row_session = QHBoxLayout()
+        row_session.setContentsMargins(0, 0, 0, 0)  # Remove extra margins
         row_session.addItem(QSpacerItem(20, 10, QSizePolicy.Expanding, QSizePolicy.Minimum))
         btn_restore = QPushButton("Restore last config", self)
         btn_import = QPushButton("Import config", self)
@@ -111,8 +112,9 @@ class MainWindow(QMainWindow):
         row_session.addItem(QSpacerItem(20, 10, QSizePolicy.Expanding, QSizePolicy.Minimum))
         root.addLayout(row_session)
 
-        # Scrape button centered with fixed width
+        # Scrape button centered with fixed width - fixed height to prevent expansion
         row_run = QHBoxLayout()
+        row_run.setContentsMargins(0, 0, 0, 0)  # Remove extra margins
         row_run.addItem(QSpacerItem(20, 10, QSizePolicy.Expanding, QSizePolicy.Minimum))
         self.btn_run = QPushButton("Scrape", self)
         self.btn_run.setFixedWidth(220)
@@ -130,11 +132,12 @@ class MainWindow(QMainWindow):
         self.progress.setFixedHeight(25)
         root.addWidget(self.progress)
 
-        # Log area - reduced height for better hierarchy
+        # Log area - flexible height that expands with window
         self.log = QTextEdit(self)
         self.log.setReadOnly(True)
         self.log.setPlaceholderText("log message")
-        self.log.setFixedHeight(120)  # Reduced from flexible height
+        self.log.setMinimumHeight(120)  # Set minimum height instead of fixed
+        self.log.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)  # Allow expansion
         root.addWidget(self.log)
 
         self.setMinimumSize(800, 520)
