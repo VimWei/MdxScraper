@@ -116,10 +116,16 @@ def mdx2pdf(
     input_file: str | Path,
     output_file: str | Path,
     pdf_options: dict,
+    h1_style: str | None = None,
+    scrap_style: str | None = None,
+    additional_styles: str | None = None,
 ) -> tuple[int, int, OrderedDict]:
     with tempfile.NamedTemporaryFile(suffix='.html', delete=False) as temp:
         temp_file = temp.name
-        found, not_found, invalid_words = mdx2html(mdx_file, input_file, temp_file, with_toc=False)
+        found, not_found, invalid_words = mdx2html(
+            mdx_file, input_file, temp_file, with_toc=False,
+            h1_style=h1_style, scrap_style=scrap_style, additional_styles=additional_styles
+        )
 
     config_path = get_wkhtmltopdf_path('auto')
     config = pdfkit.configuration(wkhtmltopdf=config_path)
@@ -135,6 +141,9 @@ def mdx2img(
     input_file: str | Path,
     output_file: str | Path,
     img_options: dict | None = None,
+    h1_style: str | None = None,
+    scrap_style: str | None = None,
+    additional_styles: str | None = None,
 ) -> tuple[int, int, OrderedDict]:
     """Render dictionary results to an image using wkhtmltoimage via imgkit.
 
@@ -144,16 +153,21 @@ def mdx2img(
     with tempfile.NamedTemporaryFile(suffix='.html', delete=False) as temp:
         temp_file = temp.name
         found, not_found, invalid_words = mdx2html(
-            mdx_file, input_file, temp_file, with_toc=False
+            mdx_file, input_file, temp_file, with_toc=False,
+            h1_style=h1_style, scrap_style=scrap_style, additional_styles=additional_styles
         )
 
     # Ensure output directory exists
     output_path = Path(output_file)
     output_path.parent.mkdir(parents=True, exist_ok=True)
+    # Build wkhtmltoimage options - whitelist only supported keys
     options = {'enable-local-file-access': ''}
     if img_options:
-        # Only propagate wkhtmltoimage options here; custom keys handled below
-        options.update({k: v for k, v in img_options.items() if isinstance(k, str)})
+        # Supported wkhtmltoimage keys we allow
+        allowed_keys = {"width", "zoom", "quality"}
+        for k, v in img_options.items():
+            if k in allowed_keys and v is not None and v != "":
+                options[k] = str(v)
 
     suffix = output_path.suffix.lower()
     # -------- WEBP --------

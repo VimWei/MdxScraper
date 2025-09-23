@@ -11,5 +11,32 @@ add_timestamp = true
 backup_input = true
 save_invalid_words = true
 
+[output.image]
+width = 0  # 0 means auto
+zoom = 1.0
+background = true
+
+[output.image.jpg]
+quality = 85
+
+[output.image.png]
+optimize = true
+compress_level = 9
+transparent_bg = false
+
+[output.image.webp]
+quality = 80
+lossless = false
+transparent_bg = false
+
 [advanced]
 wkhtmltopdf_path = "auto"
+
+# Persist last-used Advanced presets/editor contents for session restore
+[output.pdf]
+preset_label = ""
+preset_text = ""
+
+[output.css]
+preset_label = ""
+preset_text = ""

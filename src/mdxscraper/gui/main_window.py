@@ -5,7 +5,7 @@ from pathlib import Path
 from PySide6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QPushButton, QLabel,
     QFileDialog, QMessageBox, QTextEdit, QHBoxLayout, QLineEdit, QProgressBar,
-    QGridLayout, QSizePolicy, QSpacerItem, QCheckBox
+    QGridLayout, QSizePolicy, QSpacerItem, QCheckBox, QTabWidget, QComboBox, QSlider
 )
 from PySide6.QtCore import QThread, Signal, Qt
 
@@ -112,7 +112,188 @@ class MainWindow(QMainWindow):
         btn_output.setFixedHeight(35)
 
         form.setColumnStretch(1, 1)
-        root.addLayout(form)
+        # Do not add form directly to root; it will live inside the Basic tab
+
+        # Tabs: Basic / Image / PDF / CSS
+        self.tabs = QTabWidget(self)
+        # Basic Tab (original inputs and basic options)
+        self.tab_basic = QWidget(self)
+        _lay_basic = QVBoxLayout(self.tab_basic)
+        _lay_basic.setContentsMargins(8, 8, 8, 8)
+        _lay_basic.addLayout(form)
+        self.tabs.addTab(self.tab_basic, "Basic")
+        # Image Tab (placeholder for now)
+        self.tab_image = QWidget(self)
+        _lay_img = QVBoxLayout(self.tab_image)
+        _lay_img.setContentsMargins(8, 8, 8, 8)
+        # General (single row with section label)
+        row_gen = QHBoxLayout()
+        _section_w = 70
+        _label_w = None
+        _lbl_general = QLabel("General", self)
+        _lbl_general.setProperty("class", "field-label")
+        _lbl_general.setFixedWidth(_section_w)
+        _lbl_general.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        row_gen.addWidget(_lbl_general)
+        row_gen.addSpacing(8)
+        _lbl_width = QLabel("Width(px):", self)
+        _lbl_width.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        row_gen.addWidget(_lbl_width)
+        self.img_width = QLineEdit(self)
+        self.img_width.setPlaceholderText("0 = auto")
+        self.img_width.setFixedWidth(80)
+        row_gen.addWidget(self.img_width)
+        row_gen.addSpacing(12)
+        _lbl_zoom = QLabel("Zoom:", self)
+        _lbl_zoom.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        row_gen.addWidget(_lbl_zoom)
+        # Zoom slider (0.5 ~ 3.0, step 0.1 via int scale 5~30)
+        self.img_zoom_slider = QSlider(Qt.Orientation.Horizontal, self)
+        self.img_zoom_slider.setRange(5, 30)
+        self.img_zoom_slider.setSingleStep(1)
+        self.img_zoom_slider.setFixedWidth(160)
+        row_gen.addWidget(self.img_zoom_slider)
+        self.img_zoom_value = QLineEdit(self)
+        self.img_zoom_value.setFixedWidth(50)
+        row_gen.addWidget(self.img_zoom_value)
+        row_gen.addSpacing(12)
+        self.img_background = QCheckBox("Draw background", self)
+        row_gen.addWidget(self.img_background)
+        row_gen.addItem(QSpacerItem(20, 10, QSizePolicy.Expanding, QSizePolicy.Minimum))
+        _lay_img.addLayout(row_gen)
+
+        # JPG options (single row)
+        row_jpg = QHBoxLayout()
+        _lbl_jpg = QLabel("JPG/JPEG", self)
+        _lbl_jpg.setProperty("class", "field-label")
+        _lbl_jpg.setFixedWidth(_section_w)
+        _lbl_jpg.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        row_jpg.addWidget(_lbl_jpg)
+        row_jpg.addSpacing(8)
+        _lbl_jpg_q = QLabel("Quality:", self)
+        _lbl_jpg_q.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        row_jpg.addWidget(_lbl_jpg_q)
+        self.jpg_quality_slider = QSlider(Qt.Orientation.Horizontal, self)
+        self.jpg_quality_slider.setRange(1, 100)
+        self.jpg_quality_slider.setFixedWidth(160)
+        row_jpg.addWidget(self.jpg_quality_slider)
+        self.jpg_quality_value = QLineEdit(self)
+        self.jpg_quality_value.setFixedWidth(50)
+        row_jpg.addWidget(self.jpg_quality_value)
+        row_jpg.addItem(QSpacerItem(20, 10, QSizePolicy.Expanding, QSizePolicy.Minimum))
+        _lay_img.addLayout(row_jpg)
+
+        # PNG options (single row)
+        row_png = QHBoxLayout()
+        _lbl_png = QLabel("PNG", self)
+        _lbl_png.setProperty("class", "field-label")
+        _lbl_png.setFixedWidth(_section_w)
+        _lbl_png.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        row_png.addWidget(_lbl_png)
+        row_png.addSpacing(8)
+        self.png_optimize = QCheckBox("Optimize", self)
+        row_png.addWidget(self.png_optimize)
+        row_png.addSpacing(12)
+        _lbl_png_c = QLabel("Compress:", self)
+        _lbl_png_c.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        row_png.addWidget(_lbl_png_c)
+        self.png_compress_slider = QSlider(Qt.Orientation.Horizontal, self)
+        self.png_compress_slider.setRange(0, 9)
+        self.png_compress_slider.setFixedWidth(120)
+        row_png.addWidget(self.png_compress_slider)
+        self.png_compress_value = QLineEdit(self)
+        self.png_compress_value.setFixedWidth(40)
+        row_png.addWidget(self.png_compress_value)
+        row_png.addSpacing(12)
+        self.png_transparent = QCheckBox("Transparent background", self)
+        row_png.addWidget(self.png_transparent)
+        row_png.addItem(QSpacerItem(20, 10, QSizePolicy.Expanding, QSizePolicy.Minimum))
+        _lay_img.addLayout(row_png)
+
+        # WEBP options (single row)
+        row_webp = QHBoxLayout()
+        _lbl_webp = QLabel("WEBP", self)
+        _lbl_webp.setProperty("class", "field-label")
+        _lbl_webp.setFixedWidth(_section_w)
+        _lbl_webp.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        row_webp.addWidget(_lbl_webp)
+        row_webp.addSpacing(8)
+        _lbl_webp_q = QLabel("Quality:", self)
+        _lbl_webp_q.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        row_webp.addWidget(_lbl_webp_q)
+        self.webp_quality_slider = QSlider(Qt.Orientation.Horizontal, self)
+        self.webp_quality_slider.setRange(1, 100)
+        self.webp_quality_slider.setFixedWidth(160)
+        row_webp.addWidget(self.webp_quality_slider)
+        self.webp_quality_value = QLineEdit(self)
+        self.webp_quality_value.setFixedWidth(50)
+        row_webp.addWidget(self.webp_quality_value)
+        row_webp.addSpacing(12)
+        self.webp_lossless = QCheckBox("Lossless", self)
+        row_webp.addWidget(self.webp_lossless)
+        row_webp.addSpacing(12)
+        self.webp_transparent = QCheckBox("Transparent background", self)
+        row_webp.addWidget(self.webp_transparent)
+        row_webp.addItem(QSpacerItem(20, 10, QSizePolicy.Expanding, QSizePolicy.Minimum))
+        _lay_img.addLayout(row_webp)
+        self.tabs.addTab(self.tab_image, "Image")
+
+        # PDF Tab
+        self.tab_pdf = QWidget(self)
+        _lay_pdf = QVBoxLayout(self.tab_pdf)
+        _lay_pdf.setContentsMargins(8, 8, 8, 8)
+        row_pdf = QHBoxLayout()
+        row_pdf.addWidget(QLabel("Preset:", self))
+        self.pdf_combo = QComboBox(self)
+        self.pdf_combo.currentTextChanged.connect(self.on_pdf_preset_changed)
+        row_pdf.addWidget(self.pdf_combo, 1)
+        self.btn_pdf_save = QPushButton("Save", self)
+        self.btn_pdf_save.clicked.connect(self.on_pdf_save_clicked)
+        row_pdf.addWidget(self.btn_pdf_save)
+        _lay_pdf.addLayout(row_pdf)
+        self.pdf_editor = QTextEdit(self)
+        self.pdf_editor.setPlaceholderText("[pdf]\n# wkhtmltopdf options in TOML ...")
+        _lay_pdf.addWidget(self.pdf_editor, 1)
+        self.tabs.addTab(self.tab_pdf, "PDF")
+
+        # CSS Tab
+        self.tab_css = QWidget(self)
+        _lay_css = QVBoxLayout(self.tab_css)
+        _lay_css.setContentsMargins(8, 8, 8, 8)
+        row_css = QHBoxLayout()
+        row_css.addWidget(QLabel("Preset:", self))
+        self.css_combo = QComboBox(self)
+        self.css_combo.currentTextChanged.connect(self.on_css_preset_changed)
+        row_css.addWidget(self.css_combo, 1)
+        self.btn_css_save = QPushButton("Save", self)
+        self.btn_css_save.clicked.connect(self.on_css_save_clicked)
+        row_css.addWidget(self.btn_css_save)
+        _lay_css.addLayout(row_css)
+        self.css_editor = QTextEdit(self)
+        self.css_editor.setPlaceholderText("[style]\n# h1_style=..., scrap_style=..., additional_styles=... (TOML)")
+        _lay_css.addWidget(self.css_editor, 1)
+        self.tabs.addTab(self.tab_css, "CSS")
+
+        root.addWidget(self.tabs)
+        # Prefer showing Basic tab first
+        self.tabs.setCurrentIndex(self.tabs.indexOf(self.tab_basic))
+        # Load presets and set tab enablement
+        self.reload_presets()
+        self.update_tab_enablement()
+        # Sync Image tab inputs from config
+        self.sync_image_from_config()
+        # Restore last PDF/CSS editor contents if present
+        last_pdf_text = self.cm.get('output.pdf.preset_text', '')
+        if last_pdf_text:
+            self.pdf_editor.setPlainText(last_pdf_text)
+        last_css_text = self.cm.get('output.css.preset_text', '')
+        if last_css_text:
+            self.css_editor.setPlainText(last_css_text)
+        # Wire sliders and numeric displays
+        self.img_zoom_slider.valueChanged.connect(lambda v: self.img_zoom_value.setText(f"{v/10:.1f}"))
+        self.jpg_quality_slider.valueChanged.connect(lambda v: self.jpg_quality_value.setText(str(v)))
+        self.png_compress_slider.valueChanged.connect(lambda v: self.png_compress_value.setText(str(v)))
+        self.webp_quality_slider.valueChanged.connect(lambda v: self.webp_quality_value.setText(str(v)))
 
         # Config buttons centered, compact - fixed height to prevent expansion
         row_session = QHBoxLayout()
@@ -165,6 +346,11 @@ class MainWindow(QMainWindow):
 
         self.setMinimumSize(800, 520)
         self.setCentralWidget(central)
+        # Load presets and set tab enablement
+        self.reload_presets()
+        self.update_tab_enablement()
+        # Sync Image tab inputs from config
+        self.sync_image_from_config()
         # After UI ready, show normalization log if any
         if hasattr(self, 'log_message_later') and self.log_message_later:
             # defer until log widget exists
@@ -264,6 +450,7 @@ class MainWindow(QMainWindow):
         if file:
             self.cm.set_output_file(file)
             self.edit_output.setText(self.cm.get("output.file"))
+            self.update_tab_enablement()
 
     def on_timestamp_changed(self, state):
         """Handle timestamp checkbox state change"""
@@ -282,6 +469,18 @@ class MainWindow(QMainWindow):
     
     def closeEvent(self, event):
         """Handle application close event - save config before closing"""
+        # Persist live PDF/CSS editor content on exit
+        try:
+            if hasattr(self, 'pdf_editor'):
+                self.cm.set('output.pdf.preset_text', self.pdf_editor.toPlainText())
+                if hasattr(self, 'pdf_combo'):
+                    self.cm.set('output.pdf.preset_label', self.pdf_combo.currentText())
+            if hasattr(self, 'css_editor'):
+                self.cm.set('output.css.preset_text', self.css_editor.toPlainText())
+                if hasattr(self, 'css_combo'):
+                    self.cm.set('output.css.preset_label', self.css_combo.currentText())
+        except Exception:
+            pass
         self.cm.save()
         event.accept()
 
@@ -297,13 +496,41 @@ class MainWindow(QMainWindow):
         output_text = self.edit_output.text().strip()
         if output_text:
             self.cm.set_output_file(output_text)
+        # Persist Image tab values to config
+        try:
+            width = int(self.img_width.text().strip() or '0')
+            zoom = float(self.img_zoom_value.text().strip() or '1.0')
+            self.cm.set('output.image.width', width)
+            self.cm.set('output.image.zoom', zoom)
+        except Exception:
+            pass
+        self.cm.set('output.image.background', bool(self.img_background.isChecked()))
+        try:
+            self.cm.set('output.image.jpg.quality', int(self.jpg_quality_value.text().strip() or '85'))
+        except Exception:
+            pass
+        self.cm.set('output.image.png.optimize', bool(self.png_optimize.isChecked()))
+        try:
+            self.cm.set('output.image.png.compress_level', int(self.png_compress_value.text().strip() or '9'))
+        except Exception:
+            pass
+        self.cm.set('output.image.png.transparent_bg', bool(self.png_transparent.isChecked()))
+        try:
+            self.cm.set('output.image.webp.quality', int(self.webp_quality_value.text().strip() or '80'))
+        except Exception:
+            pass
+        self.cm.set('output.image.webp.lossless', bool(self.webp_lossless.isChecked()))
+        self.cm.set('output.image.webp.transparent_bg', bool(self.webp_transparent.isChecked()))
 
         output = self.cm.get("output.file")
         if not output:
             QMessageBox.warning(self, "Run", "Please set output file first.")
             return
         self.btn_run.setEnabled(False)
-        self.worker = ConversionWorker(self.project_root, self.cm)
+        # Collect current preset editor contents
+        pdf_text = self.pdf_editor.toPlainText() if hasattr(self, 'pdf_editor') else ''
+        css_text = self.css_editor.toPlainText() if hasattr(self, 'css_editor') else ''
+        self.worker = ConversionWorker(self.project_root, self.cm, pdf_text=pdf_text, css_text=css_text)
         self.worker.finished_sig.connect(self.on_run_finished)
         self.worker.error_sig.connect(self.on_run_error)
         self.worker.log_sig.connect(self.on_log)
@@ -377,6 +604,15 @@ class MainWindow(QMainWindow):
             output_text = self.edit_output.text().strip()
             if output_text:
                 self.cm.set_output_file(output_text)
+            # Sync current PDF/CSS editors into config before export
+            if hasattr(self, 'pdf_editor'):
+                self.cm.set('output.pdf.preset_text', self.pdf_editor.toPlainText())
+                if hasattr(self, 'pdf_combo'):
+                    self.cm.set('output.pdf.preset_label', self.pdf_combo.currentText())
+            if hasattr(self, 'css_editor'):
+                self.cm.set('output.css.preset_text', self.css_editor.toPlainText())
+                if hasattr(self, 'css_combo'):
+                    self.cm.set('output.css.preset_label', self.css_combo.currentText())
             # Validate before export; log issues but proceed
             result = self.cm.validate()
             if not result.is_valid:
@@ -420,6 +656,7 @@ class MainWindow(QMainWindow):
         text = self.edit_output.text().strip()
         if text:
             self.cm.set_output_file(text)
+        self.update_tab_enablement()
 
     def sync_from_config(self):
         # Refresh GUI fields from in-memory config
@@ -428,6 +665,136 @@ class MainWindow(QMainWindow):
         self.edit_output.setText(self.cm.get("output.file", ""))
         self.check_timestamp.setChecked(self.cm.get_output_add_timestamp())
         self.check_backup.setChecked(self.cm.get_backup_input())
+        self.update_tab_enablement()
+        self.sync_image_from_config()
+
+    def sync_image_from_config(self):
+        # Populate image fields from config defaults
+        get = self.cm.get
+        self.img_width.setText(str(get("output.image.width", 0)))
+        zoom = float(get("output.image.zoom", 1.0))
+        self.img_zoom_slider.setValue(int(round(zoom * 10)))
+        self.img_zoom_value.setText(f"{zoom:.1f}")
+        self.img_background.setChecked(bool(get("output.image.background", True)))
+        jpg_q = int(get("output.image.jpg.quality", 85))
+        self.jpg_quality_slider.setValue(jpg_q)
+        self.jpg_quality_value.setText(str(jpg_q))
+        self.png_optimize.setChecked(bool(get("output.image.png.optimize", True)))
+        png_c = int(get("output.image.png.compress_level", 9))
+        self.png_compress_slider.setValue(png_c)
+        self.png_compress_value.setText(str(png_c))
+        self.png_transparent.setChecked(bool(get("output.image.png.transparent_bg", False)))
+        webp_q = int(get("output.image.webp.quality", 80))
+        self.webp_quality_slider.setValue(webp_q)
+        self.webp_quality_value.setText(str(webp_q))
+        self.webp_lossless.setChecked(bool(get("output.image.webp.lossless", False)))
+        self.webp_transparent.setChecked(bool(get("output.image.webp.transparent_bg", False)))
+
+    # ---- Presets loading/saving ----
+    def reload_presets(self):
+        # PDF presets
+        self.pdf_combo.blockSignals(True)
+        self.pdf_combo.clear()
+        for label, path in self._iter_presets('pdf'):
+            self.pdf_combo.addItem(label, userData=str(path))
+        self.pdf_combo.blockSignals(False)
+        if self.pdf_combo.count() > 0:
+            self.pdf_combo.setCurrentIndex(0)
+            self.on_pdf_preset_changed(self.pdf_combo.currentText())
+        # CSS presets
+        self.css_combo.blockSignals(True)
+        self.css_combo.clear()
+        for label, path in self._iter_presets('css'):
+            self.css_combo.addItem(label, userData=str(path))
+        self.css_combo.blockSignals(False)
+        if self.css_combo.count() > 0:
+            self.css_combo.setCurrentIndex(0)
+            self.on_css_preset_changed(self.css_combo.currentText())
+
+    def _iter_presets(self, kind: str):
+        if kind == 'pdf':
+            built_in = self.project_root / 'src' / 'mdxscraper' / 'config' / 'pdf_options'
+            user_dir = self.project_root / 'data' / 'configs' / 'pdf'
+        else:
+            built_in = self.project_root / 'src' / 'mdxscraper' / 'config' / 'css_styles'
+            user_dir = self.project_root / 'data' / 'configs' / 'css'
+        if built_in.exists():
+            for p in sorted(built_in.glob('*.toml')):
+                yield f"{p.stem} [built-in]", p
+        if user_dir.exists():
+            for p in sorted(user_dir.glob('*.toml')):
+                yield f"{p.stem}", p
+
+    def on_pdf_preset_changed(self, label: str):
+        idx = self.pdf_combo.currentIndex()
+        path = self.pdf_combo.itemData(idx)
+        if path:
+            try:
+                with open(Path(path), 'r', encoding='utf-8') as f:
+                    text = f.read()
+                    self.pdf_editor.setPlainText(text)
+                    # Persist selection and text in config
+                    self.cm.set('output.pdf.preset_label', label)
+                    self.cm.set('output.pdf.preset_text', text)
+            except Exception as e:
+                self.log.append(f"❌ Failed to load PDF preset: {e}")
+
+    def on_css_preset_changed(self, label: str):
+        idx = self.css_combo.currentIndex()
+        path = self.css_combo.itemData(idx)
+        if path:
+            try:
+                with open(Path(path), 'r', encoding='utf-8') as f:
+                    text = f.read()
+                    self.css_editor.setPlainText(text)
+                    # Persist selection and text in config
+                    self.cm.set('output.css.preset_label', label)
+                    self.cm.set('output.css.preset_text', text)
+            except Exception as e:
+                self.log.append(f"❌ Failed to load CSS preset: {e}")
+
+    def on_pdf_save_clicked(self):
+        user_dir = (self.project_root / 'data' / 'configs' / 'pdf').resolve()
+        user_dir.mkdir(parents=True, exist_ok=True)
+        file, _ = QFileDialog.getSaveFileName(self, "Save PDF preset as", str(user_dir), "TOML files (*.toml)")
+        if not file:
+            return
+        try:
+            with open(Path(file), 'w', encoding='utf-8') as f:
+                text = self.pdf_editor.toPlainText()
+                f.write(text)
+            self.cm.set('output.pdf.preset_label', Path(file).stem)
+            self.cm.set('output.pdf.preset_text', text)
+            self.log.append(f"✅ Saved PDF preset: {file}")
+            self.reload_presets()
+        except Exception as e:
+            self.log.append(f"❌ Failed to save PDF preset: {e}")
+
+    def on_css_save_clicked(self):
+        user_dir = (self.project_root / 'data' / 'configs' / 'css').resolve()
+        user_dir.mkdir(parents=True, exist_ok=True)
+        file, _ = QFileDialog.getSaveFileName(self, "Save CSS preset as", str(user_dir), "TOML files (*.toml)")
+        if not file:
+            return
+        try:
+            with open(Path(file), 'w', encoding='utf-8') as f:
+                text = self.css_editor.toPlainText()
+                f.write(text)
+            self.cm.set('output.css.preset_label', Path(file).stem)
+            self.cm.set('output.css.preset_text', text)
+            self.log.append(f"✅ Saved CSS preset: {file}")
+            self.reload_presets()
+        except Exception as e:
+            self.log.append(f"❌ Failed to save CSS preset: {e}")
+
+    def update_tab_enablement(self):
+        out = self.cm.get("output.file", "")
+        suffix = Path(out).suffix.lower() if out else ""
+        is_pdf = suffix == '.pdf'
+        is_image = suffix in ('.jpg', '.jpeg', '.png', '.webp')
+        self.tabs.setTabEnabled(self.tabs.indexOf(self.tab_pdf), is_pdf)
+        self.tabs.setTabEnabled(self.tabs.indexOf(self.tab_image), is_image)
+        # CSS always enabled
 
 
 class ConversionWorker(QThread):
@@ -435,10 +802,12 @@ class ConversionWorker(QThread):
     error_sig = Signal(str)
     log_sig = Signal(str)
 
-    def __init__(self, project_root: Path, cm: ConfigManager):
+    def __init__(self, project_root: Path, cm: ConfigManager, pdf_text: str = '', css_text: str = ''):
         super().__init__()
         self.project_root = project_root
         self.cm = cm
+        self._pdf_text = pdf_text
+        self._css_text = css_text
 
     def run(self):
         try:
@@ -466,10 +835,26 @@ class ConversionWorker(QThread):
             suffix = output_path.suffix.lower()
             self.log_sig.emit(f"🔄 Running conversion: {mdx_file.name} -> {output_path.name}")
             
+            # Prepare CSS styles from CSS editor
+            h1_style = None
+            scrap_style = None
+            additional_styles = None
+            css_text = (self._css_text or '').strip()
+            if css_text:
+                try:
+                    import tomllib as _tomllib
+                    data = _tomllib.loads(css_text)
+                    style = data.get('style', {}) if isinstance(data, dict) else {}
+                    h1_style = style.get('h1_style')
+                    scrap_style = style.get('scrap_style')
+                    additional_styles = style.get('additional_styles')
+                except Exception as ce:
+                    self.log_sig.emit(f"⚠️ CSS preset parse failed, using defaults: {ce}")
+
             if suffix == '.html':
-                found, not_found, invalid_words = mdx2html(mdx_file, input_file, output_path, with_toc=True)
+                found, not_found, invalid_words = mdx2html(mdx_file, input_file, output_path, with_toc=True, h1_style=h1_style, scrap_style=scrap_style, additional_styles=additional_styles)
             elif suffix == '.pdf':
-                # Use default PDF options for now
+                # Base PDF options
                 pdf_options = {
                     'page-size': 'A4',
                     'margin-top': '0.75in',
@@ -477,11 +862,46 @@ class ConversionWorker(QThread):
                     'margin-bottom': '0.75in',
                     'margin-left': '0.75in',
                     'encoding': "UTF-8",
-                    'no-outline': None
                 }
-                found, not_found, invalid_words = mdx2pdf(mdx_file, input_file, output_path, pdf_options)
+                # Merge PDF options from editor content if available
+                pdf_text = (self._pdf_text or '').strip()
+                if pdf_text:
+                    try:
+                        import tomllib as _tomllib
+                        data = _tomllib.loads(pdf_text)
+                        pdf = data.get('pdf', {}) if isinstance(data, dict) else {}
+                        normalized = {k.replace('_', '-'): v for k, v in pdf.items()}
+                        pdf_options.update(normalized)
+                    except Exception as pe:
+                        self.log_sig.emit(f"⚠️ PDF preset parse failed, using defaults: {pe}")
+                found, not_found, invalid_words = mdx2pdf(mdx_file, input_file, output_path, pdf_options, h1_style=h1_style, scrap_style=scrap_style, additional_styles=additional_styles)
             elif suffix in ('.jpg', '.jpeg', '.png', '.webp'):
-                found, not_found, invalid_words = mdx2img(mdx_file, input_file, output_path)
+                # Build img options from config
+                img_opts = {}
+                w = int(self.cm.get('output.image.width', 0) or 0)
+                if w > 0:
+                    img_opts['width'] = str(w)
+                z = float(self.cm.get('output.image.zoom', 1.0) or 1.0)
+                if z and z != 1.0:
+                    img_opts['zoom'] = str(z)
+                if not bool(self.cm.get('output.image.background', True)):
+                    img_opts['no-background'] = ''  # will be filtered out; kept for future
+                # Format-specific
+                if suffix in ('.jpg', '.jpeg'):
+                    img_opts['quality'] = int(self.cm.get('output.image.jpg.quality', 85))
+                elif suffix == '.png':
+                    img_opts['png_optimize'] = bool(self.cm.get('output.image.png.optimize', True))
+                    img_opts['png_compress_level'] = int(self.cm.get('output.image.png.compress_level', 9))
+                    if bool(self.cm.get('output.image.png.transparent_bg', False)):
+                        # Ensure transparent background via CSS already; flag kept for clarity
+                        pass
+                elif suffix == '.webp':
+                    img_opts['webp_quality'] = int(self.cm.get('output.image.webp.quality', 80))
+                    img_opts['webp_lossless'] = bool(self.cm.get('output.image.webp.lossless', False))
+                found, not_found, invalid_words = mdx2img(
+                    mdx_file, input_file, output_path, img_options=img_opts,
+                    h1_style=h1_style, scrap_style=scrap_style, additional_styles=additional_styles
+                )
             else:
                 raise RuntimeError(f"Unsupported output extension: {suffix}")
 
