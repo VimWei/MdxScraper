@@ -1,0 +1,15 @@
+[pdf]
+dpi = 150
+encoding = "UTF-8"
+header-left = "[title]"
+header-right = "[page]/[toPage]"
+header-spacing = 2
+margin-top = "15mm"
+margin-bottom = "18mm"
+margin-left = "25mm"
+margin-right = "18mm"
+header-line = true
+enable-local-file-access = true
+
+
+
