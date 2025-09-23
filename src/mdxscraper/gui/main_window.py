@@ -699,7 +699,14 @@ class MainWindow(QMainWindow):
             self.pdf_combo.addItem(label, userData=str(path))
         self.pdf_combo.blockSignals(False)
         if self.pdf_combo.count() > 0:
-            self.pdf_combo.setCurrentIndex(0)
+            # Prefer 'default' built-in if present, else first
+            preferred_idx = 0
+            for i in range(self.pdf_combo.count()):
+                txt = self.pdf_combo.itemText(i).lower()
+                if txt.startswith('default'):
+                    preferred_idx = i
+                    break
+            self.pdf_combo.setCurrentIndex(preferred_idx)
             self.on_pdf_preset_changed(self.pdf_combo.currentText())
         # CSS presets
         self.css_combo.blockSignals(True)
@@ -708,7 +715,14 @@ class MainWindow(QMainWindow):
             self.css_combo.addItem(label, userData=str(path))
         self.css_combo.blockSignals(False)
         if self.css_combo.count() > 0:
-            self.css_combo.setCurrentIndex(0)
+            # Prefer 'original' built-in if present, else first
+            preferred_idx = 0
+            for i in range(self.css_combo.count()):
+                txt = self.css_combo.itemText(i).lower()
+                if txt.startswith('original'):
+                    preferred_idx = i
+                    break
+            self.css_combo.setCurrentIndex(preferred_idx)
             self.on_css_preset_changed(self.css_combo.currentText())
 
     def _iter_presets(self, kind: str):
