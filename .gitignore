@@ -7,6 +7,10 @@ data/
 *.pyo
 *.pyd
 
+# Package build artifacts
+src/*.egg-info/
+*.egg-info/
+
 # Virtual environments
 .venv/
 venv/

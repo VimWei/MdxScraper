@@ -16,11 +16,18 @@ dependencies = [
     'beautifulsoup4>=4.13.5',
     'lxml>=6.0.1',
     'tomli-w>=1.0.0',
+    'PySide6>=6.7.0',
 ]
 
 [project.urls]
 Homepage = "https://github.com/VimWei/MdxScraper"
 Repository = "https://github.com/VimWei/MdxScraper"
+
+[project.scripts]
+mdxscraper = "mdxscraper.gui.main_window:run_gui"
+
+[tool.uv]
+package = true
 
 [dependency-groups]
 dev = [

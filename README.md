@@ -4,7 +4,7 @@
 
 一句话：根据指定词汇，从MDX字典提取内容并输出为HTML、PDF或JPG。
 
-![截图](lib/images/screenshot.png)
+![截图](docs/assets/images/screenshot.png)
 
 ## 特点
 
@@ -63,4 +63,4 @@ To set up the project locally, you will need a working Python environment (Pytho
 
 ## 案例
 
-![输出 html](lib/images/html.png)
+![输出 html](docs/assets/images/html.png)
