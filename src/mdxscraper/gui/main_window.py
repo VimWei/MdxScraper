@@ -247,9 +247,16 @@ class MainWindow(QMainWindow):
 
     def run_conversion(self):
         # Ensure latest values from inputs are synced to config before running
-        self.on_input_edited()
-        self.on_dictionary_edited()
-        self.on_output_edited()
+        # Avoid calling on_input_edited() here to prevent unintended renaming of output
+        input_text = self.edit_input.text().strip()
+        if input_text:
+            self.cm.set_input_file(input_text)
+        dict_text = self.edit_dict.text().strip()
+        if dict_text:
+            self.cm.set_dictionary_file(dict_text)
+        output_text = self.edit_output.text().strip()
+        if output_text:
+            self.cm.set_output_file(output_text)
 
         output = self.cm.get("output.file")
         if not output:
