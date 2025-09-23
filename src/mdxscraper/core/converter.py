@@ -12,7 +12,6 @@ import pdfkit
 from bs4 import BeautifulSoup
 
 from mdxscraper.core.dictionary import Dictionary
-from mdxscraper.core.enums import InvalidAction
 from mdxscraper.core.parser import get_words
 from mdxscraper.core.renderer import embed_images, merge_css
 from mdxscraper.utils.path_utils import get_wkhtmltopdf_path
@@ -22,7 +21,6 @@ def mdx2html(
     mdx_file: str | Path,
     input_file: str | Path,
     output_file: str | Path,
-    invalid_action: InvalidAction = InvalidAction.Collect,
     with_toc: bool = True,
     h1_style: str | None = None,
     scrap_style: str | None = None,
@@ -59,24 +57,13 @@ def mdx2html(
             result = dictionary.lookup_html(word)
             if len(result) == 0:
                 not_found_count += 1
-                if invalid_action == InvalidAction.Exit:
-                    raise SystemExit(1)
-                elif invalid_action == InvalidAction.Collect:
-                    if lesson['name'] in invalid_words:
-                        invalid_words[lesson['name']].append(word)
-                    else:
-                        invalid_words[lesson['name']] = [word]
-                    continue
-                elif invalid_action == InvalidAction.OutputWarning:
-                    invalid = True
-                    result = '<div style="padding:0 0 15px 0"><b>WARNING:</b> "' + word + '" not found</div>'
-                else:  # Collect_OutputWarning
-                    if lesson['name'] in invalid_words:
-                        invalid_words[lesson['name']].append(word)
-                    else:
-                        invalid_words[lesson['name']] = [word]
-                    invalid = True
-                    result = '<div style="padding:0 0 15px 0"><b>WARNING:</b> "' + word + '" not found</div>'
+                # Always collect invalid words and embed a warning
+                if lesson['name'] in invalid_words:
+                    invalid_words[lesson['name']].append(word)
+                else:
+                    invalid_words[lesson['name']] = [word]
+                invalid = True
+                # result = '<div style="padding:0 0 15px 0"><b>WARNING:</b> "' + word + '" not found</div>'
             else:
                 found_count += 1
 
@@ -128,11 +115,10 @@ def mdx2pdf(
     input_file: str | Path,
     output_file: str | Path,
     pdf_options: dict,
-    invalid_action: InvalidAction = InvalidAction.Collect,
 ) -> tuple[int, int, OrderedDict]:
     with tempfile.NamedTemporaryFile(suffix='.html', delete=False) as temp:
         temp_file = temp.name
-        found, not_found, invalid_words = mdx2html(mdx_file, input_file, temp_file, invalid_action, with_toc=False)
+        found, not_found, invalid_words = mdx2html(mdx_file, input_file, temp_file, with_toc=False)
 
     config_path = get_wkhtmltopdf_path('auto')
     config = pdfkit.configuration(wkhtmltopdf=config_path)
@@ -147,11 +133,10 @@ def mdx2jpg(
     mdx_file: str | Path,
     input_file: str | Path,
     output_file: str | Path,
-    invalid_action: InvalidAction = InvalidAction.Collect,
 ) -> tuple[int, int, OrderedDict]:
     with tempfile.NamedTemporaryFile(suffix='.html', delete=False) as temp:
         temp_file = temp.name
-        found, not_found, invalid_words = mdx2html(mdx_file, input_file, temp_file, invalid_action, with_toc=False)
+        found, not_found, invalid_words = mdx2html(mdx_file, input_file, temp_file, with_toc=False)
 
     # Ensure output directory exists
     Path(output_file).parent.mkdir(parents=True, exist_ok=True)

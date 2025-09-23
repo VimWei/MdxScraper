@@ -36,6 +36,9 @@ class ConfigManager:
         )
         self.latest_config_path = self.configs_dir / "config_latest.toml"
         self._config: Dict[str, Any] = {}
+        # Normalization reporting state (consumed once by GUI)
+        self._norm_changed: bool = False
+        self._norm_counts: Dict[str, int] = {"removed": 0, "added": 0, "type_fixed": 0}
 
     # ---------- Public API ----------
     def load(self) -> Dict[str, Any]:
@@ -45,10 +48,14 @@ class ConfigManager:
             self._config = self._read_toml(self.default_config_path)
             self.configs_dir.mkdir(parents=True, exist_ok=True)
             self._atomic_write(self.latest_config_path, self._config)
+        # Normalize in-memory config against current defaults
+        self._normalize_config()
         return self._config
 
     def save(self) -> None:
         self.configs_dir.mkdir(parents=True, exist_ok=True)
+        # Ensure config is normalized before persisting
+        self._normalize_config()
         self._atomic_write(self.latest_config_path, self._config)
 
     def get(self, dotted_path: str, default: Any = None) -> Any:
@@ -141,16 +148,16 @@ class ConfigManager:
         self.set("output.add_timestamp", value)
 
     def get_backup_input(self) -> bool:
-        return self.get("artifacts.backup_input", True)
+        return self.get("output.backup_input", True)
 
     def set_backup_input(self, value: bool) -> None:
-        self.set("artifacts.backup_input", value)
+        self.set("output.backup_input", value)
 
-    def get_invalid_words_file(self) -> Optional[str]:
-        return self.get("artifacts.invalid_words_file")
+    def get_save_invalid_words(self) -> bool:
+        return bool(self.get("output.save_invalid_words", True))
 
-    def set_invalid_words_file(self, path: str) -> None:
-        self.set("artifacts.invalid_words_file", self._to_external_path(path))
+    def set_save_invalid_words(self, value: bool) -> None:
+        self.set("output.save_invalid_words", bool(value))
 
     # ---------- Internal helpers ----------
     def _read_toml(self, path: Path) -> Dict[str, Any]:
@@ -178,5 +185,78 @@ class ConfigManager:
             return str(p.resolve().relative_to(self.project_root))
         except Exception:
             return str(p)
+
+    def _normalize_config(self) -> None:
+        """Normalize in-memory config to the latest schema.
+
+        Strategy:
+        - Reconcile strictly against default_config.toml:
+          • remove unknown keys
+          • add missing keys with defaults
+          • if type mismatch, replace with default
+        - Record a one-time summary (counts) for GUI to announce.
+        """
+        self._norm_changed = False
+        self._norm_counts = {"removed": 0, "added": 0, "type_fixed": 0}
+
+        cfg: Dict[str, Any] = self._config if isinstance(self._config, dict) else {}
+
+        # --- Reconcile with defaults ---
+        try:
+            defaults: Dict[str, Any] = self._read_toml(self.default_config_path)
+        except Exception:
+            defaults = {}
+
+        def reconcile(current: Any, default: Any, path: str = "") -> Any:
+            # If default is not a dict, enforce type by replacing mismatched values
+            if not isinstance(default, dict):
+                if (default is None) or isinstance(current, type(default)):
+                    return current if current is not None else default
+                # type mismatch → replace
+                self._norm_changed = True
+                self._norm_counts["type_fixed"] += 1
+                return default
+
+            # default is a dict: current must be a dict, otherwise replace whole node
+            if not isinstance(current, dict):
+                self._norm_changed = True
+                # Count as type fix
+                self._norm_counts["type_fixed"] += 1
+                # return a deep copy-like structure based on default
+                return reconcile({}, default, path)
+
+            # remove unknown keys
+            for k in list(current.keys()):
+                if k not in default:
+                    current.pop(k, None)
+                    self._norm_changed = True
+                    self._norm_counts["removed"] += 1
+
+            # add missing keys and recurse existing keys
+            for k, dv in default.items():
+                if k in current:
+                    current[k] = reconcile(current[k], dv, f"{path}.{k}" if path else k)
+                else:
+                    # add missing from defaults
+                    current[k] = dv
+                    self._norm_changed = True
+                    self._norm_counts["added"] += 1
+
+            return current
+
+        self._config = reconcile(cfg, defaults)
+
+    def get_normalize_info_once(self) -> dict:
+        """Return and reset one-time normalization summary for GUI logging."""
+        info = {
+            "changed": self._norm_changed,
+            "removed": self._norm_counts.get("removed", 0),
+            "added": self._norm_counts.get("added", 0),
+            "type_fixed": self._norm_counts.get("type_fixed", 0),
+        }
+        # reset after consumption
+        self._norm_changed = False
+        self._norm_counts = {"removed": 0, "added": 0, "type_fixed": 0}
+        return info
 
 

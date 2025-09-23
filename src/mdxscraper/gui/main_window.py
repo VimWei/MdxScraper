@@ -19,6 +19,13 @@ class MainWindow(QMainWindow):
         self.project_root = project_root
         self.cm = ConfigManager(project_root)
         self.cm.load()
+        # Announce normalization result once
+        info = self.cm.get_normalize_info_once()
+        if info.get("changed"):
+            removed, added, type_fixed = info.get("removed", 0), info.get("added", 0), info.get("type_fixed", 0)
+            self.log_message_later = f"⚙️ Config normalized (removed: {removed}, added: {added}, type fixed: {type_fixed}). Please save to persist."
+        else:
+            self.log_message_later = None
 
         central = QWidget(self)
         root = QVBoxLayout(central)
@@ -80,11 +87,16 @@ class MainWindow(QMainWindow):
         self.check_backup.setChecked(self.cm.get_backup_input())
         self.check_backup.stateChanged.connect(self.on_backup_changed)
 
+        self.check_save_invalid = QCheckBox("Save invalid words file", self)
+        self.check_save_invalid.setChecked(self.cm.get_save_invalid_words())
+        self.check_save_invalid.stateChanged.connect(self.on_save_invalid_changed)
+
         options_row = QHBoxLayout()
         options_row.setContentsMargins(0, 0, 0, 0)
         options_row.setSpacing(12)
         options_row.addWidget(self.check_timestamp)
         options_row.addWidget(self.check_backup)
+        options_row.addWidget(self.check_save_invalid)
         options_row.addItem(QSpacerItem(20, 10, QSizePolicy.Expanding, QSizePolicy.Minimum))
         form.addLayout(options_row, 3, 1, 1, 2)
         
@@ -153,6 +165,13 @@ class MainWindow(QMainWindow):
 
         self.setMinimumSize(800, 520)
         self.setCentralWidget(central)
+        # After UI ready, show normalization log if any
+        if hasattr(self, 'log_message_later') and self.log_message_later:
+            # defer until log widget exists
+            self.log = self.log if hasattr(self, 'log') else None
+            if self.log:
+                self.log.append(self.log_message_later)
+            self.log_message_later = None
 
     def apply_modern_styling(self):
         """Apply modern PySide6 styling using built-in styles"""
@@ -256,6 +275,11 @@ class MainWindow(QMainWindow):
         is_checked = state == Qt.CheckState.Checked.value
         self.cm.set_backup_input(is_checked)
     
+    def on_save_invalid_changed(self, state):
+        """Handle save invalid words checkbox state change"""
+        is_checked = state == Qt.CheckState.Checked.value
+        self.cm.set_save_invalid_words(is_checked)
+    
     def closeEvent(self, event):
         """Handle application close event - save config before closing"""
         self.cm.save()
@@ -323,10 +347,15 @@ class MainWindow(QMainWindow):
             import tomllib as _tomllib
             with open(_P(file), "rb") as f:
                 cfg = _tomllib.load(f)
-            # Replace in-memory config only; persist on app close
+            # Replace in-memory config only; normalize in-memory; persist on app close
             self.cm._config = cfg
+            self.cm._normalize_config()
+            info = self.cm.get_normalize_info_once()
             self.sync_from_config()
             self.log.append(f"✅ Imported config applied: {file}")
+            if info.get("changed"):
+                removed, added, type_fixed = info.get("removed", 0), info.get("added", 0), info.get("type_fixed", 0)
+                self.log.append(f"⚙️ Config normalized after import (removed: {removed}, added: {added}, type fixed: {type_fixed}). Please save to persist.")
         except Exception as e:
             self.log.append(f"❌ Failed to import config: {e}")
 
@@ -339,9 +368,15 @@ class MainWindow(QMainWindow):
             return
         try:
             # Ensure current GUI edits are reflected to config
-            self.on_input_edited()
-            self.on_dictionary_edited()
-            self.on_output_edited()
+            input_text = self.edit_input.text().strip()
+            if input_text:
+                self.cm.set_input_file(input_text)
+            dict_text = self.edit_dict.text().strip()
+            if dict_text:
+                self.cm.set_dictionary_file(dict_text)
+            output_text = self.edit_output.text().strip()
+            if output_text:
+                self.cm.set_output_file(output_text)
             # Validate before export; log issues but proceed
             result = self.cm.validate()
             if not result.is_valid:
@@ -408,7 +443,6 @@ class ConversionWorker(QThread):
     def run(self):
         try:
             from mdxscraper.core.converter import mdx2html, mdx2pdf, mdx2jpg
-            from mdxscraper.core.enums import InvalidAction
             import time
 
             # Start timing
@@ -428,21 +462,12 @@ class ConversionWorker(QThread):
                 output_dir = output_path.parent
                 output_name = output_path.name
                 output_path = output_dir / (current_time + '_' + output_name)
-            invalid_action_str = str(cfg.get('artifacts', {}).get('invalid_action', 'collect_output_warning')).lower()
-            invalid_action = {
-                'exit': InvalidAction.Exit,
-                'collect': InvalidAction.Collect,
-                'outputwarning': InvalidAction.OutputWarning,
-                'collect_warning': InvalidAction.OutputWarning,
-                'collect_outputwarning': InvalidAction.Collect_OutputWarning,
-                'collect_output_warning': InvalidAction.Collect_OutputWarning,
-            }.get(invalid_action_str, InvalidAction.Collect)
 
             suffix = output_path.suffix.lower()
             self.log_sig.emit(f"🔄 Running conversion: {mdx_file.name} -> {output_path.name}")
             
             if suffix == '.html':
-                found, not_found, invalid_words = mdx2html(mdx_file, input_file, output_path, invalid_action, True)
+                found, not_found, invalid_words = mdx2html(mdx_file, input_file, output_path, with_toc=True)
             elif suffix == '.pdf':
                 # Use default PDF options for now
                 pdf_options = {
@@ -454,9 +479,9 @@ class ConversionWorker(QThread):
                     'encoding': "UTF-8",
                     'no-outline': None
                 }
-                found, not_found, invalid_words = mdx2pdf(mdx_file, input_file, output_path, pdf_options, invalid_action)
+                found, not_found, invalid_words = mdx2pdf(mdx_file, input_file, output_path, pdf_options)
             elif suffix in ('.jpg', '.jpeg'):
-                found, not_found, invalid_words = mdx2jpg(mdx_file, input_file, output_path, invalid_action)
+                found, not_found, invalid_words = mdx2jpg(mdx_file, input_file, output_path)
             else:
                 raise RuntimeError(f"Unsupported output extension: {suffix}")
 
@@ -487,8 +512,8 @@ class ConversionWorker(QThread):
             # Emit success message first
             self.finished_sig.emit(msg)
 
-            # Write invalid words file if there are any invalid words
-            if invalid_words:
+            # Write invalid words file if enabled and there are any invalid words
+            if self.cm.get_save_invalid_words() and invalid_words:
                 from mdxscraper.core.converter import write_invalid_words_file
                 # Filename pattern: [timestamp_]input_name_invalid.txt
                 input_stem = Path(input_file).stem
