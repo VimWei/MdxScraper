@@ -1,7 +1,7 @@
 """mdict-query shim package.
 
-Exposes a thin compatibility layer to the existing lib/mdict-query code
-shipped with the repository, without altering current script behavior.
+Exposes a thin compatibility layer to the vendored mdict-query code
+under src/mdxscraper/mdict/vendor.
 """
 
 __all__ = [

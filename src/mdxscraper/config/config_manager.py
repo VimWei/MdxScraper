@@ -142,8 +142,9 @@ class ConfigManager:
     def _atomic_write(self, path: Path, data: Dict[str, Any]) -> None:
         path.parent.mkdir(parents=True, exist_ok=True)
         tmp_path = path.with_suffix(path.suffix + ".tmp")
+        content = tomli_w.dumps(data)
         with open(tmp_path, "w", encoding="utf-8") as f:
-            tomli_w.dump(data, f)
+            f.write(content)
         os.replace(tmp_path, path)
 
     def _resolve_path(self, external_path: str) -> Path:

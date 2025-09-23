@@ -1,386 +1,126 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-"""
-Module: MdxScraper
-Author: VimWei
-Created: January 14, 2024
-Modified: September 21, 2025
-
-Description:
-    Extract specific words from an MDX dictionary and generate HTML, PDF, or JPG files with ease.
-"""
-
-import os
 import sys
 import time
-import json
 import shutil
-import platform
-import tempfile
 from pathlib import Path
-from collections import OrderedDict
 from datetime import datetime, timedelta
+import tomllib
 
-import imgkit
-import pdfkit
-import openpyxl
-from chardet import detect
-from base64 import b64encode
-from bs4 import BeautifulSoup
-
-from settings import (
-    INPUT_PATH, INPUT_NAME,
-    DICTIONARY_PATH, DICTIONARY_NAME,
-    OUTPUT_PATH, OUTPUT_NAME,
-    InvalidAction, INVALID_ACTION, INVALID_WORDS_NAME,
-    PDF_OPTIONS, WKHTMLTOPDF_PATHS,
-    H1_STYLE, SCRAP_STYLE, ADDITIONAL_STYLES,
-)
-
-# import mdict_query
 current_script_path = Path(__file__).resolve().parent
-path_to_be_added = current_script_path / "lib/mdict-query"
-sys.path.append(str(path_to_be_added))
-import mdict_query
+src_dir = current_script_path / "src"
+if str(src_dir) not in sys.path:
+    sys.path.insert(0, str(src_dir))
 
-# Function to open a file with detected encoding
-def open_encoding_file(name, default_encoding='utf-8'):
-    with open(name, 'rb') as f:
-        raw_data = f.read()
-    if raw_data.count(b'\n') < 1:
-        encoding = default_encoding
-    else:
-        detection_result = detect(raw_data)
-        encoding = detection_result['encoding']
-        confidence = detection_result.get('confidence', 0)
-        if confidence < 0.5:
-            encoding = default_encoding
-    return open(name, encoding=encoding, errors='ignore')
+from mdxscraper.config.config_manager import ConfigManager
+from mdxscraper.core.converter import mdx2html, mdx2pdf, mdx2jpg
+from mdxscraper.core.enums import InvalidAction
 
-# Function to retrieve words from different file types
-def get_words(name):
-    ext = Path(name).suffix.lower()
-    return {'.xls': get_words_from_xls,
-            '.xlsx': get_words_from_xls,
-            '.json': get_words_from_json,
-            '.txt': get_words_from_txt,
-            }[ext](name)
 
-# Function to get words from a JSON file
-def get_words_from_json(name):
-    return json.load(open_encoding_file(name))
-
-# Function to get words from a text file
-def get_words_from_txt(name):
-    result = []
-    for line in open_encoding_file(name).readlines():
-        line = line.strip()
-        if len(line) == 0:
-            continue
-        if line.startswith('#'):
-            result.append({'name': line.strip('#'), 'words': []})
-        else:
-            if len(result) == 0:
-                currentTime = datetime.now().strftime("%Y%m%d-%H%M%S")
-                result.append({'name': currentTime, 'words': []})
-            result[-1]['words'].append(line)
-    return result
-
-# Function to get words from an Excel file
-def get_words_from_xls(name):
-    wb = openpyxl.load_workbook(name, read_only=True)
-    result = []
-    for name in wb.sheetnames:
-        ws = wb[name]
-        words = [row[0].value for row in ws.iter_rows(min_row=ws.min_row, max_row=ws.max_row, max_col=1)]
-        words = list(filter(lambda x: x is not None and len(x) > 0, words))
-        result.append({'name': name, 'words': words})
-    return result
-
-# Function to retrieve CSS from an MDX dictionary or file
-def get_css(soup, mdx_path, dictionary):
-    css_name = soup.head.link['href']
-    css_path = Path(mdx_path) / css_name
-    if css_path.exists():
-        css = css_path.read_bytes()
-    elif hasattr(dictionary, '_mdd_db'):
-        css_key = dictionary.get_mdd_keys('*' + css_name)[0]
-        css = dictionary.mdd_lookup(css_key)[0]
-    else:
-        css = b''
-    return css.decode('utf-8')
-
-# Function to merge CSS into the HTML soup
-def merge_css(soup, mdx_path, dictionary, append_additinal_styles=True):
-    try:
-        css = get_css(soup, mdx_path, dictionary)
-    except Exception as e:
-        return soup
-    if append_additinal_styles:
-        css += ADDITIONAL_STYLES
-
-    soup.head.link.decompose()
-    soup.head.append(soup.new_tag('style', type='text/css'))
-    soup.head.style.string = css
-    return soup
-
-# Function to determine image format based on file extension
-def get_image_format_from_src(src: str) -> str:
-    ext = Path(src).suffix.lower()
-    if ext == '.png':
-        return 'png'
-    elif ext in ['.jpg', '.jpeg']:
-        return 'jpeg'
-    elif ext == '.gif':
-        return 'gif'
-    elif ext == '.webp':
-        return 'webp'
-    elif ext == '.svg':
-        return 'svg'
-    elif ext in ['.tif', '.tiff']:
-        return 'tiff'
-    elif ext == '.bmp':
-        return 'bmp'
-    else:
-        return 'jpg'
-
-# Function to replace image source with base64 data in HTML soup
-def grab_images(soup, dictionary):
-    if not hasattr(dictionary, '_mdd_db'):
-        return soup
-
-    cache = {}
-    for img in soup.find_all('img'):
-        if not img.has_attr('src'):
-            continue
-
-        src = img['src']
-        src_path = src.replace('/', '\\')
-
-        if src_path in cache:
-            img['src'] = cache[src_path]
-            continue
-
-        lookup_src = src_path
-        if not lookup_src.startswith('\\'):
-            lookup_src = '\\' + lookup_src
-
-        # Lookup image data
-        imgs = dictionary.mdd_lookup(lookup_src)
-        if len(imgs) > 0:
-            # print(f'Got image {src}')
-            image_format = get_image_format_from_src(src)
-            base64_str = f'data:image/{image_format};base64,' + b64encode(imgs[0]).decode('ascii')
-            cache[src_path] = base64_str
-            img['src'] = base64_str
-
-    return soup
-
-# Function to look up a word in the MDX dictionary
-def lookup(dictionary, word):
-    word = word.strip()
-    definitions = dictionary.mdx_lookup(word)
-    if len(definitions) == 0:
-        definitions = dictionary.mdx_lookup(word, ignorecase=True)
-    if len(definitions) == 0:
-        definitions = dictionary.mdx_lookup(word.replace('-', ''), ignorecase=True)
-    if len(definitions) == 0:
-        return ''
-    definition = definitions[0]
-    if definition.startswith('@@@LINK='):
-        return dictionary.mdx_lookup(definition.replace('@@@LINK=', '').strip())[0].strip()
-    else:
-        return definition.strip()
-
-# Function to convert MDX to HTML
-def mdx2html(mdx_file, input_file, output_file, invalid_action=InvalidAction.Collect, with_toc=True):
-    print(f'Looking up words in the dictionary and generating HTML output...\n')
-
-    found_count = 0
-    not_found_count = 0
-
-    mdx_file = Path(mdx_file)
-
-    dictionary = mdict_query.IndexBuilder(mdx_file)
-    lessons = get_words(input_file)
-
-    right_soup = BeautifulSoup('<body style="font-family:Arial Unicode MS;"><div class="right"></div></body>', 'lxml')
-    right_soup.find('body').insert_before('\n')
-    left_soup = BeautifulSoup('<div class="left"></div>', 'lxml')
-
-    invalid_words = OrderedDict()
-
-    for lesson in lessons:
-        # print(lesson['name'])
-        h1 = right_soup.new_tag('h1', id='lesson_' + lesson['name'], style=H1_STYLE)
-        h1.string = lesson['name']
-        right_soup.div.append(h1)
-
-        a = left_soup.new_tag('a', href='#lesson_' + lesson['name'], **{'class': 'lesson'})
-        a.string = lesson['name']
-        left_soup.div.append(a)
-        left_soup.div.append(left_soup.new_tag('br'))
-        left_soup.div.append('\n')
-
-        invalid = False
-        for word in lesson['words']:
-            # print('\t', word)
-            result = lookup(dictionary, word)
-            if len(result) == 0:  # not found
-                not_found_count += 1
-                if invalid_action == InvalidAction.Exit:
-                    sys.exit()
-                elif invalid_action == InvalidAction.Collect:
-                    if lesson['name'] in invalid_words:
-                        invalid_words[lesson['name']].append(word)
-                    else:
-                        invalid_words[lesson['name']] = [word, ]
-                    continue
-                elif invalid_action == InvalidAction.OutputWarning:
-                    invalid = True
-                    result = f'<div style="padding:0 0 15px 0"><b>WARNING:</b> "{word}" not found</div>'
-                else:  # invalid_action == InvalidAction.Collect_OutputWarning
-                    if lesson['name'] in invalid_words:
-                        invalid_words[lesson['name']].append(word)
-                    else:
-                        invalid_words[lesson['name']] = [word, ]
-                    invalid = True
-                    result = f'<div style="padding:0 0 15px 0"><b>WARNING:</b> "{word}" not found</div>'
-            else:
-                found_count += 1
-
-            definition = BeautifulSoup(result, 'lxml')
-            if right_soup.head is None and definition.head is not None:
-                right_soup.html.insert_before(definition.head)
-                right_soup.head.append(right_soup.new_tag('meta', charset='utf-8'))
-
-            new_div = right_soup.new_tag("div", style=SCRAP_STYLE)
-            new_div['id'] = 'word_' + word
-            new_div['class'] = 'scrapedword'
-            if definition.body:
-                new_div.append(definition.body)
-            right_soup.div.append('\n')
-            right_soup.div.append(new_div)
-
-            a = left_soup.new_tag('a', href='#word_' + word, **{'class': 'word' + (' invalid_word' if invalid else '')})
-            invalid = False
-            a.string = word
-            left_soup.div.append(a)
-            left_soup.div.append(left_soup.new_tag('br'))
-            left_soup.div.append('\n')
-
-        left_soup.div.append(left_soup.new_tag('br'))
-
-    if with_toc:
-        main_div = right_soup.new_tag('div', **{'class': 'main'})
-        right_soup.div.wrap(main_div)
-        right_soup.div.insert_before(left_soup.div)
-
-    right_soup = merge_css(right_soup, Path(mdx_file).parent, dictionary, with_toc)
-    right_soup = grab_images(right_soup, dictionary)
-
-    html = str(right_soup).encode('utf-8')
-    html = html.replace(b'<body>', b'').replace(b'</body>', b'', html.count(b'</body>') - 1)
-    with open(output_file, "wb") as file:
-        file.write(html)
-
-    if len(invalid_words) > 0:
-        with open(invalid_words_file, 'w', encoding='utf-8') as fp:
-            for lesson, words in invalid_words.items():
-                fp.write(f'#{lesson}\n')
-                for word in words:
-                    fp.write(word + '\n')
-
-    return found_count, not_found_count
-
-# Function to find wkhtmltopdf path
-def find_wkhtmltopdf_path():
-    if platform.system() == 'Windows':
-        return WKHTMLTOPDF_PATHS['Windows']
-    elif platform.system() == 'Linux':
-        return WKHTMLTOPDF_PATHS['Linux'] if Path(WKHTMLTOPDF_PATHS['Linux']).is_file() else WKHTMLTOPDF_PATHS['Linux_alt']
-    elif platform.system() == 'Darwin':
-        return WKHTMLTOPDF_PATHS['Darwin']
-    else:
-        raise ValueError("Unsupported platform")
-
-# Function to convert MDX to PDF
-def mdx2pdf(mdx_file, input_file, output_file, invalid_action=InvalidAction.Collect):
-    with tempfile.NamedTemporaryFile(suffix='.html', delete=False) as temp:
-        TEMP_FILE = temp.name
-        result = mdx2html(mdx_file, input_file, TEMP_FILE, invalid_action, False)
-
-    print(f'Converting HTML to PDF...\n')
-    config = pdfkit.configuration(wkhtmltopdf=find_wkhtmltopdf_path())
-    pdfkit.from_file(TEMP_FILE, output_file, configuration=config, options=PDF_OPTIONS)
-    os.remove(TEMP_FILE)
-    return result
-
-# Function to convert MDX to JPG
-def mdx2jpg(mdx_file, input_file, output_file, invalid_action=InvalidAction.Collect):
-    with tempfile.NamedTemporaryFile(suffix='.html', delete=False) as temp:
-        TEMP_FILE = temp.name
-        result = mdx2html(mdx_file, input_file, TEMP_FILE, invalid_action, False)
-
-    print(f'Converting HTML to JPG...\n')
-    imgkit.from_file(TEMP_FILE, output_file, options={'enable-local-file-access': ''})
-    os.remove(TEMP_FILE)
-    return result
-
-def human_readable_duration(seconds):
+def human_readable_duration(seconds: float) -> str:
     time_delta = timedelta(seconds=seconds)
     hours, remainder = divmod(time_delta.total_seconds(), 3600)
     minutes, int_seconds = divmod(remainder, 60)
     milliseconds = int((seconds - int(hours) * 3600 - int(minutes) * 60 - int(int_seconds)) * 1000)
-
     parts = []
     if int(hours) > 0:
-        parts.append(f'{int(hours):02d} hours')
+        parts.append(f"{int(hours):02d} hours")
     if int(minutes) > 0 or int(hours) > 0:
-        parts.append(f'{int(minutes):02d} minutes')
-    parts.append(f'{int(int_seconds):02d}.{milliseconds:03d} seconds')
-
-    human_readable_time = ''.join(parts)
-    return human_readable_time
+        parts.append(f"{int(minutes):02d} minutes")
+    parts.append(f"{int(int_seconds):02d}.{milliseconds:03d} seconds")
+    return ''.join(parts)
 
 if __name__ == '__main__':
 
     print(f'Welcome to MdxScraper：extract specific words from an MDX dictionary and generate HTML, PDF, or JPG with ease！\n')
     start_time = time.time()
 
-    input_file = Path(INPUT_PATH) / INPUT_NAME
-    mdx_file = Path(DICTIONARY_PATH) / DICTIONARY_NAME
+    # Prefer TOML config (default from src/mdxscraper/config/default_config.toml,
+    # user config from data/configs/config_latest.toml)
+    cm = ConfigManager(current_script_path)
+    try:
+        config = cm.load()
+        # Ensure required defaults populated from bundled default_config if missing
+        def _ensure_defaults(conf: dict) -> dict:
+            with open(cm.default_config_path, 'rb') as f:
+                defaults = tomllib.load(f)
+            for sect, key in [("input","file"),("dictionary","file"),("output","file")]:
+                conf.setdefault(sect, {})
+                if not conf[sect].get(key):
+                    conf[sect][key] = defaults.get(sect, {}).get(key)
+            conf.setdefault("output", {}).setdefault("with_toc", defaults.get("output", {}).get("with_toc", True))
+            return conf
+        config = _ensure_defaults(config or {})
+        cm._config = config
+        cm.save()
+        # Validate config before resolving paths
+        validation = cm.validate()
+        if not validation.is_valid:
+            print("Configuration is invalid:\n" + "\n".join(f"- {e}" for e in validation.errors))
+            print("Please fix the configuration in data/configs/config_latest.toml or via GUI (uv run mdxscraper).")
+            sys.exit(1)
+        # resolve paths
+        input_file_value = config.get('input', {}).get('file')
+        dict_file_value = config.get('dictionary', {}).get('file')
+        output_file_value = config.get('output', {}).get('file')
+        if not input_file_value or not dict_file_value or not output_file_value:
+            print("Missing required configuration fields: ensure input.file, dictionary.file, and output.file are set.")
+            sys.exit(1)
+        input_file = cm._resolve_path(input_file_value)
+        mdx_file = cm._resolve_path(dict_file_value)
+        output_path = cm._resolve_path(output_file_value)
+        with_toc = bool(config.get('output', {}).get('with_toc', True))
+        invalid_action_str = str(config.get('processing', {}).get('invalid_action', 'collect_warning')).lower()
+        invalid_action = {
+            'exit': InvalidAction.Exit,
+            'collect': InvalidAction.Collect,
+            'outputwarning': InvalidAction.OutputWarning,
+            'collect_warning': InvalidAction.OutputWarning,
+            'collect_outputwarning': InvalidAction.Collect_OutputWarning,
+            'collect_output_warning': InvalidAction.Collect_OutputWarning,
+        }.get(invalid_action_str, InvalidAction.Collect)
+        # Derive output paths from configured output file
+        output_dir = output_path.parent
+        output_name = output_path.name
+    except Exception:
+        # If config invalid, raise to surface the issue
+        raise
 
     currentTime = datetime.now().strftime("%Y%m%d-%H%M%S")
-    OUTPUT_PATH = Path(OUTPUT_PATH)
-    OUTPUT_PATH.mkdir(parents=True, exist_ok=True)
-    if OUTPUT_NAME is None:
-        OUTPUT_NAME = currentTime + '_' + Path(INPUT_NAME).stem + '.html'
-        output_file = OUTPUT_PATH / OUTPUT_NAME
-    else:
-        OUTPUT_NAME = currentTime + '_' + OUTPUT_NAME
-        output_file = OUTPUT_PATH / OUTPUT_NAME
-    invalid_words_file = OUTPUT_PATH / (currentTime + '_' + INVALID_WORDS_NAME)
+    output_dir = Path(output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
+    output_file = output_dir / (currentTime + '_' + output_name)
+    invalid_words_file = output_dir / (currentTime + '_' + 'invalid_words.txt')
 
-    backup_input_file = OUTPUT_PATH / (currentTime + '_backup_' + INPUT_NAME)
+    # backup input file beside outputs
+    backup_input_file = output_dir / (currentTime + '_backup_' + Path(input_file).name)
     shutil.copy(str(input_file), str(backup_input_file))
 
     output_type = Path(output_file).suffix[1:]
     found, not_found = {
         'html': mdx2html,
-        'pdf': mdx2pdf,
+        'pdf': lambda a,b,c,d: mdx2pdf(a,b,c, {}, d),
         'jpg': mdx2jpg,
-    }[output_type](mdx_file, input_file, output_file, INVALID_ACTION)
+    }[output_type](mdx_file, input_file, output_file, invalid_action)
 
-    if found >0 or INVALID_ACTION in [InvalidAction.OutputWarning, InvalidAction.Collect_OutputWarning]:
-        print(f"Success: {found} words extracted from {Path(DICTIONARY_NAME).name}. Refer to {output_file}.\n")
+    # Calculate success rate
+    total = found + not_found
+    if total > 0:
+        success_rate = (found / total) * 100
+        success_msg = f"Success: {found} words extracted from {Path(mdx_file).name}. Success rate: {success_rate:.1f}%. Refer to {output_file}.\n"
     else:
-        print(f"Success: {found} words extracted from {Path(DICTIONARY_NAME).name}.\n")
+        success_msg = f"Success: {found} words extracted from {Path(mdx_file).name}. Success rate: 0%.\n"
+    
+    if found > 0 or invalid_action in [InvalidAction.OutputWarning, InvalidAction.Collect_OutputWarning]:
+        print(success_msg)
+    else:
+        print(success_msg)
+    
     if not_found > 0:
-        print(f"Failure: {not_found} words not in {Path(DICTIONARY_NAME).name}. Check {invalid_words_file}.\n")
+        print(f"Failure: {not_found} words not in {Path(mdx_file).name}. Check {invalid_words_file}.\n")
     else:
-        print(f"Failure: {not_found} words not in {Path(DICTIONARY_NAME).name}.\n")
+        print(f"Failure: {not_found} words not in {Path(mdx_file).name}.\n")
 
     end_time = time.time()
     duration = human_readable_duration(end_time - start_time)

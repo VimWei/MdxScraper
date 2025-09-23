@@ -15,5 +15,3 @@ max_workers = 4
 
 [advanced]
 wkhtmltopdf_path = "auto"
-
-
