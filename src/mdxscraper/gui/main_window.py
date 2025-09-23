@@ -1,0 +1,360 @@
+from __future__ import annotations
+
+from pathlib import Path
+
+from PySide6.QtWidgets import (
+    QApplication, QMainWindow, QWidget, QVBoxLayout, QPushButton, QLabel,
+    QFileDialog, QMessageBox, QTextEdit, QHBoxLayout, QLineEdit, QProgressBar,
+    QGridLayout, QSizePolicy, QSpacerItem
+)
+from PySide6.QtCore import QThread, Signal, Qt
+
+from mdxscraper.config.config_manager import ConfigManager
+
+
+class MainWindow(QMainWindow):
+    def __init__(self, project_root: Path):
+        super().__init__()
+        self.setWindowTitle("MdxScraper")
+        self.project_root = project_root
+        self.cm = ConfigManager(project_root)
+        self.cm.load()
+
+        central = QWidget(self)
+        root = QVBoxLayout(central)
+        root.setContentsMargins(16, 16, 16, 16)
+        root.setSpacing(12)
+
+        # Form grid for aligned elements
+        form = QGridLayout()
+        form.setHorizontalSpacing(10)
+        form.setVerticalSpacing(8)
+
+        label_w = 90
+        btn_w = 90
+
+        lbl_in = QLabel("Input:")
+        lbl_in.setFixedWidth(label_w)
+        lbl_in.setProperty("class", "field-label")
+        self.edit_input = QLineEdit(self.cm.get("input.file", ""), self)
+        btn_input = QPushButton("Choose...", self)
+        btn_input.setFixedWidth(btn_w)
+        btn_input.clicked.connect(self.choose_input)
+        form.addWidget(lbl_in, 0, 0)
+        form.addWidget(self.edit_input, 0, 1)
+        form.addWidget(btn_input, 0, 2)
+
+        lbl_dict = QLabel("Dictionary:")
+        lbl_dict.setFixedWidth(label_w)
+        lbl_dict.setProperty("class", "field-label")
+        self.edit_dict = QLineEdit(self.cm.get("dictionary.file", ""), self)
+        btn_dict = QPushButton("Choose...", self)
+        btn_dict.setFixedWidth(btn_w)
+        btn_dict.clicked.connect(self.choose_dictionary)
+        form.addWidget(lbl_dict, 1, 0)
+        form.addWidget(self.edit_dict, 1, 1)
+        form.addWidget(btn_dict, 1, 2)
+
+        lbl_out = QLabel("Output:")
+        lbl_out.setFixedWidth(label_w)
+        lbl_out.setProperty("class", "field-label")
+        self.edit_output = QLineEdit(self.cm.get("output.file", ""), self)
+        btn_output = QPushButton("Choose...", self)
+        btn_output.setFixedWidth(btn_w)
+        btn_output.clicked.connect(self.choose_output)
+        form.addWidget(lbl_out, 2, 0)
+        form.addWidget(self.edit_output, 2, 1)
+        form.addWidget(btn_output, 2, 2)
+        
+        # Apply modern styling to all buttons and inputs
+        self.apply_modern_styling()
+        
+        # Set heights for better visual hierarchy
+        self.edit_input.setFixedHeight(35)
+        self.edit_dict.setFixedHeight(35)
+        self.edit_output.setFixedHeight(35)
+        btn_input.setFixedHeight(35)
+        btn_dict.setFixedHeight(35)
+        btn_output.setFixedHeight(35)
+
+        form.setColumnStretch(1, 1)
+        root.addLayout(form)
+
+        # Session buttons centered, compact
+        row_session = QHBoxLayout()
+        row_session.addItem(QSpacerItem(20, 10, QSizePolicy.Expanding, QSizePolicy.Minimum))
+        btn_restore = QPushButton("Restore last session", self)
+        btn_import = QPushButton("import session", self)
+        btn_export = QPushButton("export session", self)
+        for b in (btn_restore, btn_import, btn_export):
+            b.setFixedWidth(150)
+            b.setFixedHeight(32)
+        btn_restore.clicked.connect(self.restore_last_session)
+        btn_import.clicked.connect(self.import_session)
+        btn_export.clicked.connect(self.export_session)
+        row_session.addWidget(btn_restore)
+        row_session.addSpacing(12)
+        row_session.addWidget(btn_import)
+        row_session.addSpacing(12)
+        row_session.addWidget(btn_export)
+        row_session.addItem(QSpacerItem(20, 10, QSizePolicy.Expanding, QSizePolicy.Minimum))
+        root.addLayout(row_session)
+
+        # Scrape button centered with fixed width
+        row_run = QHBoxLayout()
+        row_run.addItem(QSpacerItem(20, 10, QSizePolicy.Expanding, QSizePolicy.Minimum))
+        self.btn_run = QPushButton("Scrape", self)
+        self.btn_run.setFixedWidth(220)
+        self.btn_run.setFixedHeight(45)  # Make button taller
+        self.btn_run.setObjectName("scrape-button")  # Set ID for CSS targeting
+        self.btn_run.clicked.connect(self.run_conversion)
+        row_run.addWidget(self.btn_run)
+        row_run.addItem(QSpacerItem(20, 10, QSizePolicy.Expanding, QSizePolicy.Minimum))
+        root.addLayout(row_run)
+
+        # Progress bar only
+        self.progress = QProgressBar(self)
+        self.progress.setRange(0, 100)
+        self.progress.setValue(0)
+        self.progress.setFixedHeight(25)
+        root.addWidget(self.progress)
+
+        # Log area - reduced height for better hierarchy
+        self.log = QTextEdit(self)
+        self.log.setReadOnly(True)
+        self.log.setPlaceholderText("log message")
+        self.log.setFixedHeight(120)  # Reduced from flexible height
+        root.addWidget(self.log)
+
+        self.setMinimumSize(800, 520)
+        self.setCentralWidget(central)
+
+    def apply_modern_styling(self):
+        """Apply modern PySide6 styling using built-in styles"""
+        from PySide6.QtWidgets import QApplication
+        
+        # Use modern built-in style
+        app = QApplication.instance()
+        if app:
+            app.setStyle('Fusion')  # Modern, cross-platform style
+        
+        # Only apply minimal custom styling for specific needs
+        self.setStyleSheet("""
+            QLabel[class="field-label"] {
+                font-weight: bold;
+            }
+            
+            QPushButton#scrape-button {
+                background-color: #0078d4;
+                color: white;
+                border: none;
+                border-radius: 8px;
+                font-size: 14px;
+                font-weight: bold;
+                padding: 12px 24px;
+            }
+            
+            QPushButton#scrape-button:hover {
+                background-color: #106ebe;
+            }
+            
+            QPushButton#scrape-button:pressed {
+                background-color: #005a9e;
+            }
+            
+            QPushButton#scrape-button:disabled {
+                background-color: #cccccc;
+                color: #666666;
+            }
+            
+            QTextEdit {
+                font-family: 'Consolas', 'Monaco', monospace;
+                font-size: 12px;
+            }
+        """)
+
+    def choose_input(self):
+        current = self.edit_input.text()
+        if current and Path(current).exists():
+            start_dir = str(Path(current).parent)
+        else:
+            start_dir = str(self.project_root)
+        file, _ = QFileDialog.getOpenFileName(
+            self, "Select input file", start_dir,
+            "Text files (*.txt);;JSON files (*.json);;Excel files (*.xlsx);;All files (*.*)"
+        )
+        if file:
+            self.cm.set_input_file(file)
+            self.edit_input.setText(self.cm.get("input.file"))
+
+    def choose_dictionary(self):
+        current = self.edit_dict.text()
+        if current and Path(current).exists():
+            start_dir = str(Path(current).parent)
+        else:
+            start_dir = str(self.project_root)
+        file, _ = QFileDialog.getOpenFileName(
+            self, "Select MDX dictionary", start_dir, "MDX Files (*.mdx)"
+        )
+        if file:
+            self.cm.set_dictionary_file(file)
+            self.edit_dict.setText(self.cm.get("dictionary.file"))
+
+    def choose_output(self):
+        current = self.edit_output.text()
+        if current and Path(current).exists():
+            start_dir = str(Path(current).parent)
+        else:
+            # Default to output directory from config
+            output_dir = self.cm.get("output.directory", "data/output")
+            if Path(output_dir).exists():
+                start_dir = str(Path(output_dir).resolve())
+            else:
+                start_dir = str(self.project_root / "data" / "output")
+        file, _ = QFileDialog.getSaveFileName(
+            self, "Select output file", start_dir,
+            "HTML files (*.html);;PDF files (*.pdf);;JPG files (*.jpg);;All files (*.*)"
+        )
+        if file:
+            self.cm.set_output_file(file)
+            self.edit_output.setText(self.cm.get("output.file"))
+
+    def save_config(self):
+        self.cm.save()
+        QMessageBox.information(self, "Config", "Configuration saved.")
+
+    def run_conversion(self):
+        output = self.cm.get("output.file")
+        if not output:
+            QMessageBox.warning(self, "Run", "Please set output file first.")
+            return
+        self.btn_run.setEnabled(False)
+        self.worker = ConversionWorker(self.project_root, self.cm)
+        self.worker.finished_sig.connect(self.on_run_finished)
+        self.worker.error_sig.connect(self.on_run_error)
+        self.worker.log_sig.connect(self.on_log)
+        self.progress.setValue(0)
+        self.worker.start()
+
+    def on_run_finished(self, message: str):
+        self.btn_run.setEnabled(True)
+        self.progress.setValue(100)
+        self.log.append(f"✅ {message}")
+
+    def on_run_error(self, message: str):
+        self.btn_run.setEnabled(True)
+        self.progress.setValue(0)
+        self.log.append(f"❌ Error: {message}")
+
+    def on_log(self, text: str):
+        # Skip progress messages as they're redundant with progress bar
+        if not text.startswith("Progress:"):
+            self.log.append(text)
+
+    # Session button stubs
+    def restore_last_session(self):
+        # Placeholder for future implementation
+        pass
+
+    def import_session(self):
+        # Placeholder for future implementation
+        pass
+
+    def export_session(self):
+        # Placeholder for future implementation
+        pass
+
+
+class ConversionWorker(QThread):
+    finished_sig = Signal(str)
+    error_sig = Signal(str)
+    log_sig = Signal(str)
+
+    def __init__(self, project_root: Path, cm: ConfigManager):
+        super().__init__()
+        self.project_root = project_root
+        self.cm = cm
+
+    def run(self):
+        try:
+            from mdxscraper.core.converter import mdx2html, mdx2pdf, mdx2jpg
+            from mdxscraper.core.enums import InvalidAction
+            import time
+
+            # Start timing
+            start_time = time.time()
+            
+            cfg = self.cm.load()
+            input_file = self.cm._resolve_path(cfg.get('input', {}).get('file'))
+            mdx_file = self.cm._resolve_path(cfg.get('dictionary', {}).get('file'))
+            output_path = self.cm._resolve_path(cfg.get('output', {}).get('file'))
+            invalid_action_str = str(cfg.get('processing', {}).get('invalid_action', 'collect_warning')).lower()
+            invalid_action = {
+                'exit': InvalidAction.Exit,
+                'collect': InvalidAction.Collect,
+                'outputwarning': InvalidAction.OutputWarning,
+                'collect_warning': InvalidAction.OutputWarning,
+                'collect_outputwarning': InvalidAction.Collect_OutputWarning,
+                'collect_output_warning': InvalidAction.Collect_OutputWarning,
+            }.get(invalid_action_str, InvalidAction.Collect)
+
+            suffix = output_path.suffix.lower()
+            self.log_sig.emit(f"🔄 Running conversion: {mdx_file.name} -> {output_path.name}")
+            
+            if suffix == '.html':
+                found, not_found = mdx2html(mdx_file, input_file, output_path, invalid_action, True)
+            elif suffix == '.pdf':
+                # Use default PDF options for now
+                pdf_options = {
+                    'page-size': 'A4',
+                    'margin-top': '0.75in',
+                    'margin-right': '0.75in',
+                    'margin-bottom': '0.75in',
+                    'margin-left': '0.75in',
+                    'encoding': "UTF-8",
+                    'no-outline': None
+                }
+                found, not_found = mdx2pdf(mdx_file, input_file, output_path, pdf_options, invalid_action)
+            elif suffix in ('.jpg', '.jpeg'):
+                found, not_found = mdx2jpg(mdx_file, input_file, output_path, invalid_action)
+            else:
+                raise RuntimeError(f"Unsupported output extension: {suffix}")
+
+            # Calculate success rate and duration
+            total = found + not_found
+            end_time = time.time()
+            duration = end_time - start_time
+            
+            # Format duration in human readable format
+            if duration < 1:
+                duration_str = f"{duration*1000:.0f}ms"
+            elif duration < 60:
+                duration_str = f"{duration:.3f}s"
+            else:
+                minutes = int(duration // 60)
+                seconds = duration % 60
+                duration_str = f"{minutes}m {seconds:.1f}s"
+            
+            if total > 0:
+                success_rate = (found / total) * 100
+                msg = f"Done. Found: {found}, Success rate: {success_rate:.1f}%"
+            else:
+                msg = f"Done. Found: {found}, Success rate: 0%"
+            
+            # Emit success message first, then duration
+            self.finished_sig.emit(msg)
+            self.log_sig.emit(f"⏱️ The entire process took a total of {duration_str}.")
+        except Exception as e:
+            self.error_sig.emit(str(e))
+
+
+def run_gui():
+    import sys
+    app = QApplication(sys.argv)
+    root = Path(__file__).resolve().parents[3]
+    w = MainWindow(root)
+    w.resize(640, 360)
+    w.show()
+    sys.exit(app.exec())
+
+
