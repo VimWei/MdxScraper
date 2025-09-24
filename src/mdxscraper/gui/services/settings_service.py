@@ -92,4 +92,13 @@ class SettingsService:
     def set_output_file(self, path: str) -> None:
         self.cm.set_output_file(path)
 
+    # Paths helpers
+    def to_relative(self, p: Path | str) -> str:
+        try:
+            root = self.project_root.resolve()
+            return str(Path(p).resolve().relative_to(root))
+        except Exception:
+            # Rule B: if outside project root (or on different drive), keep absolute
+            return str(Path(p).resolve())
+
 

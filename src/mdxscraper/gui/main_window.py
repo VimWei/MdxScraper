@@ -14,6 +14,7 @@ from mdxscraper.config.config_manager import ConfigManager
 from mdxscraper.gui.workers.conversion_worker import ConversionWorker
 from mdxscraper.gui.services.settings_service import SettingsService
 from mdxscraper.gui.services.presets_service import PresetsService
+from mdxscraper.gui.components.command_panel import CommandPanel
 
 
 class MainWindow(QMainWindow):
@@ -361,54 +362,13 @@ class MainWindow(QMainWindow):
         self.webp_lossless.toggled.connect(self.sync_image_to_config)
         self.webp_transparent.toggled.connect(self.sync_image_to_config)
 
-        # Config buttons centered, compact - fixed height to prevent expansion
-        row_session = QHBoxLayout()
-        row_session.setContentsMargins(0, 0, 0, 0)  # Remove extra margins
-        row_session.addItem(QSpacerItem(20, 10, QSizePolicy.Expanding, QSizePolicy.Minimum))
-        btn_restore = QPushButton("Restore last config", self)
-        btn_import = QPushButton("Import config", self)
-        btn_export = QPushButton("Export config", self)
-        for b in (btn_restore, btn_import, btn_export):
-            b.setFixedWidth(150)
-            b.setFixedHeight(32)
-        btn_restore.clicked.connect(self.restore_last_config)
-        btn_import.clicked.connect(self.import_config)
-        btn_export.clicked.connect(self.export_config)
-        row_session.addWidget(btn_restore)
-        row_session.addSpacing(12)
-        row_session.addWidget(btn_import)
-        row_session.addSpacing(12)
-        row_session.addWidget(btn_export)
-        row_session.addItem(QSpacerItem(20, 10, QSizePolicy.Expanding, QSizePolicy.Minimum))
-        root.addLayout(row_session)
-
-        # Scrape button centered with fixed width - fixed height to prevent expansion
-        row_run = QHBoxLayout()
-        row_run.setContentsMargins(0, 0, 0, 0)  # Remove extra margins
-        row_run.addItem(QSpacerItem(20, 10, QSizePolicy.Expanding, QSizePolicy.Minimum))
-        self.btn_run = QPushButton("Scrape", self)
-        self.btn_run.setFixedWidth(220)
-        self.btn_run.setFixedHeight(45)  # Make button taller
-        self.btn_run.setObjectName("scrape-button")  # Set ID for CSS targeting
-        self.btn_run.clicked.connect(self.run_conversion)
-        row_run.addWidget(self.btn_run)
-        row_run.addItem(QSpacerItem(20, 10, QSizePolicy.Expanding, QSizePolicy.Minimum))
-        root.addLayout(row_run)
-
-        # Progress bar only
-        self.progress = QProgressBar(self)
-        self.progress.setRange(0, 100)
-        self.progress.setValue(0)
-        self.progress.setFixedHeight(25)
-        root.addWidget(self.progress)
-
-        # Log area - flexible height that expands with window
-        self.log = QTextEdit(self)
-        self.log.setReadOnly(True)
-        self.log.setPlaceholderText("log message")
-        self.log.setMinimumHeight(120)  # Set minimum height instead of fixed
-        self.log.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Expanding)  # Allow expansion
-        root.addWidget(self.log)
+        # Replace bottom controls with CommandPanel
+        self.command_panel = CommandPanel(self)
+        self.command_panel.restoreRequested.connect(self.restore_last_config)
+        self.command_panel.importRequested.connect(self.import_config)
+        self.command_panel.exportRequested.connect(self.export_config)
+        self.command_panel.scrapeRequested.connect(self.run_conversion)
+        root.addWidget(self.command_panel)
 
         self.setMinimumSize(800, 520)
         self.setCentralWidget(central)
@@ -419,10 +379,7 @@ class MainWindow(QMainWindow):
         self.sync_image_from_config()
         # After UI ready, show normalization log if any
         if hasattr(self, 'log_message_later') and self.log_message_later:
-            # defer until log widget exists
-            self.log = self.log if hasattr(self, 'log') else None
-            if self.log:
-                self.log.append(self.log_message_later)
+            self.command_panel.appendLog(self.log_message_later)
             self.log_message_later = None
 
     def apply_modern_styling(self):
@@ -463,6 +420,19 @@ class MainWindow(QMainWindow):
                 color: #666666;
             }
             
+            /* Make progress bar visually distinct from Scrape button */
+            QProgressBar {
+                border: 1px solid #bdbdbd;
+                border-radius: 6px;
+                background-color: #e6e6e6;
+                text-align: center;
+                color: #333333;
+            }
+            QProgressBar::chunk {
+                background-color: #4caf50; /* green */
+                border-radius: 6px;
+            }
+
             QTextEdit {
                 font-family: 'Consolas', 'Monaco', monospace;
                 font-size: 12px;
@@ -634,7 +604,7 @@ class MainWindow(QMainWindow):
         if not output:
             QMessageBox.warning(self, "Run", "Please set output file first.")
             return
-        self.btn_run.setEnabled(False)
+        self.command_panel.btn_scrape.setEnabled(False)
         # Collect current preset editor contents
         pdf_text = self.pdf_editor.toPlainText() if hasattr(self, 'pdf_editor') else ''
         css_text = self.css_editor.toPlainText() if hasattr(self, 'css_editor') else ''
@@ -642,23 +612,23 @@ class MainWindow(QMainWindow):
         self.worker.finished_sig.connect(self.on_run_finished)
         self.worker.error_sig.connect(self.on_run_error)
         self.worker.log_sig.connect(self.on_log)
-        self.progress.setValue(0)
+        self.command_panel.setProgress(0)
         self.worker.start()
 
     def on_run_finished(self, message: str):
-        self.btn_run.setEnabled(True)
-        self.progress.setValue(100)
-        self.log.append(f"✅ {message}")
+        self.command_panel.btn_scrape.setEnabled(True)
+        self.command_panel.setProgress(100)
+        self.command_panel.appendLog(f"✅ {message}")
 
     def on_run_error(self, message: str):
-        self.btn_run.setEnabled(True)
-        self.progress.setValue(0)
-        self.log.append(f"❌ Error: {message}")
+        self.command_panel.btn_scrape.setEnabled(True)
+        self.command_panel.setProgress(0)
+        self.command_panel.appendLog(f"❌ Error: {message}")
 
     def on_log(self, text: str):
         # Skip progress messages as they're redundant with progress bar
         if not text.startswith("Progress:"):
-            self.log.append(text)
+            self.command_panel.appendLog(text)
 
     # --- Config buttons ---
     def restore_last_config(self):

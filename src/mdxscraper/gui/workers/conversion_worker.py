@@ -68,7 +68,7 @@ class ConversionWorker(QThread):
                     dest.parent.mkdir(parents=True, exist_ok=True)
                     from shutil import copy2
                     copy2(src, dest)
-                    self.log_sig.emit(f"📦 Backed up input to: {dest}")
+                    self.log_sig.emit(f"📦 Backed up input to: {self._settings_service.to_relative(dest)}")
                 except Exception as be:
                     self.log_sig.emit(f"⚠️ Failed to backup input: {be}")
 
@@ -79,9 +79,6 @@ class ConversionWorker(QThread):
                 msg = f"Done. Found: {found}, Success rate: {success_rate:.1f}%"
             else:
                 msg = f"Done. Found: {found}, Success rate: 0%"
-
-            # Emit success message first
-            self.finished_sig.emit(msg)
 
             # Write invalid words file if enabled and there are any invalid words
             if self.cm.get_save_invalid_words() and invalid_words:
@@ -94,7 +91,10 @@ class ConversionWorker(QThread):
                 invalid_words_dir = output_path.parent
                 invalid_words_path = invalid_words_dir / base_name
                 write_invalid_words_file(invalid_words, invalid_words_path)
-                self.log_sig.emit(f"📝 Invalid words saved to: {invalid_words_path}")
+                self.log_sig.emit(f"📝 Invalid words saved to: {self._settings_service.to_relative(invalid_words_path)}")
+
+            # Emit success message after auxiliary files are handled
+            self.finished_sig.emit(msg)
 
             # Calculate and emit duration last
             end_time = time.time()
@@ -113,5 +113,7 @@ class ConversionWorker(QThread):
             self.log_sig.emit(f"⏱️ The entire process took a total of {duration_str}.")
         except Exception as e:
             self.error_sig.emit(str(e))
+
+    
 
 
