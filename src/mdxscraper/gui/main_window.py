@@ -12,6 +12,8 @@ from PySide6.QtGui import QIcon
 
 from mdxscraper.config.config_manager import ConfigManager
 from mdxscraper.gui.workers.conversion_worker import ConversionWorker
+from mdxscraper.gui.services.settings_service import SettingsService
+from mdxscraper.gui.services.presets_service import PresetsService
 
 
 class MainWindow(QMainWindow):
@@ -24,8 +26,11 @@ class MainWindow(QMainWindow):
         icon_path = project_root / "src" / "mdxscraper" / "gui" / "assets" / "app_icon.ico"
         if icon_path.exists():
             self.setWindowIcon(QIcon(str(icon_path)))
+        # Services (temporary: cm kept for incremental migration)
         self.cm = ConfigManager(project_root)
         self.cm.load()
+        self.settings = SettingsService(project_root)
+        self.presets = PresetsService(project_root)
         # Announce normalization result once
         info = self.cm.get_normalize_info_once()
         if info.get("changed"):
@@ -52,7 +57,7 @@ class MainWindow(QMainWindow):
         lbl_in = QLabel("Input:")
         lbl_in.setFixedWidth(label_w)
         lbl_in.setProperty("class", "field-label")
-        self.edit_input = QLineEdit(self.cm.get("input.file", ""), self)
+        self.edit_input = QLineEdit(self.settings.get("input.file", ""), self)
         self.edit_input.editingFinished.connect(self.on_input_edited)
         btn_input = QPushButton("Choose...", self)
         btn_input.setFixedWidth(btn_w)
@@ -64,7 +69,7 @@ class MainWindow(QMainWindow):
         lbl_dict = QLabel("Dictionary:")
         lbl_dict.setFixedWidth(label_w)
         lbl_dict.setProperty("class", "field-label")
-        self.edit_dict = QLineEdit(self.cm.get("dictionary.file", ""), self)
+        self.edit_dict = QLineEdit(self.settings.get("dictionary.file", ""), self)
         self.edit_dict.editingFinished.connect(self.on_dictionary_edited)
         btn_dict = QPushButton("Choose...", self)
         btn_dict.setFixedWidth(btn_w)
@@ -76,7 +81,7 @@ class MainWindow(QMainWindow):
         lbl_out = QLabel("Output:")
         lbl_out.setFixedWidth(label_w)
         lbl_out.setProperty("class", "field-label")
-        self.edit_output = QLineEdit(self.cm.get("output.file", ""), self)
+        self.edit_output = QLineEdit(self.settings.get("output.file", ""), self)
         self.edit_output.editingFinished.connect(self.on_output_edited)
         btn_output = QPushButton("Choose...", self)
         btn_output.setFixedWidth(btn_w)
@@ -87,15 +92,15 @@ class MainWindow(QMainWindow):
 
         # Add timestamp and backup options in one row under the output field, left-aligned together
         self.check_timestamp = QCheckBox("Add timestamp to output filename", self)
-        self.check_timestamp.setChecked(self.cm.get_output_add_timestamp())
+        self.check_timestamp.setChecked(self.settings.get_output_add_timestamp())
         self.check_timestamp.stateChanged.connect(self.on_timestamp_changed)
 
         self.check_backup = QCheckBox("Backup input file", self)
-        self.check_backup.setChecked(self.cm.get_backup_input())
+        self.check_backup.setChecked(self.settings.get_backup_input())
         self.check_backup.stateChanged.connect(self.on_backup_changed)
 
         self.check_save_invalid = QCheckBox("Save invalid words file", self)
-        self.check_save_invalid.setChecked(self.cm.get_save_invalid_words())
+        self.check_save_invalid.setChecked(self.settings.get_save_invalid_words())
         self.check_save_invalid.stateChanged.connect(self.on_save_invalid_changed)
 
         options_row = QHBoxLayout()
@@ -331,10 +336,10 @@ class MainWindow(QMainWindow):
         # Sync Image tab inputs from config
         self.sync_image_from_config()
         # Restore last PDF/CSS editor contents if present
-        last_pdf_text = self.cm.get('output.pdf.preset_text', '')
+        last_pdf_text = self.settings.get('output.pdf.preset_text', '')
         if last_pdf_text:
             self.pdf_editor.setPlainText(last_pdf_text)
-        last_css_text = self.cm.get('output.css.preset_text', '')
+        last_css_text = self.settings.get('output.css.preset_text', '')
         if last_css_text:
             self.css_editor.setPlainText(last_css_text)
         # Wire sliders and numeric displays
@@ -468,7 +473,7 @@ class MainWindow(QMainWindow):
         if current:
             # Try to resolve the current path (could be relative or absolute)
             try:
-                resolved_path = self.cm._resolve_path(current)
+                resolved_path = self.settings.resolve_path(current)
                 if resolved_path.exists():
                     start_dir = str(resolved_path.parent)
                 else:
@@ -483,7 +488,7 @@ class MainWindow(QMainWindow):
         )
         if file:
             self.cm.set_input_file(file)
-            self.edit_input.setText(self.cm.get("input.file"))
+            self.edit_input.setText(self.settings.get("input.file"))
             # Also update output base name to match input base
             self.on_input_edited()
 
@@ -492,7 +497,7 @@ class MainWindow(QMainWindow):
         if current:
             # Try to resolve the current path (could be relative or absolute)
             try:
-                resolved_path = self.cm._resolve_path(current)
+                resolved_path = self.settings.resolve_path(current)
                 if resolved_path.exists():
                     start_dir = str(resolved_path.parent)
                 else:
@@ -506,33 +511,33 @@ class MainWindow(QMainWindow):
         )
         if file:
             self.cm.set_dictionary_file(file)
-            self.edit_dict.setText(self.cm.get("dictionary.file"))
+            self.edit_dict.setText(self.settings.get("dictionary.file"))
 
     def choose_output(self):
         current = self.edit_output.text()
         if current:
             # Try to resolve the current path (could be relative or absolute)
             try:
-                resolved_path = self.cm._resolve_path(current)
+                resolved_path = self.settings.resolve_path(current)
                 if resolved_path.exists():
                     start_dir = str(resolved_path.parent)
                 else:
                     # Default to output directory from config
-                    output_dir = self.cm.get("output.directory", "data/output")
+                    output_dir = self.settings.get("output.directory", "data/output")
                     if Path(output_dir).exists():
                         start_dir = str(Path(output_dir).resolve())
                     else:
                         start_dir = str(self.project_root / "data" / "output")
             except Exception:
                 # Default to output directory from config
-                output_dir = self.cm.get("output.directory", "data/output")
+                output_dir = self.settings.get("output.directory", "data/output")
                 if Path(output_dir).exists():
                     start_dir = str(Path(output_dir).resolve())
                 else:
                     start_dir = str(self.project_root / "data" / "output")
         else:
             # Default to output directory from config
-            output_dir = self.cm.get("output.directory", "data/output")
+            output_dir = self.settings.get("output.directory", "data/output")
             if Path(output_dir).exists():
                 start_dir = str(Path(output_dir).resolve())
             else:
@@ -542,7 +547,7 @@ class MainWindow(QMainWindow):
         input_file = self.edit_input.text().strip()
         if input_file:
             try:
-                input_path = self.cm._resolve_path(input_file)
+                input_path = self.settings.resolve_path(input_file)
                 default_filename = input_path.stem  # Get filename without extension
             except Exception:
                 pass
@@ -554,39 +559,36 @@ class MainWindow(QMainWindow):
         )
         if file:
             self.cm.set_output_file(file)
-            self.edit_output.setText(self.cm.get("output.file"))
+            self.edit_output.setText(self.settings.get("output.file"))
             self.update_tab_enablement()
 
     def on_timestamp_changed(self, state):
         """Handle timestamp checkbox state change"""
         is_checked = state == Qt.CheckState.Checked.value
-        self.cm.set_output_add_timestamp(is_checked)
+        self.settings.set_output_add_timestamp(is_checked)
     
     def on_backup_changed(self, state):
         """Handle backup checkbox state change"""
         is_checked = state == Qt.CheckState.Checked.value
-        self.cm.set_backup_input(is_checked)
+        self.settings.set_backup_input(is_checked)
     
     def on_save_invalid_changed(self, state):
         """Handle save invalid words checkbox state change"""
         is_checked = state == Qt.CheckState.Checked.value
-        self.cm.set_save_invalid_words(is_checked)
+        self.settings.set_save_invalid_words(is_checked)
     
     def closeEvent(self, event):
         """Handle application close event - save config before closing"""
-        # Persist live PDF/CSS editor content on exit
+        # Persist live PDF/CSS editor content on exit via SettingsService
         try:
-            if hasattr(self, 'pdf_editor'):
-                self.cm.set('output.pdf.preset_text', self.pdf_editor.toPlainText())
-                if hasattr(self, 'pdf_combo'):
-                    self.cm.set('output.pdf.preset_label', self.pdf_combo.currentText())
-            if hasattr(self, 'css_editor'):
-                self.cm.set('output.css.preset_text', self.css_editor.toPlainText())
-                if hasattr(self, 'css_combo'):
-                    self.cm.set('output.css.preset_label', self.css_combo.currentText())
+            pdf_text = self.pdf_editor.toPlainText() if hasattr(self, 'pdf_editor') else ''
+            pdf_label = self.pdf_combo.currentText() if hasattr(self, 'pdf_combo') else ''
+            css_text = self.css_editor.toPlainText() if hasattr(self, 'css_editor') else ''
+            css_label = self.css_combo.currentText() if hasattr(self, 'css_combo') else ''
+            self.settings.persist_session_state(pdf_text, pdf_label, css_text, css_label)
         except Exception:
             pass
-        self.cm.save()
+        self.settings.save()
         event.accept()
 
     def run_conversion(self):
@@ -594,40 +596,40 @@ class MainWindow(QMainWindow):
         # Avoid calling on_input_edited() here to prevent unintended renaming of output
         input_text = self.edit_input.text().strip()
         if input_text:
-            self.cm.set_input_file(input_text)
+            self.settings.set_input_file(input_text)
         dict_text = self.edit_dict.text().strip()
         if dict_text:
-            self.cm.set_dictionary_file(dict_text)
+            self.settings.set_dictionary_file(dict_text)
         output_text = self.edit_output.text().strip()
         if output_text:
-            self.cm.set_output_file(output_text)
+            self.settings.set_output_file(output_text)
         # Persist Image tab values to config
         try:
             width = int(self.img_width.text().strip() or '0')
             zoom = float(self.img_zoom_value.text().strip() or '1.0')
-            self.cm.set('output.image.width', width)
-            self.cm.set('output.image.zoom', zoom)
+            self.settings.set('output.image.width', width)
+            self.settings.set('output.image.zoom', zoom)
         except Exception:
             pass
-        self.cm.set('output.image.background', bool(self.img_background.isChecked()))
+        self.settings.set('output.image.background', bool(self.img_background.isChecked()))
         try:
-            self.cm.set('output.image.jpg.quality', int(self.jpg_quality_value.text().strip() or '85'))
+            self.settings.set('output.image.jpg.quality', int(self.jpg_quality_value.text().strip() or '85'))
         except Exception:
             pass
-        self.cm.set('output.image.png.optimize', bool(self.png_optimize.isChecked()))
+        self.settings.set('output.image.png.optimize', bool(self.png_optimize.isChecked()))
         try:
-            self.cm.set('output.image.png.compress_level', int(self.png_compress_value.text().strip() or '9'))
+            self.settings.set('output.image.png.compress_level', int(self.png_compress_value.text().strip() or '9'))
         except Exception:
             pass
-        self.cm.set('output.image.png.transparent_bg', bool(self.png_transparent.isChecked()))
+        self.settings.set('output.image.png.transparent_bg', bool(self.png_transparent.isChecked()))
         try:
-            self.cm.set('output.image.webp.quality', int(self.webp_quality_value.text().strip() or '80'))
+            self.settings.set('output.image.webp.quality', int(self.webp_quality_value.text().strip() or '80'))
         except Exception:
             pass
-        self.cm.set('output.image.webp.lossless', bool(self.webp_lossless.isChecked()))
-        self.cm.set('output.image.webp.transparent_bg', bool(self.webp_transparent.isChecked()))
+        self.settings.set('output.image.webp.lossless', bool(self.webp_lossless.isChecked()))
+        self.settings.set('output.image.webp.transparent_bg', bool(self.webp_transparent.isChecked()))
 
-        output = self.cm.get("output.file")
+        output = self.settings.get("output.file")
         if not output:
             QMessageBox.warning(self, "Run", "Please set output file first.")
             return
@@ -680,9 +682,8 @@ class MainWindow(QMainWindow):
             with open(_P(file), "rb") as f:
                 cfg = _tomllib.load(f)
             # Replace in-memory config only; normalize in-memory; persist on app close
-            self.cm._config = cfg
-            self.cm._normalize_config()
-            info = self.cm.get_normalize_info_once()
+            self.settings.replace_config(cfg)
+            info = self.settings.get_normalize_info_once()
             self.sync_from_config()
             self.log.append(f"✅ Imported config applied: {file}")
             if info.get("changed"):
@@ -699,7 +700,7 @@ class MainWindow(QMainWindow):
         input_file = self.edit_input.text().strip()
         if input_file:
             try:
-                input_path = self.cm._resolve_path(input_file)
+                input_path = self.settings.resolve_path(input_file)
                 default_filename = input_path.stem  # Get filename without extension
             except Exception:
                 pass
@@ -724,19 +725,19 @@ class MainWindow(QMainWindow):
                 self.cm.set_output_file(output_text)
             # Sync current PDF/CSS editors into config before export
             if hasattr(self, 'pdf_editor'):
-                self.cm.set('output.pdf.preset_text', self.pdf_editor.toPlainText())
+                self.settings.set('output.pdf.preset_text', self.pdf_editor.toPlainText())
                 if hasattr(self, 'pdf_combo'):
-                    self.cm.set('output.pdf.preset_label', self.pdf_combo.currentText())
+                    self.settings.set('output.pdf.preset_label', self.pdf_combo.currentText())
             if hasattr(self, 'css_editor'):
-                self.cm.set('output.css.preset_text', self.css_editor.toPlainText())
+                self.settings.set('output.css.preset_text', self.css_editor.toPlainText())
                 if hasattr(self, 'css_combo'):
-                    self.cm.set('output.css.preset_label', self.css_combo.currentText())
+                    self.settings.set('output.css.preset_label', self.css_combo.currentText())
             # Sync current Image Tab settings into config before export
             self.sync_image_to_config()
             # Sync checkbox states to ensure consistency
-            self.cm.set_output_add_timestamp(self.check_timestamp.isChecked())
-            self.cm.set_backup_input(self.check_backup.isChecked())
-            self.cm.set_save_invalid_words(self.check_save_invalid.isChecked())
+            self.settings.set_output_add_timestamp(self.check_timestamp.isChecked())
+            self.settings.set_backup_input(self.check_backup.isChecked())
+            self.settings.set_save_invalid_words(self.check_save_invalid.isChecked())
             # Validate before export; log issues but proceed
             result = self.cm.validate()
             if not result.is_valid:
@@ -745,7 +746,7 @@ class MainWindow(QMainWindow):
             # Write selected path
             from pathlib import Path as _P
             from mdxscraper.config import config_manager as _cm
-            data = self.cm._config
+            data = self.settings.get_config_dict()
             content = _cm.tomli_w.dumps(data)
             p = _P(file)
             p.parent.mkdir(parents=True, exist_ok=True)
@@ -759,56 +760,56 @@ class MainWindow(QMainWindow):
     def on_input_edited(self):
         text = self.edit_input.text().strip()
         if text:
-            self.cm.set_input_file(text)
+            self.settings.set_input_file(text)
             # Auto-adjust output filename base to match input base, keeping path and suffix
-            current_output = self.cm.get("output.file")
+            current_output = self.settings.get("output.file")
             if current_output:
                 out_path = Path(current_output)
                 new_base = Path(text).stem
                 new_name = new_base + out_path.suffix
                 new_output_path = out_path.with_name(new_name)
-                self.cm.set_output_file(str(new_output_path))
+                self.settings.set_output_file(str(new_output_path))
                 # Reflect change in UI
-                self.edit_output.setText(self.cm.get("output.file"))
+                self.edit_output.setText(self.settings.get("output.file"))
 
     def on_dictionary_edited(self):
         text = self.edit_dict.text().strip()
         if text:
-            self.cm.set_dictionary_file(text)
+            self.settings.set_dictionary_file(text)
 
     def on_output_edited(self):
         text = self.edit_output.text().strip()
         if text:
-            self.cm.set_output_file(text)
+            self.settings.set_output_file(text)
         self.update_tab_enablement()
 
     def sync_from_config(self):
         # Refresh GUI fields from in-memory config
-        self.edit_input.setText(self.cm.get("input.file", ""))
-        self.edit_dict.setText(self.cm.get("dictionary.file", ""))
-        self.edit_output.setText(self.cm.get("output.file", ""))
-        self.check_timestamp.setChecked(self.cm.get_output_add_timestamp())
-        self.check_backup.setChecked(self.cm.get_backup_input())
-        self.check_save_invalid.setChecked(self.cm.get_save_invalid_words())
+        self.edit_input.setText(self.settings.get("input.file", ""))
+        self.edit_dict.setText(self.settings.get("dictionary.file", ""))
+        self.edit_output.setText(self.settings.get("output.file", ""))
+        self.check_timestamp.setChecked(self.settings.get_output_add_timestamp())
+        self.check_backup.setChecked(self.settings.get_backup_input())
+        self.check_save_invalid.setChecked(self.settings.get_save_invalid_words())
         self.update_tab_enablement()
         self.sync_image_from_config()
         # Sync PDF/CSS editors and preset labels from config
         try:
             if hasattr(self, 'pdf_editor'):
-                pdf_text = self.cm.get('output.pdf.preset_text', '') or ''
+                pdf_text = self.settings.get('output.pdf.preset_text', '') or ''
                 self.pdf_editor.setPlainText(pdf_text)
                 if hasattr(self, 'pdf_combo'):
-                    pdf_label = self.cm.get('output.pdf.preset_label', '') or ''
+                    pdf_label = self.settings.get('output.pdf.preset_label', '') or ''
                     if pdf_label:
                         for i in range(self.pdf_combo.count()):
                             if self.pdf_combo.itemText(i) == pdf_label:
                                 self.pdf_combo.setCurrentIndex(i)
                                 break
             if hasattr(self, 'css_editor'):
-                css_text = self.cm.get('output.css.preset_text', '') or ''
+                css_text = self.settings.get('output.css.preset_text', '') or ''
                 self.css_editor.setPlainText(css_text)
                 if hasattr(self, 'css_combo'):
-                    css_label = self.cm.get('output.css.preset_label', '') or ''
+                    css_label = self.settings.get('output.css.preset_label', '') or ''
                     if css_label:
                         for i in range(self.css_combo.count()):
                             if self.css_combo.itemText(i) == css_label:
@@ -847,30 +848,30 @@ class MainWindow(QMainWindow):
             width_text = self.img_width.text().strip()
             if width_text:
                 width = int(width_text)
-                self.cm.set("output.image.width", width)
+                self.settings.set("output.image.width", width)
             else:
-                self.cm.set("output.image.width", 0)
+                self.settings.set("output.image.width", 0)
             
             zoom = self.img_zoom_slider.value() / 10.0
-            self.cm.set("output.image.zoom", zoom)
+            self.settings.set("output.image.zoom", zoom)
             
-            self.cm.set("output.image.background", self.img_background.isChecked())
+            self.settings.set("output.image.background", self.img_background.isChecked())
             
             # JPG settings
             jpg_quality = self.jpg_quality_slider.value()
-            self.cm.set("output.image.jpg.quality", jpg_quality)
+            self.settings.set("output.image.jpg.quality", jpg_quality)
             
             # PNG settings
-            self.cm.set("output.image.png.optimize", self.png_optimize.isChecked())
+            self.settings.set("output.image.png.optimize", self.png_optimize.isChecked())
             png_compress = self.png_compress_slider.value()
-            self.cm.set("output.image.png.compress_level", png_compress)
-            self.cm.set("output.image.png.transparent_bg", self.png_transparent.isChecked())
+            self.settings.set("output.image.png.compress_level", png_compress)
+            self.settings.set("output.image.png.transparent_bg", self.png_transparent.isChecked())
             
             # WEBP settings
             webp_quality = self.webp_quality_slider.value()
-            self.cm.set("output.image.webp.quality", webp_quality)
-            self.cm.set("output.image.webp.lossless", self.webp_lossless.isChecked())
-            self.cm.set("output.image.webp.transparent_bg", self.webp_transparent.isChecked())
+            self.settings.set("output.image.webp.quality", webp_quality)
+            self.settings.set("output.image.webp.lossless", self.webp_lossless.isChecked())
+            self.settings.set("output.image.webp.transparent_bg", self.webp_transparent.isChecked())
             
         except (ValueError, TypeError) as e:
             # Ignore invalid values during typing, they'll be handled on export
@@ -881,7 +882,7 @@ class MainWindow(QMainWindow):
         # PDF presets
         self.pdf_combo.blockSignals(True)
         self.pdf_combo.clear()
-        for label, path in self._iter_presets('pdf'):
+        for label, path in self.presets.iter_presets('pdf'):
             self.pdf_combo.addItem(label, userData=str(path))
         self.pdf_combo.blockSignals(False)
         if self.pdf_combo.count() > 0:
@@ -897,7 +898,7 @@ class MainWindow(QMainWindow):
         # CSS presets
         self.css_combo.blockSignals(True)
         self.css_combo.clear()
-        for label, path in self._iter_presets('css'):
+        for label, path in self.presets.iter_presets('css'):
             self.css_combo.addItem(label, userData=str(path))
         self.css_combo.blockSignals(False)
         if self.css_combo.count() > 0:
@@ -912,30 +913,19 @@ class MainWindow(QMainWindow):
             self.on_css_preset_changed(self.css_combo.currentText())
 
     def _iter_presets(self, kind: str):
-        if kind == 'pdf':
-            built_in = self.project_root / 'src' / 'mdxscraper' / 'config' / 'pdf_options'
-            user_dir = self.project_root / 'data' / 'configs' / 'pdf'
-        else:
-            built_in = self.project_root / 'src' / 'mdxscraper' / 'config' / 'css_styles'
-            user_dir = self.project_root / 'data' / 'configs' / 'css'
-        if built_in.exists():
-            for p in sorted(built_in.glob('*.toml')):
-                yield f"{p.stem} [built-in]", p
-        if user_dir.exists():
-            for p in sorted(user_dir.glob('*.toml')):
-                yield f"{p.stem}", p
+        # Backward compatibility shim if needed elsewhere
+        yield from self.presets.iter_presets(kind)
 
     def on_pdf_preset_changed(self, label: str):
         idx = self.pdf_combo.currentIndex()
         path = self.pdf_combo.itemData(idx)
         if path:
             try:
-                with open(Path(path), 'r', encoding='utf-8') as f:
-                    text = f.read()
-                    self.pdf_editor.setPlainText(text)
-                    # Persist selection and text in config
-                    self.cm.set('output.pdf.preset_label', label)
-                    self.cm.set('output.pdf.preset_text', text)
+                text = self.presets.load_preset_text(Path(path))
+                self.pdf_editor.setPlainText(text)
+                # Persist selection and text in config
+                self.settings.set('output.pdf.preset_label', label)
+                self.settings.set('output.pdf.preset_text', text)
             except Exception as e:
                 self.log.append(f"❌ Failed to load PDF preset: {e}")
 
@@ -944,12 +934,11 @@ class MainWindow(QMainWindow):
         path = self.css_combo.itemData(idx)
         if path:
             try:
-                with open(Path(path), 'r', encoding='utf-8') as f:
-                    text = f.read()
-                    self.css_editor.setPlainText(text)
-                    # Persist selection and text in config
-                    self.cm.set('output.css.preset_label', label)
-                    self.cm.set('output.css.preset_text', text)
+                text = self.presets.load_preset_text(Path(path))
+                self.css_editor.setPlainText(text)
+                # Persist selection and text in config
+                self.settings.set('output.css.preset_label', label)
+                self.settings.set('output.css.preset_text', text)
             except Exception as e:
                 self.log.append(f"❌ Failed to load CSS preset: {e}")
 
@@ -960,11 +949,10 @@ class MainWindow(QMainWindow):
         if not file:
             return
         try:
-            with open(Path(file), 'w', encoding='utf-8') as f:
-                text = self.pdf_editor.toPlainText()
-                f.write(text)
-            self.cm.set('output.pdf.preset_label', Path(file).stem)
-            self.cm.set('output.pdf.preset_text', text)
+            text = self.pdf_editor.toPlainText()
+            self.presets.save_preset_text(Path(file), text)
+            self.settings.set('output.pdf.preset_label', Path(file).stem)
+            self.settings.set('output.pdf.preset_text', text)
             self.log.append(f"✅ Saved PDF preset: {file}")
             self.reload_presets()
         except Exception as e:
@@ -977,24 +965,21 @@ class MainWindow(QMainWindow):
         if not file:
             return
         try:
-            with open(Path(file), 'w', encoding='utf-8') as f:
-                text = self.css_editor.toPlainText()
-                f.write(text)
-            self.cm.set('output.css.preset_label', Path(file).stem)
-            self.cm.set('output.css.preset_text', text)
+            text = self.css_editor.toPlainText()
+            self.presets.save_preset_text(Path(file), text)
+            self.settings.set('output.css.preset_label', Path(file).stem)
+            self.settings.set('output.css.preset_text', text)
             self.log.append(f"✅ Saved CSS preset: {file}")
             self.reload_presets()
         except Exception as e:
             self.log.append(f"❌ Failed to save CSS preset: {e}")
 
     def update_tab_enablement(self):
-        out = self.cm.get("output.file", "")
-        suffix = Path(out).suffix.lower() if out else ""
-        is_pdf = suffix == '.pdf'
-        is_image = suffix in ('.jpg', '.jpeg', '.png', '.webp')
-        self.tabs.setTabEnabled(self.tabs.indexOf(self.tab_pdf), is_pdf)
-        self.tabs.setTabEnabled(self.tabs.indexOf(self.tab_image), is_image)
-        # CSS always enabled
+        out = self.settings.get("output.file", "")
+        enable = self.settings.get_tab_enablement(out)
+        self.tabs.setTabEnabled(self.tabs.indexOf(self.tab_pdf), enable.get('pdf', False))
+        self.tabs.setTabEnabled(self.tabs.indexOf(self.tab_image), enable.get('image', False))
+        # CSS always enabled by service contract
 
 def run_gui():
     import sys

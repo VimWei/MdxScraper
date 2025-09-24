@@ -5,6 +5,9 @@ from pathlib import Path
 from PySide6.QtCore import QThread, Signal
 
 from mdxscraper.config.config_manager import ConfigManager
+from mdxscraper.gui.services.settings_service import SettingsService
+from mdxscraper.gui.services.presets_service import PresetsService
+from mdxscraper.gui.services.export_service import ExportService
 
 
 class ConversionWorker(QThread):
@@ -18,19 +21,22 @@ class ConversionWorker(QThread):
         self.cm = cm
         self._pdf_text = pdf_text
         self._css_text = css_text
+        # Services for export pipeline
+        self._settings_service = SettingsService(project_root, cm)
+        self._presets_service = PresetsService(project_root)
+        self._export_service = ExportService(self._settings_service, self._presets_service)
 
     def run(self):
         try:
-            from mdxscraper.core.converter import mdx2html, mdx2pdf, mdx2img
             import time
 
             # Start timing
             start_time = time.time()
 
-            cfg = self.cm._config  # Use in-memory config instead of reloading from file
-            input_file = self.cm._resolve_path(cfg.get('input', {}).get('file'))
-            mdx_file = self.cm._resolve_path(cfg.get('dictionary', {}).get('file'))
-            output_path = self.cm._resolve_path(cfg.get('output', {}).get('file'))
+            cfg = self._settings_service.get_config_dict()  # in-memory config
+            input_file = self._settings_service.resolve_path(cfg.get('input', {}).get('file'))
+            mdx_file = self._settings_service.resolve_path(cfg.get('dictionary', {}).get('file'))
+            output_path = self._settings_service.resolve_path(cfg.get('output', {}).get('file'))
 
             # Apply timestamp if enabled
             timestamp_enabled = self.cm.get_output_add_timestamp()
@@ -45,81 +51,10 @@ class ConversionWorker(QThread):
             suffix = output_path.suffix.lower()
             self.log_sig.emit(f"🔄 Running conversion: {mdx_file.name} -> {output_path.name}")
 
-            # Prepare CSS styles from CSS editor
-            h1_style = None
-            scrap_style = None
-            additional_styles = None
-            css_text = (self._css_text or '').strip()
-            if css_text:
-                try:
-                    import tomllib as _tomllib
-                    data = _tomllib.loads(css_text)
-                    style = data.get('style', {}) if isinstance(data, dict) else {}
-                    h1_style = style.get('h1_style')
-                    scrap_style = style.get('scrap_style')
-                    additional_styles = style.get('additional_styles')
-                except Exception as ce:
-                    self.log_sig.emit(f"⚠️ CSS preset parse failed, using defaults: {ce}")
-
-            if suffix == '.html':
-                found, not_found, invalid_words = mdx2html(
-                    mdx_file, input_file, output_path, with_toc=True,
-                    h1_style=h1_style, scrap_style=scrap_style, additional_styles=additional_styles
-                )
-            elif suffix == '.pdf':
-                # Base PDF options
-                pdf_options = {
-                    'page-size': 'A4',
-                    'margin-top': '0.75in',
-                    'margin-right': '0.75in',
-                    'margin-bottom': '0.75in',
-                    'margin-left': '0.75in',
-                    'encoding': "UTF-8",
-                }
-                # Merge PDF options from editor content if available
-                pdf_text = (self._pdf_text or '').strip()
-                if pdf_text:
-                    try:
-                        import tomllib as _tomllib
-                        data = _tomllib.loads(pdf_text)
-                        pdf = data.get('pdf', {}) if isinstance(data, dict) else {}
-                        normalized = {k.replace('_', '-'): v for k, v in pdf.items()}
-                        pdf_options.update(normalized)
-                    except Exception as pe:
-                        self.log_sig.emit(f"⚠️ PDF preset parse failed, using defaults: {pe}")
-                found, not_found, invalid_words = mdx2pdf(
-                    mdx_file, input_file, output_path, pdf_options,
-                    h1_style=h1_style, scrap_style=scrap_style, additional_styles=additional_styles
-                )
-            elif suffix in ('.jpg', '.jpeg', '.png', '.webp'):
-                # Build img options from config
-                img_opts = {}
-                w = int(self.cm.get('output.image.width', 0) or 0)
-                if w > 0:
-                    img_opts['width'] = str(w)
-                z = float(self.cm.get('output.image.zoom', 1.0) or 1.0)
-                if z and z != 1.0:
-                    img_opts['zoom'] = str(z)
-                if not bool(self.cm.get('output.image.background', True)):
-                    img_opts['no-background'] = ''  # will be filtered out; kept for future
-                # Format-specific
-                if suffix in ('.jpg', '.jpeg'):
-                    img_opts['quality'] = int(self.cm.get('output.image.jpg.quality', 85))
-                elif suffix == '.png':
-                    img_opts['png_optimize'] = bool(self.cm.get('output.image.png.optimize', True))
-                    img_opts['png_compress_level'] = int(self.cm.get('output.image.png.compress_level', 9))
-                    if bool(self.cm.get('output.image.png.transparent_bg', False)):
-                        # Ensure transparent background via CSS already; flag kept for clarity
-                        pass
-                elif suffix == '.webp':
-                    img_opts['webp_quality'] = int(self.cm.get('output.image.webp.quality', 80))
-                    img_opts['webp_lossless'] = bool(self.cm.get('output.image.webp.lossless', False))
-                found, not_found, invalid_words = mdx2img(
-                    mdx_file, input_file, output_path, img_options=img_opts,
-                    h1_style=h1_style, scrap_style=scrap_style, additional_styles=additional_styles
-                )
-            else:
-                raise RuntimeError(f"Unsupported output extension: {suffix}")
+            # Execute export via ExportService
+            found, not_found, invalid_words = self._export_service.execute_export(
+                input_file, mdx_file, output_path, pdf_text=self._pdf_text or '', css_text=self._css_text or ''
+            )
 
             # Backup input file to output directory if enabled
             if self.cm.get_backup_input():
