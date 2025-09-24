@@ -536,8 +536,19 @@ class MainWindow(QMainWindow):
                 start_dir = str(Path(output_dir).resolve())
             else:
                 start_dir = str(self.project_root / "data" / "output")
+        # Generate default filename based on input file
+        default_filename = ""
+        input_file = self.edit_input.text().strip()
+        if input_file:
+            try:
+                input_path = self.cm._resolve_path(input_file)
+                default_filename = input_path.stem  # Get filename without extension
+            except Exception:
+                pass
+        
         file, _ = QFileDialog.getSaveFileName(
-            self, "Select output file", start_dir,
+            self, "Select output file", 
+            str(Path(start_dir) / (default_filename + ".html" if default_filename else "")),
             "HTML files (*.html);;PDF files (*.pdf);;JPG files (*.jpg);;PNG files (*.png);;WEBP files (*.webp);;All files (*.*)"
         )
         if file:
@@ -681,8 +692,21 @@ class MainWindow(QMainWindow):
 
     def export_config(self):
         start_dir = str((self.project_root / "data" / "configs").resolve())
+        
+        # Generate default filename based on input file
+        default_filename = ""
+        input_file = self.edit_input.text().strip()
+        if input_file:
+            try:
+                input_path = self.cm._resolve_path(input_file)
+                default_filename = input_path.stem  # Get filename without extension
+            except Exception:
+                pass
+        
         file, _ = QFileDialog.getSaveFileName(
-            self, "Export config as (TOML)", start_dir, "TOML files (*.toml)"
+            self, "Export config as (TOML)", 
+            str(Path(start_dir) / (default_filename + ".toml" if default_filename else "")),
+            "TOML files (*.toml)"
         )
         if not file:
             return
