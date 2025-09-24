@@ -8,9 +8,7 @@
 
 ### 演示视频
 
-<video src="docs/screencast.mp4" controls width="1072"></video>
-
-如无法播放，可直接查看：[`docs/screencast.mp4`](docs/screencast.mp4)
+[`docs/screencast.mp4`](docs/screencast.mp4)
 
 
 ## 特点
