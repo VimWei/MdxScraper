@@ -6,10 +6,7 @@
 
 ![截图](docs/screenshot.png)
 
-### 演示视频
-
-[`docs/screencast.mp4`](docs/screencast.mp4)
-
+[`演示视频`](docs/screencast.mp4)
 
 ## 特点
 
