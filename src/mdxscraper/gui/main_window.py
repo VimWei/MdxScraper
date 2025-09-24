@@ -166,7 +166,6 @@ class MainWindow(QMainWindow):
         self.img_background = QCheckBox("Draw background", self)
         row_gen.addWidget(self.img_background)
         row_gen.addItem(QSpacerItem(20, 10, QSizePolicy.Expanding, QSizePolicy.Minimum))
-        _lay_img.addLayout(row_gen)
 
         # JPG options (single row)
         row_jpg = QHBoxLayout()
@@ -342,6 +341,18 @@ class MainWindow(QMainWindow):
         self.jpg_quality_slider.valueChanged.connect(lambda v: self.jpg_quality_value.setText(str(v)))
         self.png_compress_slider.valueChanged.connect(lambda v: self.png_compress_value.setText(str(v)))
         self.webp_quality_slider.valueChanged.connect(lambda v: self.webp_quality_value.setText(str(v)))
+        
+        # Wire Image Tab controls to sync changes to config
+        self.img_width.textChanged.connect(self.sync_image_to_config)
+        self.img_zoom_slider.valueChanged.connect(self.sync_image_to_config)
+        self.img_background.toggled.connect(self.sync_image_to_config)
+        self.jpg_quality_slider.valueChanged.connect(self.sync_image_to_config)
+        self.png_optimize.toggled.connect(self.sync_image_to_config)
+        self.png_compress_slider.valueChanged.connect(self.sync_image_to_config)
+        self.png_transparent.toggled.connect(self.sync_image_to_config)
+        self.webp_quality_slider.valueChanged.connect(self.sync_image_to_config)
+        self.webp_lossless.toggled.connect(self.sync_image_to_config)
+        self.webp_transparent.toggled.connect(self.sync_image_to_config)
 
         # Config buttons centered, compact - fixed height to prevent expansion
         row_session = QHBoxLayout()
@@ -661,6 +672,12 @@ class MainWindow(QMainWindow):
                 self.cm.set('output.css.preset_text', self.css_editor.toPlainText())
                 if hasattr(self, 'css_combo'):
                     self.cm.set('output.css.preset_label', self.css_combo.currentText())
+            # Sync current Image Tab settings into config before export
+            self.sync_image_to_config()
+            # Sync checkbox states to ensure consistency
+            self.cm.set_output_add_timestamp(self.check_timestamp.isChecked())
+            self.cm.set_backup_input(self.check_backup.isChecked())
+            self.cm.set_save_invalid_words(self.check_save_invalid.isChecked())
             # Validate before export; log issues but proceed
             result = self.cm.validate()
             if not result.is_valid:
@@ -713,6 +730,7 @@ class MainWindow(QMainWindow):
         self.edit_output.setText(self.cm.get("output.file", ""))
         self.check_timestamp.setChecked(self.cm.get_output_add_timestamp())
         self.check_backup.setChecked(self.cm.get_backup_input())
+        self.check_save_invalid.setChecked(self.cm.get_save_invalid_words())
         self.update_tab_enablement()
         self.sync_image_from_config()
 
@@ -737,6 +755,42 @@ class MainWindow(QMainWindow):
         self.webp_quality_value.setText(str(webp_q))
         self.webp_lossless.setChecked(bool(get("output.image.webp.lossless", False)))
         self.webp_transparent.setChecked(bool(get("output.image.webp.transparent_bg", False)))
+
+    def sync_image_to_config(self):
+        # Sync current Image Tab GUI values to config
+        try:
+            # General settings
+            width_text = self.img_width.text().strip()
+            if width_text:
+                width = int(width_text)
+                self.cm.set("output.image.width", width)
+            else:
+                self.cm.set("output.image.width", 0)
+            
+            zoom = self.img_zoom_slider.value() / 10.0
+            self.cm.set("output.image.zoom", zoom)
+            
+            self.cm.set("output.image.background", self.img_background.isChecked())
+            
+            # JPG settings
+            jpg_quality = self.jpg_quality_slider.value()
+            self.cm.set("output.image.jpg.quality", jpg_quality)
+            
+            # PNG settings
+            self.cm.set("output.image.png.optimize", self.png_optimize.isChecked())
+            png_compress = self.png_compress_slider.value()
+            self.cm.set("output.image.png.compress_level", png_compress)
+            self.cm.set("output.image.png.transparent_bg", self.png_transparent.isChecked())
+            
+            # WEBP settings
+            webp_quality = self.webp_quality_slider.value()
+            self.cm.set("output.image.webp.quality", webp_quality)
+            self.cm.set("output.image.webp.lossless", self.webp_lossless.isChecked())
+            self.cm.set("output.image.webp.transparent_bg", self.webp_transparent.isChecked())
+            
+        except (ValueError, TypeError) as e:
+            # Ignore invalid values during typing, they'll be handled on export
+            pass
 
     # ---- Presets loading/saving ----
     def reload_presets(self):
