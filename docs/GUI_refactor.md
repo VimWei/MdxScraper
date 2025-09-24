@@ -110,12 +110,12 @@
 4. 拆分页面
    - 将 Basic/Image/PDF/CSS/About 拆到 `gui/pages/*`，主窗口负责装配与信号桥接；保留/集中 `update_tab_enablement()`。
    - 验收：Basic/Image/PDF/CSS/About 全部独立文件；页面仅发信号与读写自身控件；主窗口编排与 update_tab_enablement() 仍生效。
-5. 清理与类型化
-   - 移除主窗口中与服务层重复的解析/校验；统一类型注解；为关键纯函数/服务补最小单测（预设解析、图像参数构造、输出命名、启用规则）。
-   - 验收：无 _config 越层访问；关键函数具备类型注解；新增的小型单测通过。
-6. 新增 Advanced 页
+5. 新增 Advanced 页
    - 在 `gui/pages/advanced_page.py` 实现 with_toc 选项与 wkhtmltopdf_path 配置绑定（经 `SettingsService`）。
    - 验收：with_toc 与 wkhtmltopdf_path 与配置绑定；能被导出并正确影响导出行为。
+6. 清理与类型化
+   - 移除主窗口中与服务层重复的解析/校验；统一类型注解；为关键纯函数/服务补最小单测（预设解析、图像参数构造、输出命名、启用规则）。
+   - 验收：无 _config 越层访问；关键函数具备类型注解；新增的小型单测通过。
 7. 多语言界面（i18n）
    - 引入 `QTranslator`；新增 `gui/locales/`，提供基础翻译文件（如 `en_US`, `zh_CN`）。在入口或 `CommandPanel` 提供语言切换（菜单或设置项）。
    - 验收：语言切换即时或下次启动生效，布局不破；关键字符串已纳入翻译资源。
