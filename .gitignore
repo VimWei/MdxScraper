@@ -1,5 +1,6 @@
 # Application data
 data/
+tests/
 
 # Python
 **/__pycache__/

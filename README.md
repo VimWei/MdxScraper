@@ -4,59 +4,84 @@
 
 一句话：根据指定词汇，从 MDX 字典提取内容并输出为 HTML、PDF 或 WEBP/PNG/JPG。
 
-![截图](docs/assets/images/screenshot.png)
+![截图](docs/screenshot.png)
+
+### 演示视频
+
+<video src="docs/demo.mp4" controls width="720"></video>
+
+如无法播放，可直接查看：[`docs/demo.mp4`](docs/demo.mp4)
+
 
 ## 特点
 
-MdxScraper 是在 MdxConverter 基础上升级改造：
-
-1. 提升词典兼容性：
-    * 内置并升级 mdict-query，支持多 mdd 的词典。
-    * 兼容有或无 CSS 文件的词典。
-    * 兼容 html 中 img 标签的多种写法。
-    * 兼容支持 png、jpg、jpeg、gif 等常见图片格式。
-    * 支持同一个页面多次重复引用同一图片的情形，如读音图标等。
-2. 提升跨平台兼容性：
-    * 文件路径名，兼容跨平台的多种的写法。
-    * wkhtmltopdf 安装目录，兼容跨平台的多种情形。
-3. 重构程序，更加便捷、易用、强健和友好：
-    * 采用 GUI，而非命令行参数或配置文件，更直观，更便捷。
-    * 丰富配置选项，包括输入输出文件、词典文件、PDF 排版、CSS 等，更强大。
-    * 输出信息增加程序状态、查询统计、输出地址、耗时等信息，体验更友好。
-    * 备份原始词汇，并与输出文件放在一起，方便归档调阅，数据安全有保障。
-    * 增加时间戳到输出文件名，方便归档查阅所有输出文件，文件管理更方便。
+1. 支持更多输入文件格式，包括 TXT/Markdown/JSON/Excel
+2. 支持更多输出文件格式，包括 HTML/JPG/PNG/WEBP/PDF
+3. 全面兼容常见 .mdx 词典：
+    * 支持多 mdd 的词典（内置并升级 mdict-query）
+    * 兼容有或无 CSS 文件的词典
+    * 兼容内嵌的各种图片，支持多种图片格式、img 标签多种写法等
+4. 采用图形界面(PySide 6)，提升智能化、增强人性化体验
+    * 配置选项灵活丰富，包括 Basic、Image、CSS、PDF 等主要类别
+    * 通过配置方案导入导出即可快速切换，轻松应对不同场景
+    * 可选备份原始词汇，数据安全有保障
+    * 可选增加时间戳到输出文件名，方便文件多版本管理
+    * 可选输出“无效词汇”清单，通过它可轻松改用其他词典再次查询
+5. 跨平台，兼容 Windows/MacOS/Linux
 
 ## 安装
 
-To set up the project locally, you will need a working Python environment (Python 3.11+ required).
-
-1. **Clone the repository:**
+1. **克隆仓库或直接下载到任意目录：**
    ```bash
    git clone https://github.com/VimWei/MdxScraper
-   cd MdxScraper
    ```
-
-2. **Install uv (fast Python package manager):**
+2. **安装 Python 运行环境：**
    ```bash
-   # Linux/macOS
-   curl -LsSf https://astral.sh/uv/install.sh | sh
-
-   # Windows (PowerShell)
+   # 2.1 安装 uv （Python 虚拟环境管理器）
+   ## Windows (PowerShell)
    powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
-   ```
-
-3. **Install dependencies:**
-   ```bash
-   # Install all dependencies with exact versions
+   ## Linux/macOS
+   curl -LsSf https://astral.sh/uv/install.sh | sh
+   # 2.2 同步 python 环境
+   cd MdxScraper
    uv sync
    ```
-
-4. **Install wkhtmltopdf (optional, for PDF):**
+3. **安装 wkhtmltopdf:**
+   输出图片和 PDF 时，需要用到它，请访问其官网下载安装
    * https://wkhtmltopdf.org/downloads.html
 
-## 运行程序
+## 使用
 
-* 方法 1: (Windows) 直接双击 `MdxScraper.vbs`。
-* 方法 2: (Windows/Linux/macOS) 命令行输入：`uv run mdxscraper`
+1. 启动程序
+    * 方法 1: (Windows) 直接双击 `MdxScraper.vbs`。
+    * 方法 2: (Windows/Linux/macOS) 命令行输入：`uv run mdxscraper`
+2. 按需配置参数，主要是 输入/词典/输出，其他都是高级选项，慢慢探索
+3. 点击按钮 Scrape，查看输出成果
 
-![输出 html](docs/assets/images/html.png)
+### 用户数据目录
+
+MdxScraper 使用 `data/` 目录作为用户数据存储位置，所有用户相关的文件都存储在此目录下：
+
+```
+data/                               # 用户数据目录（可删除重建）
+├── configs/                        # 配置文件目录
+│   ├── config_latest.toml          # 最近一次配置方案
+│   ├── pdf/                        # PDF 样式方案目录
+│   ├── css/                        # CSS 样式方案目录
+│   └── ...                         # 用户保存的配置方案
+├── input/                          # 输入文件目录，存放待查询的词条文件
+│   ├── words_to_lookup.txt         # 词条文件案例
+│   └── ...                         # 用户创建的词条文件
+├── output/                         # 输出文件目录，存放生成的输出文件
+│   └── ...                         # 各种输出文件
+└── mdict/                          # 存放 .mdx 词典文件，建议分目录存放不同词典
+    ├── CC-CEDICT/                  # 中英词典
+    └── ...                         # 更多词典文件
+```
+
+### Q：为什么 Image/PDF 标签呈现灰色不可用？
+
+A：Image/PDF 标签只有在输出文件选择了相应格式时才会变为可用状态：
+
+**Image 标签**：只有当输出文件扩展名为 `.jpg`、`.jpeg`、`.png`、`.webp` 时才可用
+**PDF 标签**：只有当输出文件扩展名为 `.pdf` 时才可用
