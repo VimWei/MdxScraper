@@ -29,7 +29,8 @@ class MainWindow(QMainWindow):
         # Services (temporary: cm kept for incremental migration)
         self.cm = ConfigManager(project_root)
         self.cm.load()
-        self.settings = SettingsService(project_root)
+        # Ensure SettingsService shares the same ConfigManager instance
+        self.settings = SettingsService(project_root, self.cm)
         self.presets = PresetsService(project_root)
         # Announce normalization result once
         info = self.cm.get_normalize_info_once()
@@ -663,7 +664,7 @@ class MainWindow(QMainWindow):
     def restore_last_config(self):
         try:
             # Reload latest config from disk and refresh GUI
-            self.cm.load()
+            self.settings.load()
             self.sync_from_config()
             self.log.append("ℹ️ Restored last saved config.")
         except Exception as e:
