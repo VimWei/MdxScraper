@@ -8,6 +8,7 @@ from PySide6.QtWidgets import (
     QGridLayout, QSizePolicy, QSpacerItem, QCheckBox, QTabWidget, QComboBox, QSlider
 )
 from PySide6.QtCore import QThread, Signal, Qt
+from PySide6.QtGui import QIcon
 
 from mdxscraper.config.config_manager import ConfigManager
 
@@ -17,6 +18,11 @@ class MainWindow(QMainWindow):
         super().__init__()
         self.setWindowTitle("MdxScraper")
         self.project_root = project_root
+        
+        # Set window icon
+        icon_path = project_root / "src" / "mdxscraper" / "gui" / "assets" / "app_icon.ico"
+        if icon_path.exists():
+            self.setWindowIcon(QIcon(str(icon_path)))
         self.cm = ConfigManager(project_root)
         self.cm.load()
         # Announce normalization result once
@@ -1023,7 +1029,13 @@ class ConversionWorker(QThread):
 def run_gui():
     import sys
     app = QApplication(sys.argv)
+    
+    # Set application icon
     root = Path(__file__).resolve().parents[3]
+    icon_path = root / "src" / "mdxscraper" / "gui" / "assets" / "app_icon.ico"
+    if icon_path.exists():
+        app.setWindowIcon(QIcon(str(icon_path)))
+    
     w = MainWindow(root)
     w.resize(640, 360)
     w.show()
