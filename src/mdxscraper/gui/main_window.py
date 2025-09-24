@@ -791,6 +791,31 @@ class MainWindow(QMainWindow):
         self.check_save_invalid.setChecked(self.cm.get_save_invalid_words())
         self.update_tab_enablement()
         self.sync_image_from_config()
+        # Sync PDF/CSS editors and preset labels from config
+        try:
+            if hasattr(self, 'pdf_editor'):
+                pdf_text = self.cm.get('output.pdf.preset_text', '') or ''
+                self.pdf_editor.setPlainText(pdf_text)
+                if hasattr(self, 'pdf_combo'):
+                    pdf_label = self.cm.get('output.pdf.preset_label', '') or ''
+                    if pdf_label:
+                        for i in range(self.pdf_combo.count()):
+                            if self.pdf_combo.itemText(i) == pdf_label:
+                                self.pdf_combo.setCurrentIndex(i)
+                                break
+            if hasattr(self, 'css_editor'):
+                css_text = self.cm.get('output.css.preset_text', '') or ''
+                self.css_editor.setPlainText(css_text)
+                if hasattr(self, 'css_combo'):
+                    css_label = self.cm.get('output.css.preset_label', '') or ''
+                    if css_label:
+                        for i in range(self.css_combo.count()):
+                            if self.css_combo.itemText(i) == css_label:
+                                self.css_combo.setCurrentIndex(i)
+                                break
+        except Exception:
+            # Non-fatal: keep going if presets cannot be synced
+            pass
 
     def sync_image_from_config(self):
         # Populate image fields from config defaults
