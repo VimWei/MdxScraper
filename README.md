@@ -8,9 +8,9 @@
 
 ### 演示视频
 
-<video src="docs/demo.mp4" controls width="720"></video>
+<video src="docs/screencast.mp4" controls width="1072"></video>
 
-如无法播放，可直接查看：[`docs/demo.mp4`](docs/demo.mp4)
+如无法播放，可直接查看：[`docs/screencast.mp4`](docs/screencast.mp4)
 
 
 ## 特点
@@ -78,10 +78,3 @@ data/                               # 用户数据目录（可删除重建）
     ├── CC-CEDICT/                  # 中英词典
     └── ...                         # 更多词典文件
 ```
-
-### Q：为什么 Image/PDF 标签呈现灰色不可用？
-
-A：Image/PDF 标签只有在输出文件选择了相应格式时才会变为可用状态：
-
-**Image 标签**：只有当输出文件扩展名为 `.jpg`、`.jpeg`、`.png`、`.webp` 时才可用
-**PDF 标签**：只有当输出文件扩展名为 `.pdf` 时才可用
