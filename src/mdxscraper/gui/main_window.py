@@ -464,8 +464,16 @@ class MainWindow(QMainWindow):
 
     def choose_input(self):
         current = self.edit_input.text()
-        if current and Path(current).exists():
-            start_dir = str(Path(current).parent)
+        if current:
+            # Try to resolve the current path (could be relative or absolute)
+            try:
+                resolved_path = self.cm._resolve_path(current)
+                if resolved_path.exists():
+                    start_dir = str(resolved_path.parent)
+                else:
+                    start_dir = str(self.project_root)
+            except Exception:
+                start_dir = str(self.project_root)
         else:
             start_dir = str(self.project_root)
         file, _ = QFileDialog.getOpenFileName(
@@ -480,8 +488,16 @@ class MainWindow(QMainWindow):
 
     def choose_dictionary(self):
         current = self.edit_dict.text()
-        if current and Path(current).exists():
-            start_dir = str(Path(current).parent)
+        if current:
+            # Try to resolve the current path (could be relative or absolute)
+            try:
+                resolved_path = self.cm._resolve_path(current)
+                if resolved_path.exists():
+                    start_dir = str(resolved_path.parent)
+                else:
+                    start_dir = str(self.project_root)
+            except Exception:
+                start_dir = str(self.project_root)
         else:
             start_dir = str(self.project_root)
         file, _ = QFileDialog.getOpenFileName(
@@ -493,8 +509,26 @@ class MainWindow(QMainWindow):
 
     def choose_output(self):
         current = self.edit_output.text()
-        if current and Path(current).exists():
-            start_dir = str(Path(current).parent)
+        if current:
+            # Try to resolve the current path (could be relative or absolute)
+            try:
+                resolved_path = self.cm._resolve_path(current)
+                if resolved_path.exists():
+                    start_dir = str(resolved_path.parent)
+                else:
+                    # Default to output directory from config
+                    output_dir = self.cm.get("output.directory", "data/output")
+                    if Path(output_dir).exists():
+                        start_dir = str(Path(output_dir).resolve())
+                    else:
+                        start_dir = str(self.project_root / "data" / "output")
+            except Exception:
+                # Default to output directory from config
+                output_dir = self.cm.get("output.directory", "data/output")
+                if Path(output_dir).exists():
+                    start_dir = str(Path(output_dir).resolve())
+                else:
+                    start_dir = str(self.project_root / "data" / "output")
         else:
             # Default to output directory from config
             output_dir = self.cm.get("output.directory", "data/output")
