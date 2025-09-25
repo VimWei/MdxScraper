@@ -63,12 +63,14 @@ class ExportService:
         elif suffix == '.pdf':
             pdf_options = self.build_pdf_options(pdf_text)
             wkhtmltopdf_path = settings_service.get('advanced.wkhtmltopdf_path', 'auto')
-            return mdx2pdf(mdx_file, input_file, output_path, pdf_options,
+            with_toc = settings_service.get('advanced.with_toc', True)
+            return mdx2pdf(mdx_file, input_file, output_path, pdf_options, with_toc=with_toc,
                            h1_style=h1_style, scrap_style=scrap_style, additional_styles=additional_styles,
                            wkhtmltopdf_path=wkhtmltopdf_path)
         elif suffix in ('.jpg', '.jpeg', '.png', '.webp'):
             img_opts = self.build_image_options(suffix)
-            return mdx2img(mdx_file, input_file, output_path, img_options=img_opts,
+            with_toc = settings_service.get('advanced.with_toc', True)
+            return mdx2img(mdx_file, input_file, output_path, img_options=img_opts, with_toc=with_toc,
                            h1_style=h1_style, scrap_style=scrap_style, additional_styles=additional_styles)
         else:
             raise RuntimeError(f"Unsupported output extension: {suffix}")

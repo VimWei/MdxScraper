@@ -116,6 +116,7 @@ def mdx2pdf(
     input_file: str | Path,
     output_file: str | Path,
     pdf_options: dict,
+    with_toc: bool = True,
     h1_style: str | None = None,
     scrap_style: str | None = None,
     additional_styles: str | None = None,
@@ -124,7 +125,7 @@ def mdx2pdf(
     with tempfile.NamedTemporaryFile(suffix='.html', delete=False) as temp:
         temp_file = temp.name
         found, not_found, invalid_words = mdx2html(
-            mdx_file, input_file, temp_file, with_toc=False,
+            mdx_file, input_file, temp_file, with_toc=with_toc,
             h1_style=h1_style, scrap_style=scrap_style, additional_styles=additional_styles
         )
 
@@ -148,6 +149,7 @@ def mdx2img(
     input_file: str | Path,
     output_file: str | Path,
     img_options: dict | None = None,
+    with_toc: bool = True,
     h1_style: str | None = None,
     scrap_style: str | None = None,
     additional_styles: str | None = None,
@@ -160,7 +162,7 @@ def mdx2img(
     with tempfile.NamedTemporaryFile(suffix='.html', delete=False) as temp:
         temp_file = temp.name
         found, not_found, invalid_words = mdx2html(
-            mdx_file, input_file, temp_file, with_toc=False,
+            mdx_file, input_file, temp_file, with_toc=with_toc,
             h1_style=h1_style, scrap_style=scrap_style, additional_styles=additional_styles
         )
 

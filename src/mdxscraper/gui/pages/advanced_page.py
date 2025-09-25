@@ -45,10 +45,10 @@ class AdvancedPage(QWidget):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(8, 8, 8, 8)
         
-        # HTML Options section
+        # Output Options section
         html_section = QHBoxLayout()
         _section_w = 120  # Increased width for better text visibility
-        _lbl_html = QLabel("HTML Options", self)
+        _lbl_html = QLabel("Output Options", self)
         _lbl_html.setProperty("class", "field-label")
         _lbl_html.setFixedWidth(_section_w)
         _lbl_html.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
@@ -56,7 +56,8 @@ class AdvancedPage(QWidget):
         html_section.addSpacing(8)
         
         # with_toc checkbox
-        self.check_with_toc = QCheckBox("Generate table of contents", self)
+        self.check_with_toc = QCheckBox("Include table of contents (HTML/PDF/Image)", self)
+        self.check_with_toc.setToolTip("When enabled, a left-side table of contents is generated for HTML, and the same structure is used when exporting to PDF or Image.")
         html_section.addWidget(self.check_with_toc)
         html_section.addItem(QSpacerItem(20, 10, QSizePolicy.Expanding, QSizePolicy.Minimum))
         layout.addLayout(html_section)
