@@ -32,7 +32,6 @@ transparent_bg = false
 wkhtmltopdf_path = "auto"
 with_toc = true
 
-# Persist last-used Advanced presets/editor contents for session restore
 [output.pdf]
 preset_label = ""
 preset_text = ""

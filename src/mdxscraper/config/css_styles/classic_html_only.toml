@@ -1,5 +1,5 @@
 [style]
-# 适合 HTML/PDF/WEBP/PNG/JPG 所有的输出格式
+# 仅适合 HTML，因为设置了左右分栏，而这会使得 PDF/WEBP/PNG/JPG 输出为空
 
 h1_style = "color:#FFFFFF; background-color:#003366; padding-left:20px; line-height:initial;"
 
@@ -11,6 +11,9 @@ a.lesson:hover {background-color: #e3f2fd}
 a.word {color: #1565c0; text-decoration: none; cursor: pointer; font-variant: normal; font-weight: normal; border-bottom: none;}
 a.word:hover {background-color: #e3f2fd;}
 a.invalid_word {color: #909497;}
+div.main {width: 100%; height: 100%;}
+div.left {width: 180px; overflow: auto; float: left; height: 100%;}
+div.right {overflow-y: auto; overflow-x: hidden; padding-left: 10px; height: 100%;}
 '''
 
 
