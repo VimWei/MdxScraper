@@ -413,16 +413,19 @@ def on_error(self, message: str):
 ### 9.4 预设加载与选择保留模式（重要）
 
 ```python
-# 初始化/导入/恢复：先加载列表，后按配置恢复选择
+# 初始化/导入/恢复：先加载列表，后按配置恢复选择（由槽函数统一加载）
 self.reload_presets(auto_select_default=False)
-self.sync_from_config()  # set_config 内部设置 combo 选中项
+self.sync_from_config()  # PDF/CSS 的 set_config 仅设置下拉；加载由 on_*_preset_changed 完成
 
-# 保存预设：重载列表但不改动选择，再回写配置
+# 保存/自动保存/导出后选择：重载列表并使用统一方法选择目标项
 self.reload_presets(auto_select_default=False)
-self.sync_pdf_to_config()  # 或 sync_css_to_config()
+self.select_label_and_load('pdf', saved_label)  # 或 ('css', saved_label)
 ```
 
-注意：避免在 `reload_presets()` 中自动选择默认项（如 `default [built-in]`），否则会触发 `on_*_preset_changed` 覆盖已保存的 `preset_label`。
+注意：
+- 采用方案A：不使用 blockSignals，所有选择变化由槽函数处理；`idx < 0` 时槽函数早退。
+- 避免在 `reload_presets()` 中自动选择默认项（如 `default [built-in]`），除非明确传入 `auto_select_default=True`。
+- `* Untitled` 状态定义为：下拉 `index == -1`（无选中项），表示未保存的缓冲态；与“名为 `Untitled` 的预设项”严格区分。
 
 ## 十、最佳实践
 

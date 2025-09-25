@@ -2,9 +2,9 @@
 input_file = "data/input/words_to_lookup.txt"
 dictionary_file = "data/mdict/Learn These Words First/Learn These Words First.mdx"
 output_file = "data/output/words_to_lookup.html"
-with_toc = true
+with_toc = false
 add_timestamp = true
-backup_input = true
+backup_input = false
 save_invalid_words = true
 
 [css]

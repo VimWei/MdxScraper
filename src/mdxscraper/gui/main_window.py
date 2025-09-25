@@ -422,14 +422,9 @@ class MainWindow(QMainWindow):
             self.settings.replace_config(cfg)
             info = self.settings.get_normalize_info_once()
             # Reload presets first, then sync from config to preserve preset selection
+            # 统一机制：reload_presets 会通过 select_label_and_load 触发信号加载内容
             self.reload_presets(auto_select_default=False)
             self.sync_from_config()
-            # Force editors to reflect the newly imported selection
-            try:
-                self._force_load_current_selection('pdf')
-                self._force_load_current_selection('css')
-            except Exception:
-                pass
             self.command_panel.appendLog(f"✅ Imported config applied: {file}")
             if info.get("changed"):
                 removed, added, type_fixed = info.get("removed", 0), info.get("added", 0), info.get("type_fixed", 0)
@@ -506,30 +501,16 @@ class MainWindow(QMainWindow):
             with open(p, "w", encoding="utf-8") as f:
                 f.write(content)
             self.command_panel.appendLog(f"✅ Exported config to: {file}")
-            # If we created snapshots, reload presets and select the new labels in combos
+            # If we created snapshots, reload presets and select the new labels via unified method
             try:
                 if (locals().get('new_pdf_label') or locals().get('new_css_label')):
                     self.reload_presets(auto_select_default=False)
                     if locals().get('new_pdf_label'):
-                        self.tab_pdf.pdf_combo.blockSignals(True)
-                        try:
-                            for i in range(self.tab_pdf.pdf_combo.count()):
-                                if self.tab_pdf.pdf_combo.itemText(i) == new_pdf_label:
-                                    self.tab_pdf.pdf_combo.setCurrentIndex(i)
-                                    break
-                        finally:
-                            self.tab_pdf.pdf_combo.blockSignals(False)
+                        self.select_label_and_load('pdf', new_pdf_label)
                         self.pdf_dirty = False
                         self.tab_pdf.show_dirty(False)
                     if locals().get('new_css_label'):
-                        self.tab_css.css_combo.blockSignals(True)
-                        try:
-                            for i in range(self.tab_css.css_combo.count()):
-                                if self.tab_css.css_combo.itemText(i) == new_css_label:
-                                    self.tab_css.css_combo.setCurrentIndex(i)
-                                    break
-                        finally:
-                            self.tab_css.css_combo.blockSignals(False)
+                        self.select_label_and_load('css', new_css_label)
                         self.css_dirty = False
                         self.tab_css.show_dirty(False)
             except Exception:
@@ -595,15 +576,11 @@ class MainWindow(QMainWindow):
                     found_pdf = True
                     break
             if not found_pdf and cfg_pdf_label:
-                self.tab_pdf.pdf_editor.setPlainText("")
-                self.pdf_dirty = True
-                self.tab_pdf.show_dirty(True)
-                # Clear combo selection to show empty
+                self._enter_untitled_state('pdf', clear_editor=True)
                 try:
-                    self.tab_pdf.pdf_combo.blockSignals(True)
-                    self.tab_pdf.pdf_combo.setCurrentIndex(-1)
-                finally:
-                    self.tab_pdf.pdf_combo.blockSignals(False)
+                    self.settings.set('pdf.preset_label', '')
+                except Exception:
+                    pass
             # CSS label existence check (full label or base-name)
             cfg_css_label = (css_config.preset_label or '').strip()
             found_css = False
@@ -614,14 +591,11 @@ class MainWindow(QMainWindow):
                     found_css = True
                     break
             if not found_css and cfg_css_label:
-                self.tab_css.css_editor.setPlainText("")
-                self.css_dirty = True
-                self.tab_css.show_dirty(True)
+                self._enter_untitled_state('css', clear_editor=True)
                 try:
-                    self.tab_css.css_combo.blockSignals(True)
-                    self.tab_css.css_combo.setCurrentIndex(-1)
-                finally:
-                    self.tab_css.css_combo.blockSignals(False)
+                    self.settings.set('css.preset_label', '')
+                except Exception:
+                    pass
         except Exception:
             pass
 
@@ -701,55 +675,42 @@ class MainWindow(QMainWindow):
         current_pdf_label = str(self.settings.get('pdf.preset_label', '') or '')
         current_css_label = str(self.settings.get('css.preset_label', '') or '')
 
-        # PDF presets
-        self.tab_pdf.pdf_combo.blockSignals(True)
+        # PDF presets - 使用统一方法选择，让信号自然触发
         self.tab_pdf.pdf_combo.clear()
         for label, path in self.presets.iter_presets('pdf'):
             self.tab_pdf.pdf_combo.addItem(label, userData=str(path))
-        # Avoid defaulting to first item; clear selection then try to reselect exact label
-        self.tab_pdf.pdf_combo.setCurrentIndex(-1)
+        
+        # 使用统一方法选择预设，避免手动信号阻断
         if current_pdf_label:
-            matched_idx = -1
-            for i in range(self.tab_pdf.pdf_combo.count()):
-                if self.tab_pdf.pdf_combo.itemText(i) == current_pdf_label:
-                    matched_idx = i
-                    break
-            if matched_idx >= 0:
-                self.tab_pdf.pdf_combo.setCurrentIndex(matched_idx)
+            self.select_label_and_load('pdf', current_pdf_label)
         elif self.tab_pdf.pdf_combo.count() > 0 and auto_select_default:
-            # Optional default selection (not used when preserving)
-            preferred_idx = 0
+            # 可选默认选择（保留时通常不使用）
+            preferred_label = None
             for i in range(self.tab_pdf.pdf_combo.count()):
                 txt = self.tab_pdf.pdf_combo.itemText(i).lower()
                 if txt.startswith('default'):
-                    preferred_idx = i
+                    preferred_label = self.tab_pdf.pdf_combo.itemText(i)
                     break
-            self.tab_pdf.pdf_combo.setCurrentIndex(preferred_idx)
-        self.tab_pdf.pdf_combo.blockSignals(False)
+            if preferred_label:
+                self.select_label_and_load('pdf', preferred_label)
 
-        # CSS presets
-        self.tab_css.css_combo.blockSignals(True)
+        # CSS presets - 使用统一方法选择，让信号自然触发
         self.tab_css.css_combo.clear()
         for label, path in self.presets.iter_presets('css'):
             self.tab_css.css_combo.addItem(label, userData=str(path))
-        self.tab_css.css_combo.setCurrentIndex(-1)
+        
+        # 使用统一方法选择预设，避免手动信号阻断
         if current_css_label:
-            matched_idx = -1
-            for i in range(self.tab_css.css_combo.count()):
-                if self.tab_css.css_combo.itemText(i) == current_css_label:
-                    matched_idx = i
-                    break
-            if matched_idx >= 0:
-                self.tab_css.css_combo.setCurrentIndex(matched_idx)
+            self.select_label_and_load('css', current_css_label)
         elif self.tab_css.css_combo.count() > 0 and auto_select_default:
-            preferred_idx = 0
+            preferred_label = None
             for i in range(self.tab_css.css_combo.count()):
                 txt = self.tab_css.css_combo.itemText(i).lower()
                 if txt.startswith('original'):
-                    preferred_idx = i
+                    preferred_label = self.tab_css.css_combo.itemText(i)
                     break
-            self.tab_css.css_combo.setCurrentIndex(preferred_idx)
-        self.tab_css.css_combo.blockSignals(False)
+            if preferred_label:
+                self.select_label_and_load('css', preferred_label)
 
     def _iter_presets(self, kind: str):
         # Backward compatibility shim if needed elsewhere
@@ -757,6 +718,9 @@ class MainWindow(QMainWindow):
 
     def on_pdf_preset_changed(self, label: str):
         idx = self.tab_pdf.pdf_combo.currentIndex()
+        if idx < 0:
+            # No selection -> * Untitled state: ignore load
+            return
         path = self.tab_pdf.pdf_combo.itemData(idx)
         if path:
             try:
@@ -775,16 +739,18 @@ class MainWindow(QMainWindow):
             except Exception as e:
                 # Enter * Untitled state with empty editor per spec
                 self.command_panel.appendLog(f"❌ Failed to load PDF preset: {e}. Switched to * Untitled.")
-                self._updating_pdf_editor = True
+                self._enter_untitled_state('pdf', clear_editor=True)
+                # Clear invalid label from settings to avoid repeated failures
                 try:
-                    self.tab_pdf.pdf_editor.setPlainText("")
-                finally:
-                    self._updating_pdf_editor = False
-                self.pdf_dirty = True
-                self.tab_pdf.show_dirty(True)
+                    self.settings.set('pdf.preset_label', '')
+                except Exception:
+                    pass
 
     def on_css_preset_changed(self, label: str):
         idx = self.tab_css.css_combo.currentIndex()
+        if idx < 0:
+            # No selection -> * Untitled state: ignore load
+            return
         path = self.tab_css.css_combo.itemData(idx)
         if path:
             try:
@@ -802,13 +768,11 @@ class MainWindow(QMainWindow):
             except Exception as e:
                 # Enter * Untitled state with empty editor per spec
                 self.command_panel.appendLog(f"❌ Failed to load CSS preset: {e}. Switched to * Untitled.")
-                self._updating_css_editor = True
+                self._enter_untitled_state('css', clear_editor=True)
                 try:
-                    self.tab_css.css_editor.setPlainText("")
-                finally:
-                    self._updating_css_editor = False
-                self.css_dirty = True
-                self.tab_css.show_dirty(True)
+                    self.settings.set('css.preset_label', '')
+                except Exception:
+                    pass
 
     def on_pdf_save_clicked(self):
         user_dir = (self.project_root / 'data' / 'configs' / 'pdf').resolve()
@@ -821,14 +785,10 @@ class MainWindow(QMainWindow):
             self.presets.save_preset_text(Path(file), text)
             self.settings.set('pdf.preset_label', Path(file).stem)
             self.command_panel.appendLog(f"✅ Saved PDF preset: {file}")
-            # Reload presets and ensure combo selects the saved label
+            # Reload presets and select the saved label via unified method
             saved_label = Path(file).stem
             self.reload_presets(auto_select_default=False)
-            # Select the newly saved item explicitly
-            for i in range(self.tab_pdf.pdf_combo.count()):
-                if self.tab_pdf.pdf_combo.itemText(i) == saved_label:
-                    self.tab_pdf.pdf_combo.setCurrentIndex(i)
-                    break
+            self.select_label_and_load('pdf', saved_label)
             self.settings.set('pdf.preset_label', saved_label)
             self.sync_pdf_to_config()
             self.pdf_dirty = False
@@ -848,13 +808,10 @@ class MainWindow(QMainWindow):
             self.presets.save_preset_text(Path(file), text)
             self.settings.set('css.preset_label', Path(file).stem)
             self.command_panel.appendLog(f"✅ Saved CSS preset: {file}")
-            # Reload presets and ensure combo selects the saved label
+            # Reload presets and select the saved label via unified method
             saved_label = Path(file).stem
             self.reload_presets(auto_select_default=False)
-            for i in range(self.tab_css.css_combo.count()):
-                if self.tab_css.css_combo.itemText(i) == saved_label:
-                    self.tab_css.css_combo.setCurrentIndex(i)
-                    break
+            self.select_label_and_load('css', saved_label)
             self.settings.set('css.preset_label', saved_label)
             self.sync_css_to_config()
             self.css_dirty = False
@@ -866,25 +823,14 @@ class MainWindow(QMainWindow):
     def on_pdf_text_changed(self):
         if self._updating_pdf_editor:
             return
-        self.pdf_dirty = True
-        self.tab_pdf.show_dirty(True)
-        # When entering * Untitled, clear combo selection to display empty
-        try:
-            self.tab_pdf.pdf_combo.blockSignals(True)
-            self.tab_pdf.pdf_combo.setCurrentIndex(-1)
-        finally:
-            self.tab_pdf.pdf_combo.blockSignals(False)
+        # Enter * Untitled state due to user edit, keep editor content
+        self._enter_untitled_state('pdf', clear_editor=False)
 
     def on_css_text_changed(self):
         if self._updating_css_editor:
             return
-        self.css_dirty = True
-        self.tab_css.show_dirty(True)
-        try:
-            self.tab_css.css_combo.blockSignals(True)
-            self.tab_css.css_combo.setCurrentIndex(-1)
-        finally:
-            self.tab_css.css_combo.blockSignals(False)
+        # Enter * Untitled state due to user edit, keep editor content
+        self._enter_untitled_state('css', clear_editor=False)
 
     def on_pdf_refresh_clicked(self):
         self.reload_presets(auto_select_default=False)
@@ -902,32 +848,6 @@ class MainWindow(QMainWindow):
         except Exception:
             return ''
 
-    def _force_load_current_selection(self, kind: str) -> None:
-        """Force-load editor text from the currently selected preset combo item."""
-        if kind == 'pdf':
-            idx = self.tab_pdf.pdf_combo.currentIndex()
-            path = self.tab_pdf.pdf_combo.itemData(idx)
-            if path:
-                text = self.presets.load_preset_text(Path(path))
-                self._updating_pdf_editor = True
-                try:
-                    self.tab_pdf.pdf_editor.setPlainText(text)
-                finally:
-                    self._updating_pdf_editor = False
-                self.pdf_dirty = False
-                self.tab_pdf.show_dirty(False)
-        else:
-            idx = self.tab_css.css_combo.currentIndex()
-            path = self.tab_css.css_combo.itemData(idx)
-            if path:
-                text = self.presets.load_preset_text(Path(path))
-                self._updating_css_editor = True
-                try:
-                    self.tab_css.css_editor.setPlainText(text)
-                finally:
-                    self._updating_css_editor = False
-                self.css_dirty = False
-                self.tab_css.show_dirty(False)
 
     def autosave_untitled_if_needed(self):
         if self.pdf_dirty:
@@ -946,14 +866,7 @@ class MainWindow(QMainWindow):
                 self.tab_pdf.show_dirty(False)
                 # Ensure combo shows 'Untitled' after autosave
                 self.reload_presets(auto_select_default=False)
-                try:
-                    self.tab_pdf.pdf_combo.blockSignals(True)
-                    for i in range(self.tab_pdf.pdf_combo.count()):
-                        if self.tab_pdf.pdf_combo.itemText(i) == 'Untitled':
-                            self.tab_pdf.pdf_combo.setCurrentIndex(i)
-                            break
-                finally:
-                    self.tab_pdf.pdf_combo.blockSignals(False)
+                self.select_label_and_load('pdf', 'Untitled')
             else:
                 text = self.tab_css.css_editor.toPlainText()
                 out = (self.project_root / 'data' / 'configs' / 'css' / 'Untitled.toml')
@@ -963,16 +876,64 @@ class MainWindow(QMainWindow):
                 self.tab_css.show_dirty(False)
                 # Ensure combo shows 'Untitled' after autosave
                 self.reload_presets(auto_select_default=False)
-                try:
-                    self.tab_css.css_combo.blockSignals(True)
-                    for i in range(self.tab_css.css_combo.count()):
-                        if self.tab_css.css_combo.itemText(i) == 'Untitled':
-                            self.tab_css.css_combo.setCurrentIndex(i)
-                            break
-                finally:
-                    self.tab_css.css_combo.blockSignals(False)
+                self.select_label_and_load('css', 'Untitled')
         except Exception as e:
             self.command_panel.appendLog(f"⚠️ Failed to autosave Untitled: {e}")
+
+    # --- Unified preset selection and * Untitled state helpers ---
+    def _enter_untitled_state(self, kind: str, clear_editor: bool = True) -> None:
+        """Enter * Untitled state: combo shows no selection (-1), dirty shown.
+
+        If clear_editor is True, editor is cleared (e.g., load failure). If False,
+        keep current editor content (e.g., user edits).
+        """
+        if kind == 'pdf':
+            combo = self.tab_pdf.pdf_combo
+            editor = self.tab_pdf.pdf_editor
+            show_dirty = self.tab_pdf.show_dirty
+            if clear_editor:
+                self._updating_pdf_editor = True
+                try:
+                    editor.setPlainText("")
+                finally:
+                    self._updating_pdf_editor = False
+            combo.setCurrentIndex(-1)
+            self.pdf_dirty = True
+            show_dirty(True)
+        else:
+            combo = self.tab_css.css_combo
+            editor = self.tab_css.css_editor
+            show_dirty = self.tab_css.show_dirty
+            if clear_editor:
+                self._updating_css_editor = True
+                try:
+                    editor.setPlainText("")
+                finally:
+                    self._updating_css_editor = False
+            combo.setCurrentIndex(-1)
+            self.css_dirty = True
+            show_dirty(True)
+
+    def select_label_and_load(self, kind: str, label: str) -> None:
+        """Unified entry to select a preset by label and trigger load via signal."""
+        combo = self.tab_pdf.pdf_combo if kind == 'pdf' else self.tab_css.css_combo
+        matched_index = -1
+        for i in range(combo.count()):
+            if combo.itemText(i) == label:
+                matched_index = i
+                break
+        if matched_index >= 0:
+            combo.setCurrentIndex(matched_index)
+            return
+        # Not found: enter * Untitled state (keep content) and clear invalid config label
+        self._enter_untitled_state(kind, clear_editor=False)
+        try:
+            if kind == 'pdf':
+                self.settings.set('pdf.preset_label', '')
+            else:
+                self.settings.set('css.preset_label', '')
+        except Exception:
+            pass
 
     # update_tab_enablement removed: tabs are always enabled now
 
