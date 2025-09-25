@@ -1,41 +1,37 @@
-[input]
-file = "data/input/words_to_lookup.txt"
-
-[dictionary]
-file = "data/mdict/Learn These Words First/Learn These Words First.mdx"
-
-[output]
-file = "data/output/words_to_lookup.html"
+[basic]
+input_file = "data/input/words_to_lookup.txt"
+dictionary_file = "data/mdict/Learn These Words First/Learn These Words First.mdx"
+output_file = "data/output/words_to_lookup.html"
+with_toc = true
 add_timestamp = true
 backup_input = true
 save_invalid_words = true
 
-[output.image]
+[css]
+preset_label = ""
+preset_text = ""
+
+[image]
 width = 0  # 0 means auto
 zoom = 1.0
 background = true
 
-[output.image.jpg]
+[image.jpg]
 quality = 85
 
-[output.image.png]
+[image.png]
 optimize = true
 compress_level = 9
 transparent_bg = false
 
-[output.image.webp]
+[image.webp]
 quality = 80
 lossless = false
 transparent_bg = false
 
+[pdf]
+preset_label = ""
+preset_text = ""
+
 [advanced]
 wkhtmltopdf_path = "auto"
-with_toc = true
-
-[output.pdf]
-preset_label = ""
-preset_text = ""
-
-[output.css]
-preset_label = ""
-preset_text = ""
