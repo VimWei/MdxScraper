@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Dict, Any, Tuple
+from typing import Dict, Any, Tuple, Optional, List
 
 from mdxscraper.gui.services.presets_service import PresetsService
 from mdxscraper.gui.services.settings_service import SettingsService
@@ -46,11 +46,11 @@ class ExportService:
             opts['webp_lossless'] = bool(cm.get('output.image.webp.lossless', False))
         return opts
 
-    def parse_css_styles(self, css_text: str) -> Tuple[str | None, str | None, str | None]:
+    def parse_css_styles(self, css_text: str) -> Tuple[Optional[str], Optional[str], Optional[str]]:
         return self.presets.parse_css_preset(css_text)
 
     def execute_export(self, input_file: Path, mdx_file: Path, output_path: Path,
-                        pdf_text: str = '', css_text: str = '', settings_service=None) -> Tuple[int, int, list[str]]:
+                        pdf_text: str = '', css_text: str = '', settings_service: Optional[SettingsService] = None) -> Tuple[int, int, List[str]]:
         from mdxscraper.core.converter import mdx2html, mdx2pdf, mdx2img
 
         suffix = output_path.suffix.lower()

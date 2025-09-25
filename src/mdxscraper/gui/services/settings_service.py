@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Dict
+from typing import Dict, Any, Union
 
 from mdxscraper.config.config_manager import ConfigManager
 
@@ -16,30 +16,30 @@ class SettingsService:
             self.cm = cm
 
     # Facade to ConfigManager common operations
-    def get(self, key: str, default=None):
+    def get(self, key: str, default: Any = None) -> Any:
         return self.cm.get(key, default)
 
-    def set(self, key: str, value):
+    def set(self, key: str, value: Any) -> None:
         self.cm.set(key, value)
 
-    def save(self):
+    def save(self) -> None:
         self.cm.save()
 
-    def validate(self):
+    def validate(self) -> Any:
         return self.cm.validate()
 
-    def load(self):
+    def load(self) -> None:
         self.cm.load()
 
     # Config replacements and normalization
-    def replace_config(self, cfg: dict) -> None:
+    def replace_config(self, cfg: Dict[str, Any]) -> None:
         self.cm._config = cfg
         self.cm._normalize_config()
 
-    def get_normalize_info_once(self) -> dict:
+    def get_normalize_info_once(self) -> Dict[str, Any]:
         return self.cm.get_normalize_info_once()
 
-    def get_config_dict(self) -> dict:
+    def get_config_dict(self) -> Dict[str, Any]:
         return self.cm._config
 
     # Specific helpers mentioned in the refactor doc
@@ -60,7 +60,7 @@ class SettingsService:
             'css': True,
         }
 
-    def resolve_path(self, maybe_path: str) -> Path:
+    def resolve_path(self, maybe_path: Union[str, Path]) -> Path:
         return self.cm._resolve_path(maybe_path)
 
     # Checkbox helpers
@@ -93,7 +93,7 @@ class SettingsService:
         self.cm.set_output_file(path)
 
     # Paths helpers
-    def to_relative(self, p: Path | str) -> str:
+    def to_relative(self, p: Union[Path, str]) -> str:
         try:
             root = self.project_root.resolve()
             return str(Path(p).resolve().relative_to(root))

@@ -40,7 +40,7 @@ class MainWindow(QMainWindow):
         self.settings = SettingsService(project_root, self.cm)
         self.presets = PresetsService(project_root)
         # Announce normalization result once
-        info = self.cm.get_normalize_info_once()
+        info = self.settings.get_normalize_info_once()
         if info.get("changed"):
             removed, added, type_fixed = info.get("removed", 0), info.get("added", 0), info.get("type_fixed", 0)
             self.log_message_later = f"⚙️ Config normalized (removed: {removed}, added: {added}, type fixed: {type_fixed}). Please save to persist."
@@ -256,7 +256,7 @@ class MainWindow(QMainWindow):
             "Text/Markdown files (*.txt *.md);;JSON files (*.json);;Excel files (*.xlsx);;All files (*.*)"
         )
         if file:
-            self.cm.set_input_file(file)
+            self.settings.set_input_file(file)
             self.edit_input.setText(self.settings.get("input.file"))
             # Also update output base name to match input base
             self.on_input_edited()
@@ -279,7 +279,7 @@ class MainWindow(QMainWindow):
             self, "Select MDX dictionary", start_dir, "MDX Files (*.mdx)"
         )
         if file:
-            self.cm.set_dictionary_file(file)
+            self.settings.set_dictionary_file(file)
             self.edit_dict.setText(self.settings.get("dictionary.file"))
 
     def choose_output(self):
@@ -327,7 +327,7 @@ class MainWindow(QMainWindow):
             "HTML files (*.html);;PDF files (*.pdf);;JPG files (*.jpg);;PNG files (*.png);;WEBP files (*.webp);;All files (*.*)"
         )
         if file:
-            self.cm.set_output_file(file)
+            self.settings.set_output_file(file)
             self.edit_output.setText(self.settings.get("output.file"))
             self.update_tab_enablement()
 
@@ -495,13 +495,13 @@ class MainWindow(QMainWindow):
             # Ensure current GUI edits are reflected to config
             input_text = self.edit_input.text().strip()
             if input_text:
-                self.cm.set_input_file(input_text)
+                self.settings.set_input_file(input_text)
             dict_text = self.edit_dict.text().strip()
             if dict_text:
-                self.cm.set_dictionary_file(dict_text)
+                self.settings.set_dictionary_file(dict_text)
             output_text = self.edit_output.text().strip()
             if output_text:
-                self.cm.set_output_file(output_text)
+                self.settings.set_output_file(output_text)
             # Sync current PDF/CSS editors into config before export
             self.settings.set('output.pdf.preset_text', self.tab_pdf.pdf_editor.toPlainText())
             self.settings.set('output.pdf.preset_label', self.tab_pdf.pdf_combo.currentText())
@@ -514,7 +514,7 @@ class MainWindow(QMainWindow):
             self.settings.set_backup_input(self.check_backup.isChecked())
             self.settings.set_save_invalid_words(self.check_save_invalid.isChecked())
             # Validate before export; log issues but proceed
-            result = self.cm.validate()
+            result = self.settings.validate()
             if not result.is_valid:
                 problems = "\n".join(result.errors)
                 self.command_panel.appendLog("⚠️ Config validation issues before export:\n" + problems)
@@ -593,7 +593,7 @@ class MainWindow(QMainWindow):
 
     def sync_image_from_config(self):
         # Populate image fields from config defaults
-        get = self.cm.get
+        get = self.settings.get
         self.tab_image.img_width.setText(str(get("output.image.width", 0)))
         zoom = float(get("output.image.zoom", 1.0))
         self.tab_image.img_zoom_slider.setValue(int(round(zoom * 10)))
@@ -651,7 +651,7 @@ class MainWindow(QMainWindow):
 
     def sync_advanced_from_config(self):
         """Populate advanced fields from config defaults"""
-        get = self.cm.get
+        get = self.settings.get
         self.tab_advanced.check_with_toc.setChecked(bool(get("advanced.with_toc", True)))
         self.tab_advanced.set_wkhtmltopdf_path(str(get("advanced.wkhtmltopdf_path", "auto")))
 

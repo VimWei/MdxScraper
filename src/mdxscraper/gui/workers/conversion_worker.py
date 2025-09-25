@@ -39,7 +39,7 @@ class ConversionWorker(QThread):
             output_path = self._settings_service.resolve_path(cfg.get('output', {}).get('file'))
 
             # Apply timestamp if enabled
-            timestamp_enabled = self.cm.get_output_add_timestamp()
+            timestamp_enabled = self._settings_service.get_output_add_timestamp()
             current_time = None
             if timestamp_enabled:
                 from datetime import datetime
