@@ -8,8 +8,7 @@ backup_input = true
 save_invalid_words = true
 
 [css]
-preset_label = ""
-preset_text = ""
+preset_label = "classic [built-in]"
 
 [image]
 width = 0  # 0 means auto
@@ -30,8 +29,7 @@ lossless = false
 transparent_bg = false
 
 [pdf]
-preset_label = ""
-preset_text = ""
+preset_label = "classic [built-in]"
 
 [advanced]
 wkhtmltopdf_path = "auto"

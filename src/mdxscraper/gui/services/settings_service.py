@@ -47,9 +47,7 @@ class SettingsService:
     # Specific helpers mentioned in the refactor doc
     def persist_session_state(self, pdf_text: str, pdf_label: str, css_text: str, css_label: str) -> None:
         try:
-            self.cm.set('pdf.preset_text', pdf_text)
             self.cm.set('pdf.preset_label', pdf_label)
-            self.cm.set('css.preset_text', css_text)
             self.cm.set('css.preset_label', css_label)
         except Exception:
             pass
@@ -162,24 +160,26 @@ class SettingsService:
 
     def get_pdf_config(self) -> PdfConfig:
         """Get PDF page configuration as data class"""
+        # New behavior: only persist and read label from config; preset_text is view-only
         return PdfConfig(
-            preset_text=str(self.get("pdf.preset_text", "")),
+            preset_text="",
             preset_label=str(self.get("pdf.preset_label", ""))
         )
 
     def update_pdf_config(self, config: PdfConfig) -> None:
         """Update PDF page configuration from data class"""
-        self.set("pdf.preset_text", config.preset_text)
+        # Persist only label; do not write editor text into config
         self.set("pdf.preset_label", config.preset_label)
 
     def get_css_config(self) -> CssConfig:
         """Get CSS page configuration as data class"""
+        # New behavior: only persist and read label from config; preset_text is view-only
         return CssConfig(
-            preset_text=str(self.get("css.preset_text", "")),
+            preset_text="",
             preset_label=str(self.get("css.preset_label", ""))
         )
 
     def update_css_config(self, config: CssConfig) -> None:
         """Update CSS page configuration from data class"""
-        self.set("css.preset_text", config.preset_text)
+        # Persist only label; do not write editor text into config
         self.set("css.preset_label", config.preset_label)

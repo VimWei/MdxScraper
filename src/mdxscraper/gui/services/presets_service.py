@@ -32,6 +32,23 @@ class PresetsService:
         with open(path, 'w', encoding='utf-8') as f:
             f.write(text)
 
+    # Utilities
+    def get_user_dir(self, kind: str) -> Path:
+        if kind == 'pdf':
+            return self.project_root / 'data' / 'configs' / 'pdf'
+        else:
+            return self.project_root / 'data' / 'configs' / 'css'
+
+    def create_untitled_snapshot(self, kind: str, text: str) -> Path:
+        """Create a timestamped snapshot from current Untitled content and return the file path."""
+        from datetime import datetime
+        user_dir = self.get_user_dir(kind).resolve()
+        user_dir.mkdir(parents=True, exist_ok=True)
+        stamp = datetime.now().strftime('%Y%m%d-%H%M')
+        snap_path = user_dir / f'Untitled-{stamp}.toml'
+        self.save_preset_text(snap_path, text or '')
+        return snap_path
+
     # Parsing helpers
     def parse_pdf_preset(self, text: str) -> Dict[str, Any]:
         text = (text or '').strip()

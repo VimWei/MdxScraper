@@ -11,6 +11,7 @@ class PdfPage(QWidget):
     # Signals for communicating with MainWindow
     preset_changed = Signal(str)  # preset label
     save_clicked = Signal()
+    refresh_clicked = Signal()
     text_changed = Signal()  # text editor content changed
 
     def __init__(self, parent: QWidget | None = None):
@@ -24,6 +25,15 @@ class PdfPage(QWidget):
         self.pdf_combo = QComboBox(self)
         self.pdf_combo.currentTextChanged.connect(self.preset_changed.emit)
         row_pdf.addWidget(self.pdf_combo, 1)
+        # Dirty indicator label (display-only '* Untitled')
+        self.dirty_label = QLabel("* Untitled", self)
+        self.dirty_label.setStyleSheet("color: #d9831f;")
+        self.dirty_label.setVisible(False)
+        row_pdf.addWidget(self.dirty_label)
+        # Refresh button (left of Save)
+        self.btn_pdf_refresh = QPushButton("Refresh", self)
+        self.btn_pdf_refresh.clicked.connect(self.refresh_clicked.emit)
+        row_pdf.addWidget(self.btn_pdf_refresh)
         self.btn_pdf_save = QPushButton("Save", self)
         self.btn_pdf_save.clicked.connect(self.save_clicked.emit)
         row_pdf.addWidget(self.btn_pdf_save)
@@ -35,6 +45,9 @@ class PdfPage(QWidget):
         self.pdf_editor.textChanged.connect(self.text_changed.emit)
         layout.addWidget(self.pdf_editor, 1)
 
+    def show_dirty(self, is_dirty: bool) -> None:
+        self.dirty_label.setVisible(bool(is_dirty))
+
     def get_config(self) -> PdfConfig:
         """Get current page configuration as data class"""
         return PdfConfig(
@@ -44,11 +57,30 @@ class PdfPage(QWidget):
 
     def set_config(self, config: PdfConfig) -> None:
         """Set page configuration from data class"""
-        self.pdf_editor.setPlainText(config.preset_text)
+        # Only set preset label selection; editor text不再从配置读取
         # Set preset label if it exists in combo box
+        label_raw = (config.preset_label or "").strip()
+        base_label = label_raw
+        # 1) exact match (may include [built-in])
         for i in range(self.pdf_combo.count()):
-            if self.pdf_combo.itemText(i) == config.preset_label:
+            if self.pdf_combo.itemText(i) == label_raw:
                 self.pdf_combo.setCurrentIndex(i)
-                break
+                return
+        # 2) user-first base-name match (no [built-in] in item)
+        for i in range(self.pdf_combo.count()):
+            item = self.pdf_combo.itemText(i)
+            if ' [built-in]' in item:
+                continue
+            item_base = item.split(' [', 1)[0]
+            if item_base == base_label:
+                self.pdf_combo.setCurrentIndex(i)
+                return
+        # 3) built-in base-name match as last resort
+        for i in range(self.pdf_combo.count()):
+            item = self.pdf_combo.itemText(i)
+            item_base = item.split(' [', 1)[0]
+            if item_base == base_label:
+                self.pdf_combo.setCurrentIndex(i)
+                return
 
 
