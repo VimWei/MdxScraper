@@ -6,6 +6,8 @@ from PySide6.QtWidgets import (
     QHBoxLayout, QCheckBox, QSizePolicy, QSpacerItem, QVBoxLayout
 )
 
+from mdxscraper.gui.models.config_models import BasicConfig
+
 
 class BasicPage(QWidget):
     def __init__(self, parent: QWidget | None = None):
@@ -81,5 +83,25 @@ class BasicPage(QWidget):
         form.setColumnStretch(1, 1)
 
         root.addLayout(form)
+
+    def get_config(self) -> BasicConfig:
+        """Get current page configuration as data class"""
+        return BasicConfig(
+            input_file=self.edit_input.text(),
+            dictionary_file=self.edit_dict.text(),
+            output_file=self.edit_output.text(),
+            output_add_timestamp=self.check_timestamp.isChecked(),
+            backup_input=self.check_backup.isChecked(),
+            save_invalid_words=self.check_save_invalid.isChecked()
+        )
+
+    def set_config(self, config: BasicConfig) -> None:
+        """Set page configuration from data class"""
+        self.edit_input.setText(config.input_file)
+        self.edit_dict.setText(config.dictionary_file)
+        self.edit_output.setText(config.output_file)
+        self.check_timestamp.setChecked(config.output_add_timestamp)
+        self.check_backup.setChecked(config.backup_input)
+        self.check_save_invalid.setChecked(config.save_invalid_words)
 
 

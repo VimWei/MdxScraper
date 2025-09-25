@@ -59,13 +59,9 @@ class MainWindow(QMainWindow):
         self.tabs = QTabWidget(self)
         # Basic Tab -> BasicPage
         self.tab_basic = BasicPage(self)
-        # Wire initial values
-        self.tab_basic.edit_input.setText(self.settings.get("input.file", ""))
-        self.tab_basic.edit_dict.setText(self.settings.get("dictionary.file", ""))
-        self.tab_basic.edit_output.setText(self.settings.get("output.file", ""))
-        self.tab_basic.check_timestamp.setChecked(self.settings.get_output_add_timestamp())
-        self.tab_basic.check_backup.setChecked(self.settings.get_backup_input())
-        self.tab_basic.check_save_invalid.setChecked(self.settings.get_save_invalid_words())
+        # Initialize with configuration
+        basic_config = self.settings.get_basic_config()
+        self.tab_basic.set_config(basic_config)
         # Connect signals to existing handlers
         self.tab_basic.edit_input.editingFinished.connect(self.on_input_edited)
         self.tab_basic.btn_input.clicked.connect(self.choose_input)
@@ -73,9 +69,9 @@ class MainWindow(QMainWindow):
         self.tab_basic.btn_dict.clicked.connect(self.choose_dictionary)
         self.tab_basic.edit_output.editingFinished.connect(self.on_output_edited)
         self.tab_basic.btn_output.clicked.connect(self.choose_output)
-        self.tab_basic.check_timestamp.stateChanged.connect(self.on_timestamp_changed)
-        self.tab_basic.check_backup.stateChanged.connect(self.on_backup_changed)
-        self.tab_basic.check_save_invalid.stateChanged.connect(self.on_save_invalid_changed)
+        self.tab_basic.check_timestamp.stateChanged.connect(self.sync_basic_to_config)
+        self.tab_basic.check_backup.stateChanged.connect(self.sync_basic_to_config)
+        self.tab_basic.check_save_invalid.stateChanged.connect(self.sync_basic_to_config)
         # Keep references consistent
         self.edit_input = self.tab_basic.edit_input
         self.edit_dict = self.tab_basic.edit_dict
@@ -139,18 +135,10 @@ class MainWindow(QMainWindow):
         self.setCentralWidget(central)
         
         # Load presets and set tab enablement
-        self.reload_presets()
+        self.reload_presets(auto_select_default=False)
         self.update_tab_enablement()
-        # Sync tab inputs from config
-        self.sync_image_from_config()
-        self.sync_advanced_from_config()
-        # Restore last PDF/CSS editor contents if present
-        last_pdf_text = self.settings.get('output.pdf.preset_text', '')
-        if last_pdf_text:
-            self.tab_pdf.pdf_editor.setPlainText(last_pdf_text)
-        last_css_text = self.settings.get('output.css.preset_text', '')
-        if last_css_text:
-            self.tab_css.css_editor.setPlainText(last_css_text)
+        # Sync all pages from configuration using unified methods
+        self.sync_from_config()
         # Wire Image Tab controls to sync changes to config
         self.tab_image.width_changed.connect(self.sync_image_to_config)
         self.tab_image.zoom_changed.connect(self.sync_image_to_config)
@@ -166,14 +154,16 @@ class MainWindow(QMainWindow):
         # Wire PDF Tab controls
         self.tab_pdf.preset_changed.connect(self.on_pdf_preset_changed)
         self.tab_pdf.save_clicked.connect(self.on_pdf_save_clicked)
+        self.tab_pdf.text_changed.connect(self.sync_pdf_to_config)
         
         # Wire CSS Tab controls
         self.tab_css.preset_changed.connect(self.on_css_preset_changed)
         self.tab_css.save_clicked.connect(self.on_css_save_clicked)
+        self.tab_css.text_changed.connect(self.sync_css_to_config)
         
         # Wire Advanced Tab controls
-        self.tab_advanced.with_toc_changed.connect(self.on_with_toc_changed)
-        self.tab_advanced.wkhtmltopdf_path_changed.connect(self.on_wkhtmltopdf_path_changed)
+        self.tab_advanced.with_toc_changed.connect(self.sync_advanced_to_config)
+        self.tab_advanced.wkhtmltopdf_path_changed.connect(self.sync_advanced_to_config)
         
         # After UI ready, show normalization log if any
         if hasattr(self, 'log_message_later') and self.log_message_later:
@@ -331,82 +321,32 @@ class MainWindow(QMainWindow):
             self.edit_output.setText(self.settings.get("output.file"))
             self.update_tab_enablement()
 
-    def on_timestamp_changed(self, state):
-        """Handle timestamp checkbox state change"""
-        is_checked = state == Qt.CheckState.Checked.value
-        self.settings.set_output_add_timestamp(is_checked)
     
-    def on_backup_changed(self, state):
-        """Handle backup checkbox state change"""
-        is_checked = state == Qt.CheckState.Checked.value
-        self.settings.set_backup_input(is_checked)
-    
-    def on_save_invalid_changed(self, state):
-        """Handle save invalid words checkbox state change"""
-        is_checked = state == Qt.CheckState.Checked.value
-        self.settings.set_save_invalid_words(is_checked)
-    
-    def on_with_toc_changed(self):
-        """Handle with_toc checkbox state change"""
-        is_checked = self.tab_advanced.check_with_toc.isChecked()
-        self.settings.set("advanced.with_toc", is_checked)
-    
-    def on_wkhtmltopdf_path_changed(self):
-        """Handle wkhtmltopdf path change"""
-        path_value = self.tab_advanced.get_wkhtmltopdf_path()
-        self.settings.set("advanced.wkhtmltopdf_path", path_value or "auto")
     
     def closeEvent(self, event):
         """Handle application close event - save config before closing"""
-        # Persist live PDF/CSS editor content on exit via SettingsService
+        # Sync all page configurations to settings before saving
         try:
-            pdf_text = self.tab_pdf.pdf_editor.toPlainText()
-            pdf_label = self.tab_pdf.pdf_combo.currentText()
-            css_text = self.tab_css.css_editor.toPlainText()
-            css_label = self.tab_css.css_combo.currentText()
-            self.settings.persist_session_state(pdf_text, pdf_label, css_text, css_label)
+            # Sync all page configurations to settings before saving
+            self.sync_basic_to_config()
+            self.sync_image_to_config()
+            self.sync_advanced_to_config()
+            self.sync_pdf_to_config()
+            self.sync_css_to_config()
         except Exception:
             pass
+        
+        # Save all configuration to disk
         self.settings.save()
         event.accept()
 
     def run_conversion(self):
-        # Ensure latest values from inputs are synced to config before running
-        # Avoid calling on_input_edited() here to prevent unintended renaming of output
-        input_text = self.edit_input.text().strip()
-        if input_text:
-            self.settings.set_input_file(input_text)
-        dict_text = self.edit_dict.text().strip()
-        if dict_text:
-            self.settings.set_dictionary_file(dict_text)
-        output_text = self.edit_output.text().strip()
-        if output_text:
-            self.settings.set_output_file(output_text)
-        # Persist Image tab values to config
-        try:
-            width = int(self.tab_image.img_width.text().strip() or '0')
-            zoom = float(self.tab_image.img_zoom_value.text().strip() or '1.0')
-            self.settings.set('output.image.width', width)
-            self.settings.set('output.image.zoom', zoom)
-        except Exception:
-            pass
-        self.settings.set('output.image.background', bool(self.tab_image.img_background.isChecked()))
-        try:
-            self.settings.set('output.image.jpg.quality', int(self.tab_image.jpg_quality_value.text().strip() or '85'))
-        except Exception:
-            pass
-        self.settings.set('output.image.png.optimize', bool(self.tab_image.png_optimize.isChecked()))
-        try:
-            self.settings.set('output.image.png.compress_level', int(self.tab_image.png_compress_value.text().strip() or '9'))
-        except Exception:
-            pass
-        self.settings.set('output.image.png.transparent_bg', bool(self.tab_image.png_transparent.isChecked()))
-        try:
-            self.settings.set('output.image.webp.quality', int(self.tab_image.webp_quality_value.text().strip() or '80'))
-        except Exception:
-            pass
-        self.settings.set('output.image.webp.lossless', bool(self.tab_image.webp_lossless.isChecked()))
-        self.settings.set('output.image.webp.transparent_bg', bool(self.tab_image.webp_transparent.isChecked()))
+        # Sync all page configurations to settings before running conversion
+        self.sync_basic_to_config()
+        self.sync_image_to_config()
+        self.sync_advanced_to_config()
+        self.sync_pdf_to_config()
+        self.sync_css_to_config()
 
         output = self.settings.get("output.file")
         if not output:
@@ -443,6 +383,8 @@ class MainWindow(QMainWindow):
         try:
             # Reload latest config from disk and refresh GUI
             self.settings.load()
+            # Reload presets first, then sync from config to preserve preset selection
+            self.reload_presets(auto_select_default=False)
             self.sync_from_config()
             self.command_panel.appendLog("ℹ️ Restored last saved config.")
         except Exception as e:
@@ -463,6 +405,8 @@ class MainWindow(QMainWindow):
             # Replace in-memory config only; normalize in-memory; persist on app close
             self.settings.replace_config(cfg)
             info = self.settings.get_normalize_info_once()
+            # Reload presets first, then sync from config to preserve preset selection
+            self.reload_presets(auto_select_default=False)
             self.sync_from_config()
             self.command_panel.appendLog(f"✅ Imported config applied: {file}")
             if info.get("changed"):
@@ -492,27 +436,12 @@ class MainWindow(QMainWindow):
         if not file:
             return
         try:
-            # Ensure current GUI edits are reflected to config
-            input_text = self.edit_input.text().strip()
-            if input_text:
-                self.settings.set_input_file(input_text)
-            dict_text = self.edit_dict.text().strip()
-            if dict_text:
-                self.settings.set_dictionary_file(dict_text)
-            output_text = self.edit_output.text().strip()
-            if output_text:
-                self.settings.set_output_file(output_text)
-            # Sync current PDF/CSS editors into config before export
-            self.settings.set('output.pdf.preset_text', self.tab_pdf.pdf_editor.toPlainText())
-            self.settings.set('output.pdf.preset_label', self.tab_pdf.pdf_combo.currentText())
-            self.settings.set('output.css.preset_text', self.tab_css.css_editor.toPlainText())
-            self.settings.set('output.css.preset_label', self.tab_css.css_combo.currentText())
-            # Sync current Image Tab settings into config before export
+            # Sync all page configurations to settings before export
+            self.sync_basic_to_config()
             self.sync_image_to_config()
-            # Sync checkbox states to ensure consistency
-            self.settings.set_output_add_timestamp(self.check_timestamp.isChecked())
-            self.settings.set_backup_input(self.check_backup.isChecked())
-            self.settings.set_save_invalid_words(self.check_save_invalid.isChecked())
+            self.sync_advanced_to_config()
+            self.sync_pdf_to_config()
+            self.sync_css_to_config()
             # Validate before export; log issues but proceed
             result = self.settings.validate()
             if not result.is_valid:
@@ -559,112 +488,77 @@ class MainWindow(QMainWindow):
         self.update_tab_enablement()
 
     def sync_from_config(self):
-        # Refresh GUI fields from in-memory config
-        self.edit_input.setText(self.settings.get("input.file", ""))
-        self.edit_dict.setText(self.settings.get("dictionary.file", ""))
-        self.edit_output.setText(self.settings.get("output.file", ""))
-        self.check_timestamp.setChecked(self.settings.get_output_add_timestamp())
-        self.check_backup.setChecked(self.settings.get_backup_input())
-        self.check_save_invalid.setChecked(self.settings.get_save_invalid_words())
-        self.update_tab_enablement()
+        """Sync all pages from configuration using unified methods"""
+        # Sync Basic page
+        basic_config = self.settings.get_basic_config()
+        self.tab_basic.set_config(basic_config)
+        
+        # Sync Image page
         self.sync_image_from_config()
+        
+        # Sync Advanced page
         self.sync_advanced_from_config()
-        # Sync PDF/CSS editors and preset labels from config
-        try:
-            pdf_text = self.settings.get('output.pdf.preset_text', '') or ''
-            self.tab_pdf.pdf_editor.setPlainText(pdf_text)
-            pdf_label = self.settings.get('output.pdf.preset_label', '') or ''
-            if pdf_label:
-                for i in range(self.tab_pdf.pdf_combo.count()):
-                    if self.tab_pdf.pdf_combo.itemText(i) == pdf_label:
-                        self.tab_pdf.pdf_combo.setCurrentIndex(i)
-                        break
-            css_text = self.settings.get('output.css.preset_text', '') or ''
-            self.tab_css.css_editor.setPlainText(css_text)
-            css_label = self.settings.get('output.css.preset_label', '') or ''
-            if css_label:
-                for i in range(self.tab_css.css_combo.count()):
-                    if self.tab_css.css_combo.itemText(i) == css_label:
-                        self.tab_css.css_combo.setCurrentIndex(i)
-                        break
-        except Exception:
-            # Non-fatal: keep going if presets cannot be synced
-            pass
+        
+        # Sync PDF page
+        pdf_config = self.settings.get_pdf_config()
+        self.tab_pdf.set_config(pdf_config)
+        
+        # Sync CSS page
+        css_config = self.settings.get_css_config()
+        self.tab_css.set_config(css_config)
+        
+        # Update tab enablement
+        self.update_tab_enablement()
 
     def sync_image_from_config(self):
-        # Populate image fields from config defaults
-        get = self.settings.get
-        self.tab_image.img_width.setText(str(get("output.image.width", 0)))
-        zoom = float(get("output.image.zoom", 1.0))
-        self.tab_image.img_zoom_slider.setValue(int(round(zoom * 10)))
-        self.tab_image.img_zoom_value.setText(f"{zoom:.1f}")
-        self.tab_image.img_background.setChecked(bool(get("output.image.background", True)))
-        jpg_q = int(get("output.image.jpg.quality", 85))
-        self.tab_image.jpg_quality_slider.setValue(jpg_q)
-        self.tab_image.jpg_quality_value.setText(str(jpg_q))
-        self.tab_image.png_optimize.setChecked(bool(get("output.image.png.optimize", True)))
-        png_c = int(get("output.image.png.compress_level", 9))
-        self.tab_image.png_compress_slider.setValue(png_c)
-        self.tab_image.png_compress_value.setText(str(png_c))
-        self.tab_image.png_transparent.setChecked(bool(get("output.image.png.transparent_bg", False)))
-        webp_q = int(get("output.image.webp.quality", 80))
-        self.tab_image.webp_quality_slider.setValue(webp_q)
-        self.tab_image.webp_quality_value.setText(str(webp_q))
-        self.tab_image.webp_lossless.setChecked(bool(get("output.image.webp.lossless", False)))
-        self.tab_image.webp_transparent.setChecked(bool(get("output.image.webp.transparent_bg", False)))
+        """Sync Image page from configuration using unified method"""
+        image_config = self.settings.get_image_config()
+        self.tab_image.set_config(image_config)
 
     def sync_image_to_config(self):
-        # Sync current Image Tab GUI values to config
+        """Sync Image page to configuration using unified method"""
         try:
-            # General settings
-            width_text = self.tab_image.img_width.text().strip()
-            if width_text:
-                width = int(width_text)
-                self.settings.set("output.image.width", width)
-            else:
-                self.settings.set("output.image.width", 0)
-            
-            zoom = self.tab_image.img_zoom_slider.value() / 10.0
-            self.settings.set("output.image.zoom", zoom)
-            
-            self.settings.set("output.image.background", self.tab_image.img_background.isChecked())
-            
-            # JPG settings
-            jpg_quality = self.tab_image.jpg_quality_slider.value()
-            self.settings.set("output.image.jpg.quality", jpg_quality)
-            
-            # PNG settings
-            self.settings.set("output.image.png.optimize", self.tab_image.png_optimize.isChecked())
-            png_compress = self.tab_image.png_compress_slider.value()
-            self.settings.set("output.image.png.compress_level", png_compress)
-            self.settings.set("output.image.png.transparent_bg", self.tab_image.png_transparent.isChecked())
-            
-            # WEBP settings
-            webp_quality = self.tab_image.webp_quality_slider.value()
-            self.settings.set("output.image.webp.quality", webp_quality)
-            self.settings.set("output.image.webp.lossless", self.tab_image.webp_lossless.isChecked())
-            self.settings.set("output.image.webp.transparent_bg", self.tab_image.webp_transparent.isChecked())
-            
+            image_config = self.tab_image.get_config()
+            self.settings.update_image_config(image_config)
         except (ValueError, TypeError) as e:
             # Ignore invalid values during typing, they'll be handled on export
             pass
 
     def sync_advanced_from_config(self):
-        """Populate advanced fields from config defaults"""
-        get = self.settings.get
-        self.tab_advanced.check_with_toc.setChecked(bool(get("advanced.with_toc", True)))
-        self.tab_advanced.set_wkhtmltopdf_path(str(get("advanced.wkhtmltopdf_path", "auto")))
+        """Sync Advanced page from configuration using unified method"""
+        advanced_config = self.settings.get_advanced_config()
+        self.tab_advanced.set_config(advanced_config)
+
+    def sync_advanced_to_config(self):
+        """Sync Advanced page to configuration using unified method"""
+        advanced_config = self.tab_advanced.get_config()
+        self.settings.update_advanced_config(advanced_config)
+
+    def sync_basic_to_config(self):
+        """Sync Basic page to configuration using unified method"""
+        basic_config = self.tab_basic.get_config()
+        self.settings.update_basic_config(basic_config)
+
+    def sync_pdf_to_config(self):
+        """Sync PDF page to configuration using unified method"""
+        pdf_config = self.tab_pdf.get_config()
+        self.settings.update_pdf_config(pdf_config)
+
+    def sync_css_to_config(self):
+        """Sync CSS page to configuration using unified method"""
+        css_config = self.tab_css.get_config()
+        self.settings.update_css_config(css_config)
 
 
     # ---- Presets loading/saving ----
-    def reload_presets(self):
+    def reload_presets(self, auto_select_default: bool = True):
         # PDF presets
         self.tab_pdf.pdf_combo.blockSignals(True)
         self.tab_pdf.pdf_combo.clear()
         for label, path in self.presets.iter_presets('pdf'):
             self.tab_pdf.pdf_combo.addItem(label, userData=str(path))
         self.tab_pdf.pdf_combo.blockSignals(False)
-        if self.tab_pdf.pdf_combo.count() > 0:
+        if self.tab_pdf.pdf_combo.count() > 0 and auto_select_default:
             # Prefer 'default' built-in if present, else first
             preferred_idx = 0
             for i in range(self.tab_pdf.pdf_combo.count()):
@@ -680,7 +574,7 @@ class MainWindow(QMainWindow):
         for label, path in self.presets.iter_presets('css'):
             self.tab_css.css_combo.addItem(label, userData=str(path))
         self.tab_css.css_combo.blockSignals(False)
-        if self.tab_css.css_combo.count() > 0:
+        if self.tab_css.css_combo.count() > 0 and auto_select_default:
             # Prefer 'original' built-in if present, else first
             preferred_idx = 0
             for i in range(self.tab_css.css_combo.count()):
@@ -733,7 +627,9 @@ class MainWindow(QMainWindow):
             self.settings.set('output.pdf.preset_label', Path(file).stem)
             self.settings.set('output.pdf.preset_text', text)
             self.command_panel.appendLog(f"✅ Saved PDF preset: {file}")
-            self.reload_presets()
+            # Reload presets and sync to maintain current selection
+            self.reload_presets(auto_select_default=False)
+            self.sync_pdf_to_config()
         except Exception as e:
             self.command_panel.appendLog(f"❌ Failed to save PDF preset: {e}")
 
@@ -749,7 +645,9 @@ class MainWindow(QMainWindow):
             self.settings.set('output.css.preset_label', Path(file).stem)
             self.settings.set('output.css.preset_text', text)
             self.command_panel.appendLog(f"✅ Saved CSS preset: {file}")
-            self.reload_presets()
+            # Reload presets and sync to maintain current selection
+            self.reload_presets(auto_select_default=False)
+            self.sync_css_to_config()
         except Exception as e:
             self.command_panel.appendLog(f"❌ Failed to save CSS preset: {e}")
 

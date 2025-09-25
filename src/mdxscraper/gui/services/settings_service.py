@@ -4,6 +4,9 @@ from pathlib import Path
 from typing import Dict, Any, Union
 
 from mdxscraper.config.config_manager import ConfigManager
+from mdxscraper.gui.models.config_models import (
+    BasicConfig, ImageConfig, AdvancedConfig, PdfConfig, CssConfig
+)
 
 
 class SettingsService:
@@ -100,5 +103,90 @@ class SettingsService:
         except Exception:
             # Rule B: if outside project root (or on different drive), keep absolute
             return str(Path(p).resolve())
+
+    # Unified configuration access methods
+    def get_basic_config(self) -> BasicConfig:
+        """Get Basic page configuration as data class"""
+        return BasicConfig(
+            input_file=self.get("input.file", ""),
+            dictionary_file=self.get("dictionary.file", ""),
+            output_file=self.get("output.file", ""),
+            output_add_timestamp=self.get_output_add_timestamp(),
+            backup_input=self.get_backup_input(),
+            save_invalid_words=self.get_save_invalid_words()
+        )
+
+    def update_basic_config(self, config: BasicConfig) -> None:
+        """Update Basic page configuration from data class"""
+        self.set("input.file", config.input_file)
+        self.set("dictionary.file", config.dictionary_file)
+        self.set("output.file", config.output_file)
+        self.set_output_add_timestamp(config.output_add_timestamp)
+        self.set_backup_input(config.backup_input)
+        self.set_save_invalid_words(config.save_invalid_words)
+
+    def get_image_config(self) -> ImageConfig:
+        """Get Image page configuration as data class"""
+        return ImageConfig(
+            width=int(self.get("output.image.width", 0) or 0),
+            zoom=float(self.get("output.image.zoom", 1.0) or 1.0),
+            background=bool(self.get("output.image.background", True)),
+            jpg_quality=int(self.get("output.image.jpg.quality", 85) or 85),
+            png_optimize=bool(self.get("output.image.png.optimize", True)),
+            png_compress_level=int(self.get("output.image.png.compress_level", 9) or 9),
+            png_transparent_bg=bool(self.get("output.image.png.transparent_bg", False)),
+            webp_quality=int(self.get("output.image.webp.quality", 80) or 80),
+            webp_lossless=bool(self.get("output.image.webp.lossless", False)),
+            webp_transparent_bg=bool(self.get("output.image.webp.transparent_bg", False))
+        )
+
+    def update_image_config(self, config: ImageConfig) -> None:
+        """Update Image page configuration from data class"""
+        self.set("output.image.width", config.width)
+        self.set("output.image.zoom", config.zoom)
+        self.set("output.image.background", config.background)
+        self.set("output.image.jpg.quality", config.jpg_quality)
+        self.set("output.image.png.optimize", config.png_optimize)
+        self.set("output.image.png.compress_level", config.png_compress_level)
+        self.set("output.image.png.transparent_bg", config.png_transparent_bg)
+        self.set("output.image.webp.quality", config.webp_quality)
+        self.set("output.image.webp.lossless", config.webp_lossless)
+        self.set("output.image.webp.transparent_bg", config.webp_transparent_bg)
+
+    def get_advanced_config(self) -> AdvancedConfig:
+        """Get Advanced page configuration as data class"""
+        return AdvancedConfig(
+            with_toc=bool(self.get("advanced.with_toc", True)),
+            wkhtmltopdf_path=str(self.get("advanced.wkhtmltopdf_path", "auto"))
+        )
+
+    def update_advanced_config(self, config: AdvancedConfig) -> None:
+        """Update Advanced page configuration from data class"""
+        self.set("advanced.with_toc", config.with_toc)
+        self.set("advanced.wkhtmltopdf_path", config.wkhtmltopdf_path)
+
+    def get_pdf_config(self) -> PdfConfig:
+        """Get PDF page configuration as data class"""
+        return PdfConfig(
+            preset_text=str(self.get("output.pdf.preset_text", "")),
+            preset_label=str(self.get("output.pdf.preset_label", ""))
+        )
+
+    def update_pdf_config(self, config: PdfConfig) -> None:
+        """Update PDF page configuration from data class"""
+        self.set("output.pdf.preset_text", config.preset_text)
+        self.set("output.pdf.preset_label", config.preset_label)
+
+    def get_css_config(self) -> CssConfig:
+        """Get CSS page configuration as data class"""
+        return CssConfig(
+            preset_text=str(self.get("output.css.preset_text", "")),
+            preset_label=str(self.get("output.css.preset_label", ""))
+        )
+
+    def update_css_config(self, config: CssConfig) -> None:
+        """Update CSS page configuration from data class"""
+        self.set("output.css.preset_text", config.preset_text)
+        self.set("output.css.preset_label", config.preset_label)
 
 

@@ -6,6 +6,8 @@ from PySide6.QtWidgets import (
     QPushButton, QCheckBox, QSlider, QSizePolicy, QSpacerItem
 )
 
+from mdxscraper.gui.models.config_models import ImageConfig
+
 
 class ImagePage(QWidget):
     # Signals for communicating with MainWindow
@@ -159,5 +161,37 @@ class ImagePage(QWidget):
         self.webp_quality_slider.valueChanged.connect(lambda: self.webp_quality_changed.emit())
         self.webp_lossless.toggled.connect(lambda: self.webp_lossless_changed.emit())
         self.webp_transparent.toggled.connect(lambda: self.webp_transparent_changed.emit())
+
+    def get_config(self) -> ImageConfig:
+        """Get current page configuration as data class"""
+        return ImageConfig(
+            width=int(self.img_width.text() or 0),
+            zoom=float(self.img_zoom_value.text() or 1.0),
+            background=self.img_background.isChecked(),
+            jpg_quality=int(self.jpg_quality_value.text() or 85),
+            png_optimize=self.png_optimize.isChecked(),
+            png_compress_level=int(self.png_compress_value.text() or 9),
+            png_transparent_bg=self.png_transparent.isChecked(),
+            webp_quality=int(self.webp_quality_value.text() or 80),
+            webp_lossless=self.webp_lossless.isChecked(),
+            webp_transparent_bg=self.webp_transparent.isChecked()
+        )
+
+    def set_config(self, config: ImageConfig) -> None:
+        """Set page configuration from data class"""
+        self.img_width.setText(str(config.width))
+        self.img_zoom_slider.setValue(int(round(config.zoom * 10)))
+        self.img_zoom_value.setText(f"{config.zoom:.1f}")
+        self.img_background.setChecked(config.background)
+        self.jpg_quality_slider.setValue(config.jpg_quality)
+        self.jpg_quality_value.setText(str(config.jpg_quality))
+        self.png_optimize.setChecked(config.png_optimize)
+        self.png_compress_slider.setValue(config.png_compress_level)
+        self.png_compress_value.setText(str(config.png_compress_level))
+        self.png_transparent.setChecked(config.png_transparent_bg)
+        self.webp_quality_slider.setValue(config.webp_quality)
+        self.webp_quality_value.setText(str(config.webp_quality))
+        self.webp_lossless.setChecked(config.webp_lossless)
+        self.webp_transparent.setChecked(config.webp_transparent_bg)
 
 

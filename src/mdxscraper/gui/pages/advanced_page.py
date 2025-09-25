@@ -9,6 +9,7 @@ from PySide6.QtWidgets import (
 from PySide6.QtGui import QFont
 
 from mdxscraper.utils.path_utils import get_auto_detect_status, validate_wkhtmltopdf_path, force_auto_detect
+from mdxscraper.gui.models.config_models import AdvancedConfig
 
 
 class ValidationWorker(QThread):
@@ -213,3 +214,15 @@ class AdvancedPage(QWidget):
         current_path = self.edit_wkhtmltopdf_path.text().strip()
         # Return empty string if no path is specified (for auto-detect)
         return current_path if current_path else ""
+
+    def get_config(self) -> AdvancedConfig:
+        """Get current page configuration as data class"""
+        return AdvancedConfig(
+            with_toc=self.check_with_toc.isChecked(),
+            wkhtmltopdf_path=self.get_wkhtmltopdf_path()
+        )
+
+    def set_config(self, config: AdvancedConfig) -> None:
+        """Set page configuration from data class"""
+        self.check_with_toc.setChecked(config.with_toc)
+        self.set_wkhtmltopdf_path(config.wkhtmltopdf_path)
