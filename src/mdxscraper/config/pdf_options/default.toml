@@ -1,3 +1,4 @@
+# 配置PDF输出选项，ref: https://wkhtmltopdf.org/usage/wkhtmltopdf.txt
 [pdf]
 dpi = 150
 encoding = "UTF-8"
