@@ -48,10 +48,10 @@ class SettingsService:
     # Specific helpers mentioned in the refactor doc
     def persist_session_state(self, pdf_text: str, pdf_label: str, css_text: str, css_label: str) -> None:
         try:
-            self.cm.set('output.pdf.preset_text', pdf_text)
-            self.cm.set('output.pdf.preset_label', pdf_label)
-            self.cm.set('output.css.preset_text', css_text)
-            self.cm.set('output.css.preset_label', css_label)
+            self.cm.set('pdf.preset_text', pdf_text)
+            self.cm.set('pdf.preset_label', pdf_label)
+            self.cm.set('css.preset_text', css_text)
+            self.cm.set('css.preset_label', css_label)
         except Exception:
             pass
 

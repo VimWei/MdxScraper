@@ -249,7 +249,7 @@ class MainWindow(QMainWindow):
         )
         if file:
             self.settings.set_input_file(file)
-            self.edit_input.setText(self.settings.get("input.file"))
+            self.edit_input.setText(self.settings.get("basic.input_file"))
             # Also update output base name to match input base
             self.on_input_edited()
 
@@ -272,7 +272,7 @@ class MainWindow(QMainWindow):
         )
         if file:
             self.settings.set_dictionary_file(file)
-            self.edit_dict.setText(self.settings.get("dictionary.file"))
+            self.edit_dict.setText(self.settings.get("basic.dictionary_file"))
 
     def choose_output(self):
         current = self.edit_output.text()
@@ -320,7 +320,7 @@ class MainWindow(QMainWindow):
         )
         if file:
             self.settings.set_output_file(file)
-            self.edit_output.setText(self.settings.get("output.file"))
+            self.edit_output.setText(self.settings.get("basic.output_file"))
             self.update_tab_enablement()
 
     
@@ -350,7 +350,7 @@ class MainWindow(QMainWindow):
         self.sync_pdf_to_config()
         self.sync_css_to_config()
 
-        output = self.settings.get("output.file")
+        output = self.settings.get("basic.output_file")
         if not output:
             QMessageBox.warning(self, "Run", "Please set output file first.")
             return
@@ -468,7 +468,7 @@ class MainWindow(QMainWindow):
         if text:
             self.settings.set_input_file(text)
             # Auto-adjust output filename base to match input base, keeping path and suffix
-            current_output = self.settings.get("output.file")
+            current_output = self.settings.get("basic.output_file")
             if current_output:
                 out_path = Path(current_output)
                 new_base = Path(text).stem
@@ -476,7 +476,7 @@ class MainWindow(QMainWindow):
                 new_output_path = out_path.with_name(new_name)
                 self.settings.set_output_file(str(new_output_path))
                 # Reflect change in UI
-                self.edit_output.setText(self.settings.get("output.file"))
+                self.edit_output.setText(self.settings.get("basic.output_file"))
 
     def on_dictionary_edited(self):
         text = self.edit_dict.text().strip()
@@ -599,8 +599,8 @@ class MainWindow(QMainWindow):
                 text = self.presets.load_preset_text(Path(path))
                 self.tab_pdf.pdf_editor.setPlainText(text)
                     # Persist selection and text in config
-                self.settings.set('output.pdf.preset_label', label)
-                self.settings.set('output.pdf.preset_text', text)
+                self.settings.set('pdf.preset_label', label)
+                self.settings.set('pdf.preset_text', text)
             except Exception as e:
                 self.command_panel.appendLog(f"❌ Failed to load PDF preset: {e}")
 
@@ -612,8 +612,8 @@ class MainWindow(QMainWindow):
                 text = self.presets.load_preset_text(Path(path))
                 self.tab_css.css_editor.setPlainText(text)
                     # Persist selection and text in config
-                self.settings.set('output.css.preset_label', label)
-                self.settings.set('output.css.preset_text', text)
+                self.settings.set('css.preset_label', label)
+                self.settings.set('css.preset_text', text)
             except Exception as e:
                 self.command_panel.appendLog(f"❌ Failed to load CSS preset: {e}")
 
@@ -626,8 +626,8 @@ class MainWindow(QMainWindow):
         try:
             text = self.tab_pdf.pdf_editor.toPlainText()
             self.presets.save_preset_text(Path(file), text)
-            self.settings.set('output.pdf.preset_label', Path(file).stem)
-            self.settings.set('output.pdf.preset_text', text)
+            self.settings.set('pdf.preset_label', Path(file).stem)
+            self.settings.set('pdf.preset_text', text)
             self.command_panel.appendLog(f"✅ Saved PDF preset: {file}")
             # Reload presets and sync to maintain current selection
             self.reload_presets(auto_select_default=False)
@@ -644,8 +644,8 @@ class MainWindow(QMainWindow):
         try:
             text = self.tab_css.css_editor.toPlainText()
             self.presets.save_preset_text(Path(file), text)
-            self.settings.set('output.css.preset_label', Path(file).stem)
-            self.settings.set('output.css.preset_text', text)
+            self.settings.set('css.preset_label', Path(file).stem)
+            self.settings.set('css.preset_text', text)
             self.command_panel.appendLog(f"✅ Saved CSS preset: {file}")
             # Reload presets and sync to maintain current selection
             self.reload_presets(auto_select_default=False)
@@ -654,7 +654,7 @@ class MainWindow(QMainWindow):
             self.command_panel.appendLog(f"❌ Failed to save CSS preset: {e}")
 
     def update_tab_enablement(self):
-        out = self.settings.get("output.file", "")
+        out = self.settings.get("basic.output_file", "")
         enable = self.settings.get_tab_enablement(out)
         self.tabs.setTabEnabled(self.tabs.indexOf(self.tab_pdf), enable.get('pdf', False))
         self.tabs.setTabEnabled(self.tabs.indexOf(self.tab_image), enable.get('image', False))

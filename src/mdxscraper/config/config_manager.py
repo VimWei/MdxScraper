@@ -88,22 +88,22 @@ class ConfigManager:
     def validate(self) -> ValidationResult:
         errors: list[str] = []
 
-        # Required keys
-        required = ["input.file", "dictionary.file", "output.file"]
+        # Required keys (new schema)
+        required = ["basic.input_file", "basic.dictionary_file", "basic.output_file"]
         for key in required:
             if self.get(key) in (None, ""):
                 errors.append(f"Missing required field: {key}")
 
         # Paths existence checks (best-effort)
-        input_file = self.get("input.file")
+        input_file = self.get("basic.input_file")
         if input_file and not self._resolve_path(input_file).exists():
             errors.append(f"Input file not found: {input_file}")
 
-        dict_file = self.get("dictionary.file")
+        dict_file = self.get("basic.dictionary_file")
         if dict_file and not self._resolve_path(dict_file).exists():
             errors.append(f"Dictionary file not found: {dict_file}")
 
-        output_file = self.get("output.file")
+        output_file = self.get("basic.output_file")
         if output_file:
             out_path = self._resolve_path(output_file)
             out_dir = out_path.parent
@@ -124,40 +124,40 @@ class ConfigManager:
 
     # Field helpers for GUI
     def get_input_file(self) -> Optional[str]:
-        return self.get("input.file")
+        return self.get("basic.input_file")
 
     def set_input_file(self, path: str) -> None:
-        self.set("input.file", self._to_external_path(path))
+        self.set("basic.input_file", self._to_external_path(path))
 
     def get_dictionary_file(self) -> Optional[str]:
-        return self.get("dictionary.file")
+        return self.get("basic.dictionary_file")
 
     def set_dictionary_file(self, path: str) -> None:
-        self.set("dictionary.file", self._to_external_path(path))
+        self.set("basic.dictionary_file", self._to_external_path(path))
 
     def get_output_file(self) -> Optional[str]:
-        return self.get("output.file")
+        return self.get("basic.output_file")
 
     def set_output_file(self, path: str) -> None:
-        self.set("output.file", self._to_external_path(path))
+        self.set("basic.output_file", self._to_external_path(path))
 
     def get_output_add_timestamp(self) -> bool:
-        return self.get("output.add_timestamp", True)
+        return self.get("basic.add_timestamp", True)
 
     def set_output_add_timestamp(self, value: bool) -> None:
-        self.set("output.add_timestamp", value)
+        self.set("basic.add_timestamp", value)
 
     def get_backup_input(self) -> bool:
-        return self.get("output.backup_input", True)
+        return self.get("basic.backup_input", True)
 
     def set_backup_input(self, value: bool) -> None:
-        self.set("output.backup_input", value)
+        self.set("basic.backup_input", value)
 
     def get_save_invalid_words(self) -> bool:
-        return bool(self.get("output.save_invalid_words", True))
+        return bool(self.get("basic.save_invalid_words", True))
 
     def set_save_invalid_words(self, value: bool) -> None:
-        self.set("output.save_invalid_words", bool(value))
+        self.set("basic.save_invalid_words", bool(value))
 
     # ---------- Internal helpers ----------
     def _read_toml(self, path: Path) -> Dict[str, Any]:

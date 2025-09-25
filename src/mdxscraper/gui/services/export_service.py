@@ -28,22 +28,22 @@ class ExportService:
     def build_image_options(self, output_suffix: str) -> Dict[str, Any]:
         cm = self.settings.cm
         opts: Dict[str, Any] = {}
-        w = int(cm.get('output.image.width', 0) or 0)
+        w = int(cm.get('image.width', 0) or 0)
         if w > 0:
             opts['width'] = str(w)
-        z = float(cm.get('output.image.zoom', 1.0) or 1.0)
+        z = float(cm.get('image.zoom', 1.0) or 1.0)
         if z and z != 1.0:
             opts['zoom'] = str(z)
-        if not bool(cm.get('output.image.background', True)):
+        if not bool(cm.get('image.background', True)):
             opts['no-background'] = ''
         if output_suffix in ('.jpg', '.jpeg'):
-            opts['quality'] = int(cm.get('output.image.jpg.quality', 85))
+            opts['quality'] = int(cm.get('image.jpg.quality', 85))
         elif output_suffix == '.png':
-            opts['png_optimize'] = bool(cm.get('output.image.png.optimize', True))
-            opts['png_compress_level'] = int(cm.get('output.image.png.compress_level', 9))
+            opts['png_optimize'] = bool(cm.get('image.png.optimize', True))
+            opts['png_compress_level'] = int(cm.get('image.png.compress_level', 9))
         elif output_suffix == '.webp':
-            opts['webp_quality'] = int(cm.get('output.image.webp.quality', 80))
-            opts['webp_lossless'] = bool(cm.get('output.image.webp.lossless', False))
+            opts['webp_quality'] = int(cm.get('image.webp.quality', 80))
+            opts['webp_lossless'] = bool(cm.get('image.webp.lossless', False))
         return opts
 
     def parse_css_styles(self, css_text: str) -> Tuple[Optional[str], Optional[str], Optional[str]]:

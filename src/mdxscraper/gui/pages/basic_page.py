@@ -68,10 +68,10 @@ class BasicPage(QWidget):
         options_row = QHBoxLayout()
         options_row.setContentsMargins(0, 0, 0, 0)
         options_row.setSpacing(12)
+        options_row.addWidget(self.check_with_toc)
         options_row.addWidget(self.check_timestamp)
         options_row.addWidget(self.check_backup)
         options_row.addWidget(self.check_save_invalid)
-        options_row.addWidget(self.check_with_toc)
         options_row.addItem(QSpacerItem(20, 10, QSizePolicy.Expanding, QSizePolicy.Minimum))
         form.addLayout(options_row, 3, 1, 1, 2)
 

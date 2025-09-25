@@ -34,9 +34,25 @@ class ConversionWorker(QThread):
             start_time = time.time()
 
             cfg = self._settings_service.get_config_dict()  # in-memory config
-            input_file = self._settings_service.resolve_path(cfg.get('input', {}).get('file'))
-            mdx_file = self._settings_service.resolve_path(cfg.get('dictionary', {}).get('file'))
-            output_path = self._settings_service.resolve_path(cfg.get('output', {}).get('file'))
+            basic = cfg.get('basic', {}) if isinstance(cfg, dict) else {}
+            input_val = basic.get('input_file')
+            dict_val = basic.get('dictionary_file')
+            output_val = basic.get('output_file')
+
+            # Validate presence early to produce clearer errors
+            if not input_val or not dict_val or not output_val:
+                missing = []
+                if not input_val:
+                    missing.append('basic.input_file')
+                if not dict_val:
+                    missing.append('basic.dictionary_file')
+                if not output_val:
+                    missing.append('basic.output_file')
+                raise ValueError('Missing required field(s): ' + ', '.join(missing))
+
+            input_file = self._settings_service.resolve_path(input_val)
+            mdx_file = self._settings_service.resolve_path(dict_val)
+            output_path = self._settings_service.resolve_path(output_val)
 
             # Apply timestamp if enabled
             timestamp_enabled = self._settings_service.get_output_add_timestamp()
