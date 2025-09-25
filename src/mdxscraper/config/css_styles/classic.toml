@@ -13,6 +13,3 @@ a.word {color: #1565c0; text-decoration: none; cursor: pointer; font-variant: no
 a.word:hover {background-color: #e3f2fd;}
 a.invalid_word {color: #909497;}
 '''
-
-
-

@@ -1,17 +1,4 @@
 [pdf]
-
-
-# 配置指南
-# 参数文档: https://wkhtmltopdf.org/usage/wkhtmltopdf.txt
 # 本配置文件使用 pdfkit 原生格式，直接对应 wkhtmltopdf 命令行参数
-#
-# 其中，布尔选项配置方法：
-# 1. 启用选项：option = ""     (对应 --option)
-# 2. 禁用选项：no-option = ""  (对应 --no-option)  
-# 3. 或者直接注释掉该行
-#
-# 常用布尔选项示例：
-# header-line = ""      # 启用页眉线
-# no-header-line = ""   # 禁用页眉线
-# outline = ""          # 启用PDF书签
-# no-outline = ""       # 禁用PDF书签
+# ref: https://github.com/JazzCore/python-pdfkit
+# ref: https://wkhtmltopdf.org/usage/wkhtmltopdf.txt
