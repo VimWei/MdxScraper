@@ -31,7 +31,7 @@
   - `styles/`（样式文件，待实施）
 
 ### 角色职责（要点）
-- MainWindow：装配页面与组件、注入服务、连接信号、启停 Worker、`update_tab_enablement()`。
+- MainWindow：装配页面与组件、注入服务、连接信号、启停 Worker。
 - Pages：
   - Basic：输入/字典/输出与基础选项（不含全局按钮）。
   - Image：图像选项；`syncFromConfig()/syncToConfig()`；发 `imageConfigChanged`。
@@ -52,7 +52,6 @@
 1) Pages/CommandPanel 发信号 → MainWindow 编排
 2) MainWindow 调用 Services 或启动 Worker
 3) Worker/Services 回传 → MainWindow → CommandPanel 展示进度与日志
-4) MainWindow 基于输出后缀更新标签可用性
 
 ### 信号清单（实际实施）
 - BasicPage → MainWindow：直接连接控件信号（`editingFinished`、`clicked`、`stateChanged`）
@@ -74,9 +73,6 @@
 - 运行前集中校验：Scrape 触发时先调用 `SettingsService.validate()`（输入/字典/输出/后缀/启用规则），不通过则仅记录日志并轻量提示，不启动子线程。
 - 进度：阶段化（准备/解析/导出/收尾）建议份额 10/40/40/10，可按格式微调。让 `ExportService` 给出阶段常量或在 `ConversionWorker` 内集中管理，避免散落魔法数。
 - 进度信号命名一致性：文档用统一名称（建议 `progress_sig(int)`），与 `CommandPanel.setProgress(int)` 对应。
-
-### 标签启用规则
-- 将输出后缀到标签可用性的判定抽象为纯函数，由服务层提供并覆盖测试；落地为纯函数并放在 services/settings_service.py 或 services/export_service.py，主窗口仅调用。例如：get_tab_enablement(output_path: Path) -> dict[str, bool]。
 
 ### 代码风格与约束
 - UI 与服务层分离：页面不直接读写 `ConfigManager`，统一通过 `settings_service`；页面逻辑短小、以信号为边界。
@@ -130,8 +126,8 @@
    - 验收：底部区域替换为 CommandPanel；支持"清空日志/复制日志"；提供 setEnabled/setProgress/appendLog API。
 
 4. ✅ **拆分页面**
-   - 将 Basic/Image/PDF/CSS/About 拆到 `gui/pages/*`，主窗口负责装配与信号桥接；保留/集中 `update_tab_enablement()`。
-   - 验收：Basic/Image/PDF/CSS/About 全部独立文件；页面仅发信号与读写自身控件；主窗口编排与 update_tab_enablement() 仍生效。
+   - 将 Basic/Image/PDF/CSS/About 拆到 `gui/pages/*`，主窗口负责装配与信号桥接。
+   - 验收：Basic/Image/PDF/CSS/About 全部独立文件；页面仅发信号与读写自身控件；主窗口编排，标签页始终启用。
 
 5. ✅ **新增 Advanced 页**
    - 在 `gui/pages/advanced_page.py` 实现 with_toc 选项与 wkhtmltopdf_path 配置绑定（经 `SettingsService`）。

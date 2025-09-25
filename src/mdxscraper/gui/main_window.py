@@ -22,13 +22,12 @@ from mdxscraper.gui.pages.css_page import CssPage
 from mdxscraper.gui.pages.advanced_page import AdvancedPage
 from mdxscraper.gui.pages.about_page import AboutPage
 
-
 class MainWindow(QMainWindow):
     def __init__(self, project_root: Path):
         super().__init__()
         self.setWindowTitle("MdxScraper")
         self.project_root = project_root
-        
+
         # Set window icon
         icon_path = project_root / "src" / "mdxscraper" / "gui" / "assets" / "app_icon.ico"
         if icon_path.exists():
@@ -136,10 +135,9 @@ class MainWindow(QMainWindow):
 
         self.setMinimumSize(800, 520)
         self.setCentralWidget(central)
-        
-        # Load presets and set tab enablement
+
+        # Load presets
         self.reload_presets(auto_select_default=False)
-        self.update_tab_enablement()
         # Sync all pages from configuration using unified methods
         self.sync_from_config()
         # Wire Image Tab controls to sync changes to config
@@ -153,20 +151,20 @@ class MainWindow(QMainWindow):
         self.tab_image.webp_quality_changed.connect(self.sync_image_to_config)
         self.tab_image.webp_lossless_changed.connect(self.sync_image_to_config)
         self.tab_image.webp_transparent_changed.connect(self.sync_image_to_config)
-        
+
         # Wire PDF Tab controls
         self.tab_pdf.preset_changed.connect(self.on_pdf_preset_changed)
         self.tab_pdf.save_clicked.connect(self.on_pdf_save_clicked)
         self.tab_pdf.text_changed.connect(self.sync_pdf_to_config)
-        
+
         # Wire CSS Tab controls
         self.tab_css.preset_changed.connect(self.on_css_preset_changed)
         self.tab_css.save_clicked.connect(self.on_css_save_clicked)
         self.tab_css.text_changed.connect(self.sync_css_to_config)
-        
+
         # Wire Advanced Tab controls
         self.tab_advanced.wkhtmltopdf_path_changed.connect(self.sync_advanced_to_config)
-        
+
         # After UI ready, show normalization log if any
         if hasattr(self, 'log_message_later') and self.log_message_later:
             self.command_panel.appendLog(self.log_message_later)
@@ -175,18 +173,18 @@ class MainWindow(QMainWindow):
     def apply_modern_styling(self):
         """Apply modern PySide6 styling using built-in styles"""
         from PySide6.QtWidgets import QApplication
-        
+
         # Use modern built-in style
         app = QApplication.instance()
         if app:
             app.setStyle('Fusion')  # Modern, cross-platform style
-        
+
         # Only apply minimal custom styling for specific needs
         self.setStyleSheet("""
             QLabel[class="field-label"] {
                 font-weight: bold;
             }
-            
+
             QPushButton#scrape-button {
                 background-color: #0078d4;
                 color: white;
@@ -196,20 +194,20 @@ class MainWindow(QMainWindow):
                 font-weight: bold;
                 padding: 12px 24px;
             }
-            
+
             QPushButton#scrape-button:hover {
                 background-color: #106ebe;
             }
-            
+
             QPushButton#scrape-button:pressed {
                 background-color: #005a9e;
             }
-            
+
             QPushButton#scrape-button:disabled {
                 background-color: #cccccc;
                 color: #666666;
             }
-            
+
             /* Make progress bar visually distinct from Scrape button */
             QProgressBar {
                 border: 1px solid #bdbdbd;
@@ -222,7 +220,7 @@ class MainWindow(QMainWindow):
                 background-color: #4caf50; /* green */
                 border-radius: 6px;
             }
-            
+
             QTextEdit {
                 font-family: 'Consolas', 'Monaco', monospace;
                 font-size: 12px;
@@ -312,19 +310,16 @@ class MainWindow(QMainWindow):
                 default_filename = input_path.stem  # Get filename without extension
             except Exception:
                 pass
-        
+
         file, _ = QFileDialog.getSaveFileName(
-            self, "Select output file", 
+            self, "Select output file",
             str(Path(start_dir) / (default_filename + ".html" if default_filename else "")),
             "HTML files (*.html);;PDF files (*.pdf);;JPG files (*.jpg);;PNG files (*.png);;WEBP files (*.webp);;All files (*.*)"
         )
         if file:
             self.settings.set_output_file(file)
             self.edit_output.setText(self.settings.get("basic.output_file"))
-            self.update_tab_enablement()
 
-    
-    
     def closeEvent(self, event):
         """Handle application close event - save config before closing"""
         # Sync all page configurations to settings before saving
@@ -337,7 +332,7 @@ class MainWindow(QMainWindow):
             self.sync_css_to_config()
         except Exception:
             pass
-        
+
         # Save all configuration to disk
         self.settings.save()
         event.accept()
@@ -419,7 +414,7 @@ class MainWindow(QMainWindow):
 
     def export_config(self):
         start_dir = str((self.project_root / "data" / "configs").resolve())
-        
+
         # Generate default filename based on input file
         default_filename = ""
         input_file = self.edit_input.text().strip()
@@ -429,9 +424,9 @@ class MainWindow(QMainWindow):
                 default_filename = input_path.stem  # Get filename without extension
             except Exception:
                 pass
-        
+
         file, _ = QFileDialog.getSaveFileName(
-            self, "Export config as (TOML)", 
+            self, "Export config as (TOML)",
             str(Path(start_dir) / (default_filename + ".toml" if default_filename else "")),
             "TOML files (*.toml)"
         )
@@ -487,30 +482,26 @@ class MainWindow(QMainWindow):
         text = self.edit_output.text().strip()
         if text:
             self.settings.set_output_file(text)
-        self.update_tab_enablement()
 
     def sync_from_config(self):
         """Sync all pages from configuration using unified methods"""
         # Sync Basic page
         basic_config = self.settings.get_basic_config()
         self.tab_basic.set_config(basic_config)
-        
+
         # Sync Image page
         self.sync_image_from_config()
-        
+
         # Sync Advanced page
         self.sync_advanced_from_config()
-        
+
         # Sync PDF page
         pdf_config = self.settings.get_pdf_config()
         self.tab_pdf.set_config(pdf_config)
-        
+
         # Sync CSS page
         css_config = self.settings.get_css_config()
         self.tab_css.set_config(css_config)
-        
-        # Update tab enablement
-        self.update_tab_enablement()
 
     def sync_image_from_config(self):
         """Sync Image page from configuration using unified method"""
@@ -550,7 +541,6 @@ class MainWindow(QMainWindow):
         """Sync CSS page to configuration using unified method"""
         css_config = self.tab_css.get_config()
         self.settings.update_css_config(css_config)
-
 
     # ---- Presets loading/saving ----
     def reload_presets(self, auto_select_default: bool = True):
@@ -653,23 +643,18 @@ class MainWindow(QMainWindow):
         except Exception as e:
             self.command_panel.appendLog(f"❌ Failed to save CSS preset: {e}")
 
-    def update_tab_enablement(self):
-        out = self.settings.get("basic.output_file", "")
-        enable = self.settings.get_tab_enablement(out)
-        self.tabs.setTabEnabled(self.tabs.indexOf(self.tab_pdf), enable.get('pdf', False))
-        self.tabs.setTabEnabled(self.tabs.indexOf(self.tab_image), enable.get('image', False))
-        # CSS always enabled by service contract
+    # update_tab_enablement removed: tabs are always enabled now
 
 def run_gui():
     import sys
     app = QApplication(sys.argv)
-    
+
     # Set application icon
     root = Path(__file__).resolve().parents[3]
     icon_path = root / "src" / "mdxscraper" / "gui" / "assets" / "app_icon.ico"
     if icon_path.exists():
         app.setWindowIcon(QIcon(str(icon_path)))
-    
+
     w = MainWindow(root)
     w.resize(640, 360)
     w.show()

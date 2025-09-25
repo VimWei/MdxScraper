@@ -42,26 +42,26 @@ src/mdxscraper/gui/
    ```python
    # src/mdxscraper/gui/pages/new_page.py
    from __future__ import annotations
-   
+
    from PySide6.QtCore import Signal
    from PySide6.QtWidgets import QWidget, QVBoxLayout, QLabel
-   
+
    class NewPage(QWidget):
        # 定义页面信号
        option_changed = Signal()
        value_changed = Signal(str)
-       
+
        def __init__(self, parent: QWidget | None = None):
            super().__init__(parent)
            self._setup_ui()
            self._connect_signals()
-       
+
        def _setup_ui(self):
            """设置 UI 布局"""
            layout = QVBoxLayout(self)
            layout.setContentsMargins(8, 8, 8, 8)
            # 添加控件...
-       
+
        def _connect_signals(self):
            """连接内部信号"""
            # 连接控件信号到页面信号
@@ -72,17 +72,17 @@ src/mdxscraper/gui/
    ```python
    # 在 main_window.py 的 __init__ 中
    from mdxscraper.gui.pages.new_page import NewPage
-   
+
    # 创建页面实例
    self.tab_new = NewPage(self)
-   
+
    # 添加到标签页
    self.tabs.addTab(self.tab_new, "New")
-   
+
    # 连接信号
    self.tab_new.option_changed.connect(self.sync_new_to_config)
    self.tab_new.value_changed.connect(self.on_new_value_changed)
-   
+
    # 同步配置
    self.sync_new_from_config()
    ```
@@ -93,7 +93,7 @@ src/mdxscraper/gui/
        """从配置同步到页面"""
        value = self.settings.get("new.option", "default")
        self.tab_new.set_value(value)
-   
+
    def sync_new_to_config(self):
        """从页面同步到配置"""
        value = self.tab_new.get_value()
@@ -116,7 +116,7 @@ src/mdxscraper/gui/
    # 在 settings_service.py 中
    def get_new_option(self) -> str:
        return self.cm.get("new.option", "default")
-   
+
    def set_new_option(self, value: str) -> None:
        self.cm.set("new.option", value)
    ```
@@ -136,10 +136,10 @@ src/mdxscraper/gui/
    def _setup_ui(self):
        self.option_input = QLineEdit(self)
        self.option_input.setText(self.parent().settings.get_new_option())
-   
+
    def _connect_signals(self):
        self.option_input.textChanged.connect(self._on_option_changed)
-   
+
    def _on_option_changed(self):
        self.parent().settings.set_new_option(self.option_input.text())
        self.option_changed.emit()
@@ -160,19 +160,19 @@ src/mdxscraper/gui/
    ```python
    # src/mdxscraper/gui/services/new_service.py
    from __future__ import annotations
-   
+
    from pathlib import Path
    from typing import Dict, Any, Optional
-   
+
    class NewService:
        def __init__(self, project_root: Path):
            self.project_root = project_root
-       
+
        def process_data(self, data: str) -> Dict[str, Any]:
            """处理数据的业务逻辑"""
            # 实现业务逻辑
            return {"result": "processed"}
-       
+
        def validate_input(self, input_data: str) -> bool:
            """验证输入数据"""
            return len(input_data) > 0
@@ -182,7 +182,7 @@ src/mdxscraper/gui/
    ```python
    # 在 main_window.py 的 __init__ 中
    from mdxscraper.gui.services.new_service import NewService
-   
+
    # 创建服务实例
    self.new_service = NewService(project_root)
    ```
@@ -202,24 +202,24 @@ src/mdxscraper/gui/
    ```python
    # src/mdxscraper/gui/components/new_component.py
    from __future__ import annotations
-   
+
    from PySide6.QtCore import Signal
    from PySide6.QtWidgets import QWidget, QVBoxLayout, QPushButton
-   
+
    class NewComponent(QWidget):
        # 定义组件信号
        action_requested = Signal()
-       
+
        def __init__(self, parent: QWidget | None = None):
            super().__init__(parent)
            self._setup_ui()
-       
+
        def _setup_ui(self):
            layout = QVBoxLayout(self)
            self.button = QPushButton("Action", self)
            self.button.clicked.connect(self.action_requested.emit)
            layout.addWidget(self.button)
-       
+
        def set_enabled(self, enabled: bool) -> None:
            """设置组件启用状态"""
            self.button.setEnabled(enabled)
@@ -229,7 +229,7 @@ src/mdxscraper/gui/
    ```python
    # 在页面中
    from mdxscraper.gui.components.new_component import NewComponent
-   
+
    def _setup_ui(self):
        self.new_component = NewComponent(self)
        self.new_component.action_requested.connect(self._on_action)
@@ -251,21 +251,21 @@ src/mdxscraper/gui/
    ```python
    # src/mdxscraper/gui/workers/new_worker.py
    from __future__ import annotations
-   
+
    from PySide6.QtCore import QThread, Signal
    from pathlib import Path
-   
+
    class NewWorker(QThread):
        # 定义线程信号
        progress_sig = Signal(int)
        finished_sig = Signal(str)
        error_sig = Signal(str)
-       
+
        def __init__(self, project_root: Path, data: str):
            super().__init__()
            self.project_root = project_root
            self.data = data
-       
+
        def run(self):
            try:
                # 执行耗时操作
@@ -274,7 +274,7 @@ src/mdxscraper/gui/
                        return
                    # 处理数据
                    self.progress_sig.emit(i + 1)
-               
+
                self.finished_sig.emit("处理完成")
            except Exception as e:
                self.error_sig.emit(f"处理失败: {e}")
@@ -284,7 +284,7 @@ src/mdxscraper/gui/
    ```python
    # 在 main_window.py 中
    from mdxscraper.gui.workers.new_worker import NewWorker
-   
+
    def start_new_worker(self):
        self.new_worker = NewWorker(self.project_root, "data")
        self.new_worker.progress_sig.connect(self.command_panel.setProgress)
@@ -309,12 +309,12 @@ src/mdxscraper/gui/
    # tests/test_new_service.py
    from pathlib import Path
    from mdxscraper.gui.services.new_service import NewService
-   
+
    def test_process_data():
        service = NewService(Path("."))
        result = service.process_data("test")
        assert result["result"] == "processed"
-   
+
    def test_validate_input():
        service = NewService(Path("."))
        assert service.validate_input("valid") is True
@@ -326,7 +326,7 @@ src/mdxscraper/gui/
    # tests/test_new_page.py
    from PySide6.QtWidgets import QApplication
    from mdxscraper.gui.pages.new_page import NewPage
-   
+
    def test_page_creation():
        app = QApplication([])
        page = NewPage()

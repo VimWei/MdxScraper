@@ -8,7 +8,6 @@ from mdxscraper.gui.models.config_models import (
     BasicConfig, ImageConfig, AdvancedConfig, PdfConfig, CssConfig
 )
 
-
 class SettingsService:
     def __init__(self, project_root: Path, cm: ConfigManager | None = None):
         self.project_root = project_root
@@ -54,14 +53,6 @@ class SettingsService:
             self.cm.set('css.preset_label', css_label)
         except Exception:
             pass
-
-    def get_tab_enablement(self, output_path: str) -> Dict[str, bool]:
-        suffix = Path(output_path).suffix.lower() if output_path else ''
-        return {
-            'pdf': suffix == '.pdf',
-            'image': suffix in ('.jpg', '.jpeg', '.png', '.webp'),
-            'css': True,
-        }
 
     def resolve_path(self, maybe_path: Union[str, Path]) -> Path:
         return self.cm._resolve_path(maybe_path)
@@ -192,5 +183,3 @@ class SettingsService:
         """Update CSS page configuration from data class"""
         self.set("css.preset_text", config.preset_text)
         self.set("css.preset_label", config.preset_label)
-
-
