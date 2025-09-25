@@ -41,7 +41,7 @@ class PresetsService:
             import tomllib as _tomllib
             data = _tomllib.loads(text)
             pdf = data.get('pdf', {}) if isinstance(data, dict) else {}
-            return {k.replace('_', '-'): v for k, v in pdf.items()}
+            return pdf
         except Exception:
             return {}
 

@@ -19,6 +19,7 @@ from mdxscraper.gui.pages.basic_page import BasicPage
 from mdxscraper.gui.pages.image_page import ImagePage
 from mdxscraper.gui.pages.pdf_page import PdfPage
 from mdxscraper.gui.pages.css_page import CssPage
+from mdxscraper.gui.pages.advanced_page import AdvancedPage
 from mdxscraper.gui.pages.about_page import AboutPage
 
 
@@ -95,17 +96,22 @@ class MainWindow(QMainWindow):
         self.tab_css = CssPage(self)
         self.tabs.addTab(self.tab_css, "CSS")
 
+        # Advanced Tab -> AdvancedPage
+        self.tab_advanced = AdvancedPage(self)
+        self.tabs.addTab(self.tab_advanced, "Advanced")
+
         # About Tab
         self.tab_about = AboutPage(self)
         self.tabs.addTab(self.tab_about, "About")
 
-        # Reorder tabs to: Basic, CSS, Image, PDF
+        # Reorder tabs to: Basic, CSS, Image, PDF, Advanced, About
         try:
             desired_order = [
                 (self.tab_basic, "Basic"),
                 (self.tab_css, "CSS"),
                 (self.tab_image, "Image"),
                 (self.tab_pdf, "PDF"),
+                (self.tab_advanced, "Advanced"),
                 (self.tab_about, "About"),
             ]
             # Remove all existing tabs
@@ -135,8 +141,9 @@ class MainWindow(QMainWindow):
         # Load presets and set tab enablement
         self.reload_presets()
         self.update_tab_enablement()
-        # Sync Image tab inputs from config
+        # Sync tab inputs from config
         self.sync_image_from_config()
+        self.sync_advanced_from_config()
         # Restore last PDF/CSS editor contents if present
         last_pdf_text = self.settings.get('output.pdf.preset_text', '')
         if last_pdf_text:
@@ -163,6 +170,10 @@ class MainWindow(QMainWindow):
         # Wire CSS Tab controls
         self.tab_css.preset_changed.connect(self.on_css_preset_changed)
         self.tab_css.save_clicked.connect(self.on_css_save_clicked)
+        
+        # Wire Advanced Tab controls
+        self.tab_advanced.with_toc_changed.connect(self.on_with_toc_changed)
+        self.tab_advanced.wkhtmltopdf_path_changed.connect(self.on_wkhtmltopdf_path_changed)
         
         # After UI ready, show normalization log if any
         if hasattr(self, 'log_message_later') and self.log_message_later:
@@ -334,6 +345,16 @@ class MainWindow(QMainWindow):
         """Handle save invalid words checkbox state change"""
         is_checked = state == Qt.CheckState.Checked.value
         self.settings.set_save_invalid_words(is_checked)
+    
+    def on_with_toc_changed(self):
+        """Handle with_toc checkbox state change"""
+        is_checked = self.tab_advanced.check_with_toc.isChecked()
+        self.settings.set("advanced.with_toc", is_checked)
+    
+    def on_wkhtmltopdf_path_changed(self):
+        """Handle wkhtmltopdf path change"""
+        path_value = self.tab_advanced.get_wkhtmltopdf_path()
+        self.settings.set("advanced.wkhtmltopdf_path", path_value or "auto")
     
     def closeEvent(self, event):
         """Handle application close event - save config before closing"""
@@ -547,6 +568,7 @@ class MainWindow(QMainWindow):
         self.check_save_invalid.setChecked(self.settings.get_save_invalid_words())
         self.update_tab_enablement()
         self.sync_image_from_config()
+        self.sync_advanced_from_config()
         # Sync PDF/CSS editors and preset labels from config
         try:
             pdf_text = self.settings.get('output.pdf.preset_text', '') or ''
@@ -627,6 +649,13 @@ class MainWindow(QMainWindow):
             # Ignore invalid values during typing, they'll be handled on export
             pass
 
+    def sync_advanced_from_config(self):
+        """Populate advanced fields from config defaults"""
+        get = self.cm.get
+        self.tab_advanced.check_with_toc.setChecked(bool(get("advanced.with_toc", True)))
+        self.tab_advanced.set_wkhtmltopdf_path(str(get("advanced.wkhtmltopdf_path", "auto")))
+
+
     # ---- Presets loading/saving ----
     def reload_presets(self):
         # PDF presets
@@ -686,7 +715,7 @@ class MainWindow(QMainWindow):
             try:
                 text = self.presets.load_preset_text(Path(path))
                 self.tab_css.css_editor.setPlainText(text)
-                # Persist selection and text in config
+                    # Persist selection and text in config
                 self.settings.set('output.css.preset_label', label)
                 self.settings.set('output.css.preset_text', text)
             except Exception as e:

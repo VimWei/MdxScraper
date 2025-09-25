@@ -50,19 +50,22 @@ class ExportService:
         return self.presets.parse_css_preset(css_text)
 
     def execute_export(self, input_file: Path, mdx_file: Path, output_path: Path,
-                        pdf_text: str = '', css_text: str = '') -> Tuple[int, int, list[str]]:
+                        pdf_text: str = '', css_text: str = '', settings_service=None) -> Tuple[int, int, list[str]]:
         from mdxscraper.core.converter import mdx2html, mdx2pdf, mdx2img
 
         suffix = output_path.suffix.lower()
         h1_style, scrap_style, additional_styles = self.parse_css_styles(css_text)
 
         if suffix == '.html':
-            return mdx2html(mdx_file, input_file, output_path, with_toc=True,
+            with_toc = settings_service.get('advanced.with_toc', True)
+            return mdx2html(mdx_file, input_file, output_path, with_toc=with_toc,
                             h1_style=h1_style, scrap_style=scrap_style, additional_styles=additional_styles)
         elif suffix == '.pdf':
             pdf_options = self.build_pdf_options(pdf_text)
+            wkhtmltopdf_path = settings_service.get('advanced.wkhtmltopdf_path', 'auto')
             return mdx2pdf(mdx_file, input_file, output_path, pdf_options,
-                           h1_style=h1_style, scrap_style=scrap_style, additional_styles=additional_styles)
+                           h1_style=h1_style, scrap_style=scrap_style, additional_styles=additional_styles,
+                           wkhtmltopdf_path=wkhtmltopdf_path)
         elif suffix in ('.jpg', '.jpeg', '.png', '.webp'):
             img_opts = self.build_image_options(suffix)
             return mdx2img(mdx_file, input_file, output_path, img_options=img_opts,

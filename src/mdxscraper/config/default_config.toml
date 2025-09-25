@@ -6,7 +6,6 @@ file = "data/mdict/Learn These Words First/Learn These Words First.mdx"
 
 [output]
 file = "data/output/words_to_lookup.html"
-with_toc = true
 add_timestamp = true
 backup_input = true
 save_invalid_words = true
@@ -31,6 +30,7 @@ transparent_bg = false
 
 [advanced]
 wkhtmltopdf_path = "auto"
+with_toc = true
 
 # Persist last-used Advanced presets/editor contents for session restore
 [output.pdf]

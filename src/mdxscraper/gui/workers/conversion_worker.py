@@ -53,7 +53,7 @@ class ConversionWorker(QThread):
 
             # Execute export via ExportService
             found, not_found, invalid_words = self._export_service.execute_export(
-                input_file, mdx_file, output_path, pdf_text=self._pdf_text or '', css_text=self._css_text or ''
+                input_file, mdx_file, output_path, pdf_text=self._pdf_text or '', css_text=self._css_text or '', settings_service=self._settings_service
             )
 
             # Backup input file to output directory if enabled

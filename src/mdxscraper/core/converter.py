@@ -15,7 +15,7 @@ from PIL import Image
 from mdxscraper.core.dictionary import Dictionary
 from mdxscraper.core.parser import get_words
 from mdxscraper.core.renderer import embed_images, merge_css
-from mdxscraper.utils.path_utils import get_wkhtmltopdf_path
+from mdxscraper.utils.path_utils import get_wkhtmltopdf_path, validate_wkhtmltopdf_for_pdf_conversion
 
 
 def mdx2html(
@@ -119,6 +119,7 @@ def mdx2pdf(
     h1_style: str | None = None,
     scrap_style: str | None = None,
     additional_styles: str | None = None,
+    wkhtmltopdf_path: str = 'auto',
 ) -> tuple[int, int, OrderedDict]:
     with tempfile.NamedTemporaryFile(suffix='.html', delete=False) as temp:
         temp_file = temp.name
@@ -127,7 +128,13 @@ def mdx2pdf(
             h1_style=h1_style, scrap_style=scrap_style, additional_styles=additional_styles
         )
 
-    config_path = get_wkhtmltopdf_path('auto')
+    # Validate wkhtmltopdf path before conversion
+    is_valid, error_message = validate_wkhtmltopdf_for_pdf_conversion(wkhtmltopdf_path)
+    if not is_valid:
+        os.remove(temp_file)
+        raise RuntimeError(error_message)
+    
+    config_path = get_wkhtmltopdf_path(wkhtmltopdf_path)
     config = pdfkit.configuration(wkhtmltopdf=config_path)
     # Ensure output directory exists
     Path(output_file).parent.mkdir(parents=True, exist_ok=True)
