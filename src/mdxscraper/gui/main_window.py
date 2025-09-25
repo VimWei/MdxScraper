@@ -72,6 +72,9 @@ class MainWindow(QMainWindow):
         self.tab_basic.check_timestamp.stateChanged.connect(self.sync_basic_to_config)
         self.tab_basic.check_backup.stateChanged.connect(self.sync_basic_to_config)
         self.tab_basic.check_save_invalid.stateChanged.connect(self.sync_basic_to_config)
+        # new with_toc checkbox in Basic
+        if hasattr(self.tab_basic, 'check_with_toc'):
+            self.tab_basic.check_with_toc.stateChanged.connect(self.sync_basic_to_config)
         # Keep references consistent
         self.edit_input = self.tab_basic.edit_input
         self.edit_dict = self.tab_basic.edit_dict
@@ -162,7 +165,6 @@ class MainWindow(QMainWindow):
         self.tab_css.text_changed.connect(self.sync_css_to_config)
         
         # Wire Advanced Tab controls
-        self.tab_advanced.with_toc_changed.connect(self.sync_advanced_to_config)
         self.tab_advanced.wkhtmltopdf_path_changed.connect(self.sync_advanced_to_config)
         
         # After UI ready, show normalization log if any

@@ -13,6 +13,7 @@ class BasicConfig:
     output_add_timestamp: bool = False
     backup_input: bool = False
     save_invalid_words: bool = False
+    with_toc: bool = True
 
 
 @dataclass
@@ -33,7 +34,6 @@ class ImageConfig:
 @dataclass
 class AdvancedConfig:
     """Advanced page configuration data class"""
-    with_toc: bool = True
     wkhtmltopdf_path: str = "auto"
 
 

@@ -60,9 +60,10 @@ class BasicPage(QWidget):
         form.addWidget(btn_output, 2, 2)
 
         # Options row
-        self.check_timestamp = QCheckBox("Add timestamp to output filename", self)
+        self.check_timestamp = QCheckBox("Add timestamp to filename", self)
         self.check_backup = QCheckBox("Backup input file", self)
         self.check_save_invalid = QCheckBox("Save invalid words file", self)
+        self.check_with_toc = QCheckBox("Include table of contents", self)
 
         options_row = QHBoxLayout()
         options_row.setContentsMargins(0, 0, 0, 0)
@@ -70,6 +71,7 @@ class BasicPage(QWidget):
         options_row.addWidget(self.check_timestamp)
         options_row.addWidget(self.check_backup)
         options_row.addWidget(self.check_save_invalid)
+        options_row.addWidget(self.check_with_toc)
         options_row.addItem(QSpacerItem(20, 10, QSizePolicy.Expanding, QSizePolicy.Minimum))
         form.addLayout(options_row, 3, 1, 1, 2)
 
@@ -92,7 +94,8 @@ class BasicPage(QWidget):
             output_file=self.edit_output.text(),
             output_add_timestamp=self.check_timestamp.isChecked(),
             backup_input=self.check_backup.isChecked(),
-            save_invalid_words=self.check_save_invalid.isChecked()
+            save_invalid_words=self.check_save_invalid.isChecked(),
+            with_toc=self.check_with_toc.isChecked()
         )
 
     def set_config(self, config: BasicConfig) -> None:
@@ -103,5 +106,10 @@ class BasicPage(QWidget):
         self.check_timestamp.setChecked(config.output_add_timestamp)
         self.check_backup.setChecked(config.backup_input)
         self.check_save_invalid.setChecked(config.save_invalid_words)
+        # default True if field missing in imported older configs
+        try:
+            self.check_with_toc.setChecked(bool(config.with_toc))
+        except Exception:
+            self.check_with_toc.setChecked(True)
 
 

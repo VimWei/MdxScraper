@@ -37,7 +37,6 @@ class ValidationWorker(QThread):
 
 class AdvancedPage(QWidget):
     # Signals for communicating with MainWindow
-    with_toc_changed = Signal()
     wkhtmltopdf_path_changed = Signal()
 
     def __init__(self, parent: QWidget | None = None):
@@ -45,22 +44,8 @@ class AdvancedPage(QWidget):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(8, 8, 8, 8)
         
-        # Output Options section
-        html_section = QHBoxLayout()
+        # Label width for fields in this page
         _section_w = 120  # Increased width for better text visibility
-        _lbl_html = QLabel("Output Options", self)
-        _lbl_html.setProperty("class", "field-label")
-        _lbl_html.setFixedWidth(_section_w)
-        _lbl_html.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
-        html_section.addWidget(_lbl_html)
-        html_section.addSpacing(8)
-        
-        # with_toc checkbox
-        self.check_with_toc = QCheckBox("Include table of contents (HTML/PDF/Image)", self)
-        self.check_with_toc.setToolTip("When enabled, a left-side table of contents is generated for HTML, and the same structure is used when exporting to PDF or Image.")
-        html_section.addWidget(self.check_with_toc)
-        html_section.addItem(QSpacerItem(20, 10, QSizePolicy.Expanding, QSizePolicy.Minimum))
-        layout.addLayout(html_section)
         
         # wkhtmltopdf path section
         path_section = QHBoxLayout()
@@ -98,7 +83,6 @@ class AdvancedPage(QWidget):
 
     def _connect_signals(self):
         """Connect internal widget signals to page signals"""
-        self.check_with_toc.toggled.connect(lambda: self.with_toc_changed.emit())
         self.edit_wkhtmltopdf_path.editingFinished.connect(self._on_path_changed)
         self.btn_browse_wkhtmltopdf.clicked.connect(self._browse_wkhtmltopdf_path)
         self.btn_auto_detect.clicked.connect(self._auto_detect)
@@ -219,11 +203,9 @@ class AdvancedPage(QWidget):
     def get_config(self) -> AdvancedConfig:
         """Get current page configuration as data class"""
         return AdvancedConfig(
-            with_toc=self.check_with_toc.isChecked(),
             wkhtmltopdf_path=self.get_wkhtmltopdf_path()
         )
 
     def set_config(self, config: AdvancedConfig) -> None:
         """Set page configuration from data class"""
-        self.check_with_toc.setChecked(config.with_toc)
         self.set_wkhtmltopdf_path(config.wkhtmltopdf_path)

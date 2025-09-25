@@ -113,7 +113,8 @@ class SettingsService:
             output_file=self.get("output.file", ""),
             output_add_timestamp=self.get_output_add_timestamp(),
             backup_input=self.get_backup_input(),
-            save_invalid_words=self.get_save_invalid_words()
+            save_invalid_words=self.get_save_invalid_words(),
+            with_toc=bool(self.get("advanced.with_toc", True))
         )
 
     def update_basic_config(self, config: BasicConfig) -> None:
@@ -124,6 +125,8 @@ class SettingsService:
         self.set_output_add_timestamp(config.output_add_timestamp)
         self.set_backup_input(config.backup_input)
         self.set_save_invalid_words(config.save_invalid_words)
+        # Persist with_toc at previous key for backward compatibility
+        self.set("advanced.with_toc", bool(getattr(config, 'with_toc', True)))
 
     def get_image_config(self) -> ImageConfig:
         """Get Image page configuration as data class"""
@@ -156,13 +159,11 @@ class SettingsService:
     def get_advanced_config(self) -> AdvancedConfig:
         """Get Advanced page configuration as data class"""
         return AdvancedConfig(
-            with_toc=bool(self.get("advanced.with_toc", True)),
             wkhtmltopdf_path=str(self.get("advanced.wkhtmltopdf_path", "auto"))
         )
 
     def update_advanced_config(self, config: AdvancedConfig) -> None:
         """Update Advanced page configuration from data class"""
-        self.set("advanced.with_toc", config.with_toc)
         self.set("advanced.wkhtmltopdf_path", config.wkhtmltopdf_path)
 
     def get_pdf_config(self) -> PdfConfig:
