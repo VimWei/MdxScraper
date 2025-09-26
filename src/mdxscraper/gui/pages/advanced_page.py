@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 from PySide6.QtCore import Qt, Signal, QThread
 from PySide6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, 
+    QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit,
     QPushButton, QCheckBox, QFileDialog, QSizePolicy, QSpacerItem
 )
 from PySide6.QtGui import QFont
@@ -11,16 +11,15 @@ from PySide6.QtGui import QFont
 from mdxscraper.utils.path_utils import get_auto_detect_status, validate_wkhtmltopdf_path, force_auto_detect
 from mdxscraper.gui.models.config_models import AdvancedConfig
 
-
 class ValidationWorker(QThread):
     """Worker thread for validating wkhtmltopdf paths"""
     validation_complete = Signal(bool, str, str)  # is_valid, path, message
-    
+
     def __init__(self, path: str, force_redetect: bool = False):
         super().__init__()
         self.path = path
         self.force_redetect = force_redetect
-    
+
     def run(self):
         if not self.path or self.path in ("auto", ""):
             # Auto-detect
@@ -34,7 +33,6 @@ class ValidationWorker(QThread):
             is_valid, message = validate_wkhtmltopdf_path(self.path)
             self.validation_complete.emit(is_valid, self.path, message)
 
-
 class AdvancedPage(QWidget):
     # Signals for communicating with MainWindow
     wkhtmltopdf_path_changed = Signal()
@@ -44,10 +42,10 @@ class AdvancedPage(QWidget):
         super().__init__(parent)
         layout = QVBoxLayout(self)
         layout.setContentsMargins(8, 8, 8, 8)
-        
+
         # Label width for fields in this page
         _section_w = 120  # Increased width for better text visibility
-        
+
         # wkhtmltopdf path section
         path_section = QHBoxLayout()
         _lbl_path = QLabel("wkhtmltopdf Path:", self)
@@ -56,15 +54,15 @@ class AdvancedPage(QWidget):
         _lbl_path.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
         path_section.addWidget(_lbl_path)
         path_section.addSpacing(8)
-        
+
         self.edit_wkhtmltopdf_path = QLineEdit(self)
         self.edit_wkhtmltopdf_path.setPlaceholderText("Auto-detect (click Browse to specify manually)")
         path_section.addWidget(self.edit_wkhtmltopdf_path, 1)
-        
+
         self.btn_browse_wkhtmltopdf = QPushButton("Browse...", self)
         self.btn_browse_wkhtmltopdf.setFixedWidth(90)
         path_section.addWidget(self.btn_browse_wkhtmltopdf)
-        
+
         self.btn_auto_detect = QPushButton("Auto-detect", self)
         self.btn_auto_detect.setFixedWidth(90)
         self.btn_auto_detect.setToolTip("Auto-detect wkhtmltopdf installation")
@@ -79,37 +77,37 @@ class AdvancedPage(QWidget):
         _lbl_data.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
         data_section.addWidget(_lbl_data)
         data_section.addSpacing(8)
-        
+
         self.edit_data_path = QLineEdit(self)
         self.edit_data_path.setReadOnly(True)
         # Always show as grey text to indicate non-editable
-        self.edit_data_path.setStyleSheet("color: gray;")
+        self.edit_data_path.setProperty("class", "readonly-input")
         # Text will be set by _update_data_path / _auto_detect_data_path
         data_section.addWidget(self.edit_data_path, 1)
-        
+
         self.btn_open_data = QPushButton("Open", self)
         self.btn_open_data.setFixedWidth(90)
         self.btn_open_data.setToolTip("Open the application's data directory")
         self.btn_open_data.setObjectName("open-data-button")
         data_section.addWidget(self.btn_open_data)
-        
+
         self.btn_auto_detect_data = QPushButton("Auto-detect", self)
         self.btn_auto_detect_data.setFixedWidth(90)
         self.btn_auto_detect_data.setToolTip("Auto-detect data directory path")
         data_section.addWidget(self.btn_auto_detect_data)
         layout.addLayout(data_section)
-        
+
         # Add some spacing at the bottom
         layout.addItem(QSpacerItem(20, 20, QSizePolicy.Minimum, QSizePolicy.Expanding))
-        
+
         # Initialize validation worker
         self.validation_worker = None
         self.has_been_validated = False  # Track if validation has been performed
         self.auto_detect_failed = False  # Track if auto-detect has failed
-        
+
         # Connect signals
         self._connect_signals()
-        
+
         # Initialize data path (default: relative hint)
         self._update_data_path()
 
@@ -125,30 +123,30 @@ class AdvancedPage(QWidget):
         """Handle path text changes and update status indicator"""
         self._validate_current_path()
         self.wkhtmltopdf_path_changed.emit()
-    
+
     def _validate_current_path(self):
         """Start validation of the current path"""
         current_path = self.edit_wkhtmltopdf_path.text().strip()
-        
+
         # Cancel any existing validation
         if self.validation_worker and self.validation_worker.isRunning():
             self.validation_worker.terminate()
             self.validation_worker.wait()
-        
+
         # Show loading state
         self._update_status_indicator()
-        
+
         # Start new validation
         self.validation_worker = ValidationWorker(current_path)
         self.validation_worker.validation_complete.connect(self._on_validation_complete)
         self.validation_worker.start()
         self.has_been_validated = True
-    
+
     def _on_validation_complete(self, is_valid: bool, path: str, message: str):
         """Handle validation completion"""
         # Update placeholder text based on validation result
         self._update_placeholder_text(is_valid)
-        
+
         # If auto-detect was successful, save the detected path to config
         if is_valid and path and path != "wkhtmltopdf":
             current_input = self.edit_wkhtmltopdf_path.text().strip()
@@ -160,7 +158,7 @@ class AdvancedPage(QWidget):
         else:
             # Auto-detect failed
             self.auto_detect_failed = True
-        
+
         # Clean up worker
         if self.validation_worker:
             self.validation_worker.deleteLater()
@@ -170,17 +168,17 @@ class AdvancedPage(QWidget):
         """Trigger auto-detection"""
         # Clear the input field to trigger auto-detect
         self.edit_wkhtmltopdf_path.setText("")
-        
+
         # Cancel any existing validation
         if self.validation_worker and self.validation_worker.isRunning():
             self.validation_worker.terminate()
             self.validation_worker.wait()
-        
+
         # Start forced validation
         self.validation_worker = ValidationWorker("", force_redetect=True)
         self.validation_worker.validation_complete.connect(self._on_validation_complete)
         self.validation_worker.start()
-        
+
         self.wkhtmltopdf_path_changed.emit()
 
     def _auto_detect_data_path(self):
@@ -213,7 +211,7 @@ class AdvancedPage(QWidget):
     def _update_placeholder_text(self, is_valid: bool = None):
         """Update placeholder text based on validation status"""
         current_path = self.edit_wkhtmltopdf_path.text().strip()
-        
+
         if not current_path or current_path in ("auto", ""):
             if is_valid is False or self.auto_detect_failed:
                 # Auto-detect failed, show simplified message
@@ -236,7 +234,7 @@ class AdvancedPage(QWidget):
                 start_dir = ""
         else:
             start_dir = ""
-        
+
         file, _ = QFileDialog.getOpenFileName(
             self, "Select wkhtmltopdf executable", start_dir,
             "Executable files (*.exe);;All files (*.*)"

@@ -23,6 +23,7 @@ from mdxscraper.gui.pages.pdf_page import PdfPage
 from mdxscraper.gui.pages.css_page import CssPage
 from mdxscraper.gui.pages.advanced_page import AdvancedPage
 from mdxscraper.gui.pages.about_page import AboutPage
+from mdxscraper.gui.styles.theme_loader import ThemeLoader
 
 class MainWindow(QMainWindow):
     def __init__(self, project_root: Path):
@@ -211,77 +212,16 @@ class MainWindow(QMainWindow):
         """Apply modern PySide6 styling using built-in styles"""
         from PySide6.QtWidgets import QApplication
 
-        # Use modern built-in style
+        # Apply styling through theme system
+        theme_loader = ThemeLoader(self.project_root)
+        theme_name = "default"
+        
+        # Apply base style (configurable per theme)
         app = QApplication.instance()
-        if app:
-            app.setStyle('Fusion')  # Modern, cross-platform style
-
-        # Only apply minimal custom styling for specific needs
-        self.setStyleSheet("""
-            QLabel[class="field-label"] {
-                font-weight: bold;
-            }
-
-            QPushButton#scrape-button {
-                background-color: #0078d4;
-                color: white;
-                border: none;
-                border-radius: 8px;
-                font-size: 14px;
-                font-weight: bold;
-                padding: 12px 24px;
-            }
-
-            QPushButton#scrape-button:hover {
-                background-color: #106ebe;
-            }
-
-            QPushButton#scrape-button:pressed {
-                background-color: #005a9e;
-            }
-
-            QPushButton#scrape-button:disabled {
-                background-color: #cccccc;
-                color: #666666;
-            }
-
-            QPushButton#open-data-button {
-                background-color: #4caf50;
-                color: white;
-                border: 1px solid #388e3c;
-                border-radius: 4px;
-                font-weight: 600;
-                padding: 4px 8px;
-            }
-
-            QPushButton#open-data-button:hover {
-                background-color: #388e3c;
-                border-color: #2e7d32;
-            }
-
-            QPushButton#open-data-button:pressed {
-                background-color: #2e7d32;
-                border-color: #1b5e20;
-            }
-
-            /* Make progress bar visually distinct from Scrape button */
-            QProgressBar {
-                border: 1px solid #bdbdbd;
-                border-radius: 6px;
-                background-color: #e6e6e6;
-                text-align: center;
-                color: #333333;
-            }
-            QProgressBar::chunk {
-                background-color: #4caf50; /* green */
-                border-radius: 6px;
-            }
-
-            QTextEdit {
-                font-family: 'Consolas', 'Monaco', monospace;
-                font-size: 12px;
-            }
-        """)
+        theme_loader.apply_base_style(app, theme_name)
+        
+        # Load theme from external QSS file
+        self.setStyleSheet(theme_loader.load_theme(theme_name))
 
     def choose_input(self):
         current = self.edit_input.text()

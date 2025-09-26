@@ -27,7 +27,7 @@ class CssPage(QWidget):
         row_css.addWidget(self.css_combo, 1)
         # Dirty indicator label (display-only '* Untitled')
         self.dirty_label = QLabel("* Untitled", self)
-        self.dirty_label.setStyleSheet("color: #d9831f;")
+        self.dirty_label.setProperty("class", "dirty-label")
         self.dirty_label.setVisible(False)
         row_css.addWidget(self.dirty_label)
         # Refresh button (left of Save)
