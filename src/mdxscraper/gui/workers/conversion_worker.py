@@ -14,6 +14,7 @@ class ConversionWorker(QThread):
     finished_sig = Signal(str)
     error_sig = Signal(str)
     log_sig = Signal(str)
+    progress_sig = Signal(int, str)  # progress percentage, status message
 
     def __init__(self, project_root: Path, cm: ConfigManager, pdf_text: str = '', css_text: str = ''):
         super().__init__()
@@ -66,13 +67,21 @@ class ConversionWorker(QThread):
 
             suffix = output_path.suffix.lower()
             self.log_sig.emit(f"🔄 Running conversion: {mdx_file.name} -> {output_path.name}")
+            self.progress_sig.emit(10, "Starting conversion...")
 
-            # Execute export via ExportService
+            # Execute export via ExportService with progress callback
+            def progress_callback(progress: int, message: str):
+                # Scale progress from 10-90% to leave room for final steps
+                scaled_progress = 10 + int((progress / 100) * 80)
+                self.progress_sig.emit(scaled_progress, message)
+            
             found, not_found, invalid_words = self._export_service.execute_export(
-                input_file, mdx_file, output_path, pdf_text=self._pdf_text or '', css_text=self._css_text or '', settings_service=self._settings_service
+                input_file, mdx_file, output_path, pdf_text=self._pdf_text or '', css_text=self._css_text or '', 
+                settings_service=self._settings_service, progress_callback=progress_callback
             )
 
             # Backup input file to output directory if enabled
+            self.progress_sig.emit(90, "Processing backup files...")
             if self.cm.get_backup_input():
                 try:
                     src = Path(input_file)
@@ -97,6 +106,7 @@ class ConversionWorker(QThread):
                 msg = f"Done. Found: {found}, Success rate: 0%"
 
             # Write invalid words file if enabled and there are any invalid words
+            self.progress_sig.emit(95, "Saving invalid words...")
             if self.cm.get_save_invalid_words() and invalid_words:
                 from mdxscraper.core.converter import write_invalid_words_file
                 # Filename pattern: [timestamp_]input_name_invalid.txt
@@ -110,6 +120,7 @@ class ConversionWorker(QThread):
                 self.log_sig.emit(f"📝 Invalid words saved to: {self._settings_service.to_relative(invalid_words_path)}")
 
             # Emit success message after auxiliary files are handled
+            self.progress_sig.emit(100, "Conversion completed!")
             self.finished_sig.emit(msg)
 
             # Calculate and emit duration last

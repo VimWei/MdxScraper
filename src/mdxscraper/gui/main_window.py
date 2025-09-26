@@ -392,18 +392,26 @@ class MainWindow(QMainWindow):
         self.worker.finished_sig.connect(self.on_run_finished)
         self.worker.error_sig.connect(self.on_run_error)
         self.worker.log_sig.connect(self.on_log)
+        self.worker.progress_sig.connect(self.on_progress_update)
         self.command_panel.setProgress(0)
+        self.command_panel.setProgressText("Starting conversion...")
         self.worker.start()
 
     def on_run_finished(self, message: str):
         self.command_panel.btn_scrape.setEnabled(True)
         self.command_panel.setProgress(100)
+        self.command_panel.setProgressText("Conversion completed!")
         self.command_panel.appendLog(f"✅ {message}")
 
     def on_run_error(self, message: str):
         self.command_panel.btn_scrape.setEnabled(True)
         self.command_panel.setProgress(0)
+        self.command_panel.setProgressText("Conversion failed")
         self.command_panel.appendLog(f"❌ Error: {message}")
+
+    def on_progress_update(self, progress: int, message: str):
+        self.command_panel.setProgress(progress)
+        self.command_panel.setProgressText(message)
 
     def on_log(self, text: str):
         # Skip progress messages as they're redundant with progress bar

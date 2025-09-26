@@ -60,7 +60,9 @@ class CommandPanel(QWidget):
         self.progress = QProgressBar(self)
         self.progress.setRange(0, 100)
         self.progress.setValue(0)
-        self.progress.setFixedHeight(16)
+        self.progress.setFixedHeight(20)
+        self.progress.setTextVisible(True)
+        self.progress.setFormat("Ready")
         root.addWidget(self.progress)
 
         self.log = QTextEdit(self)
@@ -88,6 +90,14 @@ class CommandPanel(QWidget):
     # Public API
     def setProgress(self, value: int) -> None:  # noqa: N802 (Qt naming style)
         self.progress.setValue(max(0, min(100, int(value))))
+        # Only show percentage if no custom status text is set
+        current_format = self.progress.format()
+        if current_format == "Ready" or current_format == "%p%":
+            self.progress.setFormat("%p%")
+
+    def setProgressText(self, text: str) -> None:  # noqa: N802
+        # Display status text on the progress bar
+        self.progress.setFormat(text)
 
     def appendLog(self, text: str) -> None:  # noqa: N802
         if text:

@@ -5,7 +5,7 @@ import tempfile
 from collections import OrderedDict
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Tuple
+from typing import Tuple, Callable, Optional
 
 import imgkit
 import pdfkit
@@ -26,6 +26,7 @@ def mdx2html(
     h1_style: str | None = None,
     scrap_style: str | None = None,
     additional_styles: str | None = None,
+    progress_callback: Optional[Callable[[int, str], None]] = None,
 ) -> Tuple[int, int, OrderedDict]:
     found_count = 0
     not_found_count = 0
@@ -34,13 +35,22 @@ def mdx2html(
     dictionary = Dictionary(mdx_file)
     lessons = get_words(str(input_file))
 
+    if progress_callback:
+        progress_callback(5, "Loading dictionary and parsing input...")
+
     right_soup = BeautifulSoup('<body style="font-family:Arial Unicode MS;"><div class="right"></div></body>', 'lxml')
     right_soup.find('body').insert_before('\n')
     left_soup = BeautifulSoup('<div class="left"></div>', 'lxml')
 
     invalid_words = OrderedDict()
+    total_lessons = len(lessons)
+    processed_lessons = 0
 
     for lesson in lessons:
+        if progress_callback:
+            progress = 10 + int((processed_lessons / total_lessons) * 60)
+            progress_callback(progress, f"Processing lesson: {lesson['name']}")
+        
         h1 = right_soup.new_tag('h1', id='lesson_' + lesson['name'])
         if h1_style:
             h1['style'] = h1_style
@@ -91,21 +101,32 @@ def mdx2html(
             left_soup.div.append('\n')
 
         left_soup.div.append(left_soup.new_tag('br'))
+        processed_lessons += 1
 
     if with_toc:
         main_div = right_soup.new_tag('div', **{'class': 'main'})
         right_soup.div.wrap(main_div)
         right_soup.div.insert_before(left_soup.div)
 
+    if progress_callback:
+        progress_callback(75, "Merging CSS styles...")
     right_soup = merge_css(right_soup, mdx_file.parent, dictionary.impl, additional_styles)
+    
+    if progress_callback:
+        progress_callback(85, "Embedding images...")
     right_soup = embed_images(right_soup, dictionary.impl)
 
+    if progress_callback:
+        progress_callback(90, "Writing HTML file...")
     html = str(right_soup).encode('utf-8')
     html = html.replace(b'<body>', b'').replace(b'</body>', b'', html.count(b'</body>') - 1)
     # Ensure output directory exists
     Path(output_file).parent.mkdir(parents=True, exist_ok=True)
     with open(output_file, 'wb') as file:
         file.write(html)
+
+    if progress_callback:
+        progress_callback(100, "HTML generation completed!")
 
     # Return invalid_words data for caller to handle file output
     return found_count, not_found_count, invalid_words
@@ -121,15 +142,25 @@ def mdx2pdf(
     scrap_style: str | None = None,
     additional_styles: str | None = None,
     wkhtmltopdf_path: str = 'auto',
+    progress_callback: Optional[Callable[[int, str], None]] = None,
 ) -> tuple[int, int, OrderedDict]:
     with tempfile.NamedTemporaryFile(suffix='.html', delete=False) as temp:
         temp_file = temp.name
+        # Create a progress callback that scales HTML progress to 0-80%
+        def html_progress_callback(progress: int, message: str):
+            if progress_callback:
+                scaled_progress = int((progress / 100) * 80)
+                progress_callback(scaled_progress, message)
+        
         found, not_found, invalid_words = mdx2html(
             mdx_file, input_file, temp_file, with_toc=with_toc,
-            h1_style=h1_style, scrap_style=scrap_style, additional_styles=additional_styles
+            h1_style=h1_style, scrap_style=scrap_style, additional_styles=additional_styles,
+            progress_callback=html_progress_callback
         )
 
     # Validate wkhtmltopdf path before conversion
+    if progress_callback:
+        progress_callback(80, "Validating wkhtmltopdf...")
     is_valid, error_message = validate_wkhtmltopdf_for_pdf_conversion(wkhtmltopdf_path)
     if not is_valid:
         os.remove(temp_file)
@@ -139,8 +170,14 @@ def mdx2pdf(
     config = pdfkit.configuration(wkhtmltopdf=config_path)
     # Ensure output directory exists
     Path(output_file).parent.mkdir(parents=True, exist_ok=True)
+    
+    if progress_callback:
+        progress_callback(90, "Converting HTML to PDF...")
     pdfkit.from_file(temp_file, str(output_file), configuration=config, options=pdf_options)
     os.remove(temp_file)
+    
+    if progress_callback:
+        progress_callback(100, "PDF conversion completed!")
     return found, not_found, invalid_words
 
 
@@ -153,6 +190,7 @@ def mdx2img(
     h1_style: str | None = None,
     scrap_style: str | None = None,
     additional_styles: str | None = None,
+    progress_callback: Optional[Callable[[int, str], None]] = None,
 ) -> tuple[int, int, OrderedDict]:
     """Render dictionary results to an image using wkhtmltoimage via imgkit.
 
@@ -161,9 +199,16 @@ def mdx2img(
     """
     with tempfile.NamedTemporaryFile(suffix='.html', delete=False) as temp:
         temp_file = temp.name
+        # Create a progress callback that scales HTML progress to 0-80%
+        def html_progress_callback(progress: int, message: str):
+            if progress_callback:
+                scaled_progress = int((progress / 100) * 80)
+                progress_callback(scaled_progress, message)
+        
         found, not_found, invalid_words = mdx2html(
             mdx_file, input_file, temp_file, with_toc=with_toc,
-            h1_style=h1_style, scrap_style=scrap_style, additional_styles=additional_styles
+            h1_style=h1_style, scrap_style=scrap_style, additional_styles=additional_styles,
+            progress_callback=html_progress_callback
         )
 
     # Ensure output directory exists
@@ -179,6 +224,9 @@ def mdx2img(
                 options[k] = str(v)
 
     suffix = output_path.suffix.lower()
+    if progress_callback:
+        progress_callback(85, f"Converting HTML to {suffix.upper()}...")
+    
     # -------- WEBP --------
     if suffix == '.webp':
         # Render to a temporary PNG first, then convert to WEBP via Pillow
@@ -224,6 +272,9 @@ def mdx2img(
         imgkit.from_file(temp_file, str(output_path), options=options)
 
     os.remove(temp_file)
+    
+    if progress_callback:
+        progress_callback(100, f"{suffix.upper()} conversion completed!")
     return found, not_found, invalid_words
 
 
