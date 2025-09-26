@@ -4,9 +4,9 @@
 
 一句话：根据指定词汇，从 MDX 字典提取内容并输出为 HTML、PDF 或 WEBP/PNG/JPG。
 
-![截图](docs/screenshot.png)
+![动画演示](docs/screenshot.gif)
 
-[`演示视频`](docs/screencast.mp4)
+[`视频演示`](docs/screencast.mp4)
 
 ## 特点
 
