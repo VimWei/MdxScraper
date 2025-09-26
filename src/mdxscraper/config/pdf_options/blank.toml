@@ -2,3 +2,5 @@
 # 本配置文件使用 pdfkit 原生格式，直接对应 wkhtmltopdf 命令行参数
 # ref: https://github.com/JazzCore/python-pdfkit
 # ref: https://wkhtmltopdf.org/usage/wkhtmltopdf.txt
+
+enable-local-file-access = ""  # 允许访问本地文件
