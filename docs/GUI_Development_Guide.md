@@ -16,7 +16,8 @@ src/mdxscraper/gui/
 │   ├── advanced_page.py    # 高级选项页面
 │   └── about_page.py       # 关于页面
 ├── components/             # 可复用组件
-│   ├── command_panel.py    # 全局操作面板
+│   ├── command_panel.py    # 全局操作面板（按钮+进度条）
+│   ├── log_panel.py        # 日志面板（独立组件）
 │   ├── file_picker.py      # 文件选择器（待完善）
 │   └── progress_panel.py   # 进度面板（待完善）
 ├── services/               # 业务服务层
@@ -427,7 +428,90 @@ self.select_label_and_load('pdf', saved_label)  # 或 ('css', saved_label)
 - 避免在 `reload_presets()` 中自动选择默认项（如 `default [built-in]`），除非明确传入 `auto_select_default=True`。
 - `* Untitled` 状态定义为：下拉 `index == -1`（无选中项），表示未保存的缓冲态；与“名为 `Untitled` 的预设项”严格区分。
 
-## 十、最佳实践
+## 十、关键UI特性维护指南
+
+### 10.1 可拖拽分割器布局
+
+**核心架构**：
+- 使用 `QSplitter(Qt.Vertical)` 实现垂直分割
+- 三个区域：Tab区域（可拉伸）→ 按钮区域（固定）→ Log区域（可拉伸）
+- 通过 `setStretchFactor()` 控制拉伸行为
+
+**关键配置**：
+```python
+# 必须保持的配置
+self.splitter.setStretchFactor(0, 1)     # Tab区域可拉伸
+self.splitter.setStretchFactor(1, 0)     # 按钮区域固定
+self.splitter.setStretchFactor(2, 1)     # Log区域可拉伸
+self.splitter.setChildrenCollapsible(False)  # 防止折叠
+self.splitter.splitterMoved.connect(self.on_splitter_moved)  # 动态保护
+```
+
+**保护机制**：
+- 各区域最小高度：Tab(200px)、按钮(120px)、Log(150px)
+- 动态调整：`on_splitter_moved()` 方法实时检查并调整
+- 防止递归：调整时临时断开信号连接
+
+**维护注意事项**：
+1. **不要修改区域顺序**：Tab → 按钮 → Log 的顺序不可改变
+2. **不要移除保护机制**：`setChildrenCollapsible(False)` 和 `splitterMoved` 信号必须保留
+3. **不要改变按钮区域**：CommandPanel 必须保持固定高度120px
+4. **新增区域时**：必须更新 `on_splitter_moved()` 中的最小尺寸数组
+5. **测试极端拖拽**：确保任何区域都不会消失
+
+### 10.2 实时进度条系统
+
+**核心架构**：
+- 进度信号：`ConversionWorker.progress_sig` 发送 (进度值, 状态文字)
+- 进度回调：核心转换函数支持 `progress_callback` 参数
+- 智能显示：进度条上显示状态文字或百分比
+
+**关键组件**：
+```python
+# ConversionWorker 信号
+progress_sig = Signal(int, str)  # 进度值, 状态文字
+
+# 核心转换函数签名
+def mdx2html(..., progress_callback: Optional[Callable[[int, str], None]] = None)
+def mdx2pdf(..., progress_callback: Optional[Callable[[int, str], None]] = None)
+def mdx2img(..., progress_callback: Optional[Callable[[int, str], None]] = None)
+```
+
+**进度阶段**：
+- 5%: 加载字典和解析输入
+- 10-70%: 处理课程（按课程数量动态计算）
+- 75%: 合并CSS样式
+- 85%: 嵌入图片
+- 90%: 写入HTML文件
+- 80-90%: PDF/图片转换
+- 90-100%: 后处理（备份、保存无效词汇等）
+
+**维护注意事项**：
+1. **新增转换步骤时**：必须在相应位置添加进度更新
+2. **修改转换流程时**：确保进度回调正确传递
+3. **不要移除进度信号**：`progress_sig` 是UI反馈的关键
+4. **保持进度比例**：确保进度值在0-100范围内
+5. **测试长时间操作**：确保进度条平滑更新，不会卡住
+
+### 10.3 组件分离原则
+
+**CommandPanel**：
+- 职责：按钮操作 + 进度条显示
+- 固定高度：120px，不可拉伸
+- 不包含：日志功能（已分离到LogPanel）
+
+**LogPanel**：
+- 职责：日志显示 + 日志操作
+- 最小高度：150px，可拉伸
+- 独立组件：可在其他项目中复用
+
+**维护注意事项**：
+1. **不要混合职责**：CommandPanel 和 LogPanel 功能不可合并
+2. **保持组件独立**：LogPanel 应该可以在其他窗口中使用
+3. **信号连接**：确保日志信号正确连接到 LogPanel
+4. **不要修改高度**：CommandPanel 固定120px，LogPanel 最小150px
+
+## 十一、最佳实践
 
 1. **保持简单**：优先选择简单的解决方案
 2. **单一职责**：每个类/方法只做一件事
@@ -437,6 +521,8 @@ self.select_label_and_load('pdf', saved_label)  # 或 ('css', saved_label)
 6. **错误处理**：在适当的层级处理错误
 7. **测试覆盖**：为关键功能编写测试
 8. **文档更新**：及时更新相关文档
+9. **UI特性保护**：维护可拖拽布局和实时进度条
+10. **组件分离**：保持CommandPanel和LogPanel的独立性
 
 ---
 

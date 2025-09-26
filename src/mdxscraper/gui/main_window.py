@@ -5,7 +5,8 @@ from pathlib import Path
 from PySide6.QtWidgets import (
     QApplication, QMainWindow, QWidget, QVBoxLayout, QPushButton, QLabel,
     QFileDialog, QMessageBox, QTextEdit, QHBoxLayout, QLineEdit, QProgressBar,
-    QGridLayout, QSizePolicy, QSpacerItem, QCheckBox, QTabWidget, QComboBox, QSlider
+    QGridLayout, QSizePolicy, QSpacerItem, QCheckBox, QTabWidget, QComboBox, QSlider,
+    QSplitter
 )
 from PySide6.QtCore import QThread, Signal, Qt
 from PySide6.QtGui import QIcon
@@ -15,6 +16,7 @@ from mdxscraper.gui.workers.conversion_worker import ConversionWorker
 from mdxscraper.gui.services.settings_service import SettingsService
 from mdxscraper.gui.services.presets_service import PresetsService
 from mdxscraper.gui.components.command_panel import CommandPanel
+from mdxscraper.gui.components.log_panel import LogPanel
 from mdxscraper.gui.pages.basic_page import BasicPage
 from mdxscraper.gui.pages.image_page import ImagePage
 from mdxscraper.gui.pages.pdf_page import PdfPage
@@ -56,6 +58,7 @@ class MainWindow(QMainWindow):
 
         # Tabs: Basic / Image / PDF / CSS
         self.tabs = QTabWidget(self)
+        self.tabs.setMinimumHeight(200)
         # Basic Tab -> BasicPage
         self.tab_basic = BasicPage(self)
         # Initialize with configuration
@@ -122,16 +125,39 @@ class MainWindow(QMainWindow):
             # If anything goes wrong, fallback silently keeping existing order
             pass
 
-        root.addWidget(self.tabs)
-        # Prefer showing Basic tab first
-        self.tabs.setCurrentIndex(self.tabs.indexOf(self.tab_basic))
-        # Replace bottom controls with CommandPanel
+        # Create splitter for tabs and log areas with button panel in between
+        self.splitter = QSplitter(Qt.Vertical, self)
+        
+        # Add tabs to splitter (top)
+        self.splitter.addWidget(self.tabs)
+        
+        # Create command panel (middle, fixed height)
         self.command_panel = CommandPanel(self)
         self.command_panel.restoreRequested.connect(self.restore_last_config)
         self.command_panel.importRequested.connect(self.import_config)
         self.command_panel.exportRequested.connect(self.export_config)
         self.command_panel.scrapeRequested.connect(self.run_conversion)
-        root.addWidget(self.command_panel)
+        
+        # Create log panel (bottom)
+        self.log_panel = LogPanel(self)
+        
+        # Add command panel and log panel to splitter
+        self.splitter.addWidget(self.command_panel)
+        self.splitter.addWidget(self.log_panel)
+        
+        # Configure splitter behavior
+        self.splitter.setSizes([600, 150, 250])  # Initial proportions
+        self.splitter.setStretchFactor(0, 1)     # Tab area stretchable
+        self.splitter.setStretchFactor(1, 0)     # Command panel fixed
+        self.splitter.setStretchFactor(2, 1)     # Log area stretchable
+        self.splitter.setChildrenCollapsible(False)  # Prevent collapse
+        self.splitter.splitterMoved.connect(self.on_splitter_moved)
+        
+        # Prefer showing Basic tab first
+        self.tabs.setCurrentIndex(self.tabs.indexOf(self.tab_basic))
+        
+        # Add splitter to main layout
+        root.addWidget(self.splitter)
 
         self.setMinimumSize(800, 520)
         self.setCentralWidget(central)
@@ -178,7 +204,7 @@ class MainWindow(QMainWindow):
 
         # After UI ready, show normalization log if any
         if hasattr(self, 'log_message_later') and self.log_message_later:
-            self.command_panel.appendLog(self.log_message_later)
+            self.log_panel.appendLog(self.log_message_later)
             self.log_message_later = None
 
     def apply_modern_styling(self):
@@ -401,22 +427,37 @@ class MainWindow(QMainWindow):
         self.command_panel.btn_scrape.setEnabled(True)
         self.command_panel.setProgress(100)
         self.command_panel.setProgressText("Conversion completed!")
-        self.command_panel.appendLog(f"✅ {message}")
+        self.log_panel.appendLog(f"✅ {message}")
 
     def on_run_error(self, message: str):
         self.command_panel.btn_scrape.setEnabled(True)
         self.command_panel.setProgress(0)
         self.command_panel.setProgressText("Conversion failed")
-        self.command_panel.appendLog(f"❌ Error: {message}")
+        self.log_panel.appendLog(f"❌ Error: {message}")
 
     def on_progress_update(self, progress: int, message: str):
         self.command_panel.setProgress(progress)
         self.command_panel.setProgressText(message)
 
+    def on_splitter_moved(self, pos: int, index: int):
+        """Enforce minimum sizes when splitter is moved"""
+        sizes = self.splitter.sizes()
+        min_sizes = [200, 120, 150]  # Tab, Button, Log minimum heights
+        
+        # Check if any area needs adjustment
+        if any(sizes[i] < min_sizes[i] for i in range(3)):
+            # Temporarily disconnect to avoid recursion
+            self.splitter.splitterMoved.disconnect(self.on_splitter_moved)
+            # Apply minimum sizes
+            adjusted_sizes = [max(sizes[i], min_sizes[i]) for i in range(3)]
+            self.splitter.setSizes(adjusted_sizes)
+            # Reconnect signal
+            self.splitter.splitterMoved.connect(self.on_splitter_moved)
+
     def on_log(self, text: str):
         # Skip progress messages as they're redundant with progress bar
         if not text.startswith("Progress:"):
-            self.command_panel.appendLog(text)
+            self.log_panel.appendLog(text)
 
     # --- Config buttons ---
     def restore_last_config(self):
@@ -426,9 +467,9 @@ class MainWindow(QMainWindow):
             # Reload presets first, then sync from config to preserve preset selection
             self.reload_presets(auto_select_default=False)
             self.sync_from_config()
-            self.command_panel.appendLog("ℹ️ Restored last saved config.")
+            self.log_panel.appendLog("ℹ️ Restored last saved config.")
         except Exception as e:
-            self.command_panel.appendLog(f"❌ Failed to restore config: {e}")
+            self.log_panel.appendLog(f"❌ Failed to restore config: {e}")
 
     def import_config(self):
         start_dir = str((self.project_root / "data" / "configs").resolve())
@@ -454,12 +495,12 @@ class MainWindow(QMainWindow):
             # 统一机制：reload_presets 会通过 select_label_and_load 触发信号加载内容
             self.reload_presets(auto_select_default=False)
             self.sync_from_config()
-            self.command_panel.appendLog(f"✅ Imported config applied: {file}")
+            self.log_panel.appendLog(f"✅ Imported config applied: {file}")
             if info.get("changed"):
                 removed, added, type_fixed = info.get("removed", 0), info.get("added", 0), info.get("type_fixed", 0)
-                self.command_panel.appendLog(f"⚙️ Config normalized after import (removed: {removed}, added: {added}, type fixed: {type_fixed}). Please save to persist.")
+                self.log_panel.appendLog(f"⚙️ Config normalized after import (removed: {removed}, added: {added}, type fixed: {type_fixed}). Please save to persist.")
         except Exception as e:
-            self.command_panel.appendLog(f"❌ Failed to import config: {e}")
+            self.log_panel.appendLog(f"❌ Failed to import config: {e}")
 
     def export_config(self):
         start_dir = str((self.project_root / "data" / "configs").resolve())
@@ -495,7 +536,7 @@ class MainWindow(QMainWindow):
             result = self.settings.validate()
             if not result.is_valid:
                 problems = "\n".join(result.errors)
-                self.command_panel.appendLog("⚠️ Config validation issues before export:\n" + problems)
+                self.log_panel.appendLog("⚠️ Config validation issues before export:\n" + problems)
             # Write selected path
             from pathlib import Path as _P
             from mdxscraper.config import config_manager as _cm
@@ -513,23 +554,23 @@ class MainWindow(QMainWindow):
                     # point label to snapshot stem
                     self.settings.set('pdf.preset_label', snap.stem)
                     data.setdefault('pdf', {})['preset_label'] = snap.stem
-                    self.command_panel.appendLog(f"📌 Frozen PDF Untitled to: {self.settings.to_relative(snap)}")
+                    self.log_panel.appendLog(f"📌 Frozen PDF Untitled to: {self.settings.to_relative(snap)}")
                     new_pdf_label = snap.stem
                 if self.css_dirty or css_label.strip().lower() == 'untitled':
                     css_text = self.tab_css.css_editor.toPlainText()
                     snap = self.presets.create_untitled_snapshot('css', css_text)
                     self.settings.set('css.preset_label', snap.stem)
                     data.setdefault('css', {})['preset_label'] = snap.stem
-                    self.command_panel.appendLog(f"📌 Frozen CSS Untitled to: {self.settings.to_relative(snap)}")
+                    self.log_panel.appendLog(f"📌 Frozen CSS Untitled to: {self.settings.to_relative(snap)}")
                     new_css_label = snap.stem
             except Exception as fe:
-                self.command_panel.appendLog(f"⚠️ Failed to freeze Untitled: {fe}")
+                self.log_panel.appendLog(f"⚠️ Failed to freeze Untitled: {fe}")
             content = _cm.tomli_w.dumps(data)
             p = _P(file)
             p.parent.mkdir(parents=True, exist_ok=True)
             with open(p, "w", encoding="utf-8") as f:
                 f.write(content)
-            self.command_panel.appendLog(f"✅ Exported config to: {file}")
+            self.log_panel.appendLog(f"✅ Exported config to: {file}")
             # If we created snapshots, reload presets and select the new labels via unified method
             try:
                 if (locals().get('new_pdf_label') or locals().get('new_css_label')):
@@ -545,7 +586,7 @@ class MainWindow(QMainWindow):
             except Exception:
                 pass
         except Exception as e:
-            self.command_panel.appendLog(f"❌ Failed to export config: {e}")
+            self.log_panel.appendLog(f"❌ Failed to export config: {e}")
 
     # --- Field edit handlers ---
     def on_input_edited(self):
@@ -767,7 +808,7 @@ class MainWindow(QMainWindow):
                 self.tab_pdf.show_dirty(False)
             except Exception as e:
                 # Enter * Untitled state with empty editor per spec
-                self.command_panel.appendLog(f"❌ Failed to load PDF preset: {e}. Switched to * Untitled.")
+                self.log_panel.appendLog(f"❌ Failed to load PDF preset: {e}. Switched to * Untitled.")
                 self._enter_untitled_state('pdf', clear_editor=True)
                 # Clear invalid label from settings to avoid repeated failures
                 try:
@@ -796,7 +837,7 @@ class MainWindow(QMainWindow):
                 self.tab_css.show_dirty(False)
             except Exception as e:
                 # Enter * Untitled state with empty editor per spec
-                self.command_panel.appendLog(f"❌ Failed to load CSS preset: {e}. Switched to * Untitled.")
+                self.log_panel.appendLog(f"❌ Failed to load CSS preset: {e}. Switched to * Untitled.")
                 self._enter_untitled_state('css', clear_editor=True)
                 try:
                     self.settings.set('css.preset_label', '')
@@ -813,7 +854,7 @@ class MainWindow(QMainWindow):
             text = self.tab_pdf.pdf_editor.toPlainText()
             self.presets.save_preset_text(Path(file), text)
             self.settings.set('pdf.preset_label', Path(file).stem)
-            self.command_panel.appendLog(f"✅ Saved PDF preset: {file}")
+            self.log_panel.appendLog(f"✅ Saved PDF preset: {file}")
             # Reload presets and select the saved label via unified method
             saved_label = Path(file).stem
             self.reload_presets(auto_select_default=False)
@@ -824,7 +865,7 @@ class MainWindow(QMainWindow):
             self.last_pdf_label = saved_label
             self.tab_pdf.show_dirty(False)
         except Exception as e:
-            self.command_panel.appendLog(f"❌ Failed to save PDF preset: {e}")
+            self.log_panel.appendLog(f"❌ Failed to save PDF preset: {e}")
 
     def on_css_save_clicked(self):
         user_dir = (self.project_root / 'data' / 'configs' / 'css').resolve()
@@ -836,7 +877,7 @@ class MainWindow(QMainWindow):
             text = self.tab_css.css_editor.toPlainText()
             self.presets.save_preset_text(Path(file), text)
             self.settings.set('css.preset_label', Path(file).stem)
-            self.command_panel.appendLog(f"✅ Saved CSS preset: {file}")
+            self.log_panel.appendLog(f"✅ Saved CSS preset: {file}")
             # Reload presets and select the saved label via unified method
             saved_label = Path(file).stem
             self.reload_presets(auto_select_default=False)
@@ -847,7 +888,7 @@ class MainWindow(QMainWindow):
             self.last_css_label = saved_label
             self.tab_css.show_dirty(False)
         except Exception as e:
-            self.command_panel.appendLog(f"❌ Failed to save CSS preset: {e}")
+            self.log_panel.appendLog(f"❌ Failed to save CSS preset: {e}")
 
     def on_pdf_text_changed(self):
         if self._updating_pdf_editor:
@@ -907,7 +948,7 @@ class MainWindow(QMainWindow):
                 self.reload_presets(auto_select_default=False)
                 self.select_label_and_load('css', 'Untitled')
         except Exception as e:
-            self.command_panel.appendLog(f"⚠️ Failed to autosave Untitled: {e}")
+            self.log_panel.appendLog(f"⚠️ Failed to autosave Untitled: {e}")
 
     # --- Unified preset selection and * Untitled state helpers ---
     def _enter_untitled_state(self, kind: str, clear_editor: bool = True) -> None:
@@ -985,7 +1026,7 @@ class MainWindow(QMainWindow):
             except Exception:
                 pass
         except Exception as e:
-            self.command_panel.appendLog(f"❌ Failed to open data folder: {e}")
+            self.log_panel.appendLog(f"❌ Failed to open data folder: {e}")
 
     # update_tab_enablement removed: tabs are always enabled now
 
