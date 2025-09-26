@@ -173,6 +173,8 @@ class MainWindow(QMainWindow):
 
         # Wire Advanced Tab controls
         self.tab_advanced.wkhtmltopdf_path_changed.connect(self.sync_advanced_to_config)
+        # Open user data directory
+        self.tab_advanced.open_user_data_requested.connect(self.open_user_data_dir)
 
         # After UI ready, show normalization log if any
         if hasattr(self, 'log_message_later') and self.log_message_later:
@@ -215,6 +217,25 @@ class MainWindow(QMainWindow):
             QPushButton#scrape-button:disabled {
                 background-color: #cccccc;
                 color: #666666;
+            }
+
+            QPushButton#open-data-button {
+                background-color: #4caf50;
+                color: white;
+                border: 1px solid #388e3c;
+                border-radius: 4px;
+                font-weight: 600;
+                padding: 4px 8px;
+            }
+
+            QPushButton#open-data-button:hover {
+                background-color: #388e3c;
+                border-color: #2e7d32;
+            }
+
+            QPushButton#open-data-button:pressed {
+                background-color: #2e7d32;
+                border-color: #1b5e20;
             }
 
             /* Make progress bar visually distinct from Scrape button */
@@ -934,6 +955,29 @@ class MainWindow(QMainWindow):
                 self.settings.set('css.preset_label', '')
         except Exception:
             pass
+
+    def open_user_data_dir(self):
+        """Open the application's user data directory (project_root/data) in the OS file manager."""
+        try:
+            target = (self.project_root / 'data').resolve()
+            target.mkdir(parents=True, exist_ok=True)
+            # Cross-platform open
+            import platform, subprocess, os
+            system = platform.system()
+            if system == 'Windows':
+                os.startfile(str(target))  # type: ignore[attr-defined]
+            elif system == 'Darwin':
+                subprocess.Popen(['open', str(target)])
+            else:
+                subprocess.Popen(['xdg-open', str(target)])
+            # Also reflect absolute path in Advanced page field if available
+            try:
+                if hasattr(self, 'tab_advanced') and hasattr(self.tab_advanced, 'edit_data_path'):
+                    self.tab_advanced.edit_data_path.setText(str(target))
+            except Exception:
+                pass
+        except Exception as e:
+            self.command_panel.appendLog(f"❌ Failed to open data folder: {e}")
 
     # update_tab_enablement removed: tabs are always enabled now
 

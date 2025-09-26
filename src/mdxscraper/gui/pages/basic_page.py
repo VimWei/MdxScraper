@@ -28,7 +28,7 @@ class BasicPage(QWidget):
         lbl_in.setFixedWidth(label_w)
         lbl_in.setProperty("class", "field-label")
         self.edit_input = QLineEdit(self)
-        btn_input = QPushButton("Choose...", self)
+        btn_input = QPushButton("Browse...", self)
         btn_input.setFixedWidth(btn_w)
         self.btn_input = btn_input
         form.addWidget(lbl_in, 0, 0)
@@ -40,7 +40,7 @@ class BasicPage(QWidget):
         lbl_dict.setFixedWidth(label_w)
         lbl_dict.setProperty("class", "field-label")
         self.edit_dict = QLineEdit(self)
-        btn_dict = QPushButton("Choose...", self)
+        btn_dict = QPushButton("Browse...", self)
         btn_dict.setFixedWidth(btn_w)
         self.btn_dict = btn_dict
         form.addWidget(lbl_dict, 1, 0)
@@ -52,7 +52,7 @@ class BasicPage(QWidget):
         lbl_out.setFixedWidth(label_w)
         lbl_out.setProperty("class", "field-label")
         self.edit_output = QLineEdit(self)
-        btn_output = QPushButton("Choose...", self)
+        btn_output = QPushButton("Browse...", self)
         btn_output.setFixedWidth(btn_w)
         self.btn_output = btn_output
         form.addWidget(lbl_out, 2, 0)

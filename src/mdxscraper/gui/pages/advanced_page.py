@@ -38,6 +38,7 @@ class ValidationWorker(QThread):
 class AdvancedPage(QWidget):
     # Signals for communicating with MainWindow
     wkhtmltopdf_path_changed = Signal()
+    open_user_data_requested = Signal()
 
     def __init__(self, parent: QWidget | None = None):
         super().__init__(parent)
@@ -69,6 +70,34 @@ class AdvancedPage(QWidget):
         self.btn_auto_detect.setToolTip("Auto-detect wkhtmltopdf installation")
         path_section.addWidget(self.btn_auto_detect)
         layout.addLayout(path_section)
+
+        # User data directory section
+        data_section = QHBoxLayout()
+        _lbl_data = QLabel("User Data Path:", self)
+        _lbl_data.setProperty("class", "field-label")
+        _lbl_data.setFixedWidth(_section_w)
+        _lbl_data.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        data_section.addWidget(_lbl_data)
+        data_section.addSpacing(8)
+        
+        self.edit_data_path = QLineEdit(self)
+        self.edit_data_path.setReadOnly(True)
+        # Always show as grey text to indicate non-editable
+        self.edit_data_path.setStyleSheet("color: gray;")
+        # Text will be set by _update_data_path / _auto_detect_data_path
+        data_section.addWidget(self.edit_data_path, 1)
+        
+        self.btn_open_data = QPushButton("Open", self)
+        self.btn_open_data.setFixedWidth(90)
+        self.btn_open_data.setToolTip("Open the application's data directory")
+        self.btn_open_data.setObjectName("open-data-button")
+        data_section.addWidget(self.btn_open_data)
+        
+        self.btn_auto_detect_data = QPushButton("Auto-detect", self)
+        self.btn_auto_detect_data.setFixedWidth(90)
+        self.btn_auto_detect_data.setToolTip("Auto-detect data directory path")
+        data_section.addWidget(self.btn_auto_detect_data)
+        layout.addLayout(data_section)
         
         # Add some spacing at the bottom
         layout.addItem(QSpacerItem(20, 20, QSizePolicy.Minimum, QSizePolicy.Expanding))
@@ -80,12 +109,17 @@ class AdvancedPage(QWidget):
         
         # Connect signals
         self._connect_signals()
+        
+        # Initialize data path (default: relative hint)
+        self._update_data_path()
 
     def _connect_signals(self):
         """Connect internal widget signals to page signals"""
         self.edit_wkhtmltopdf_path.editingFinished.connect(self._on_path_changed)
         self.btn_browse_wkhtmltopdf.clicked.connect(self._browse_wkhtmltopdf_path)
         self.btn_auto_detect.clicked.connect(self._auto_detect)
+        self.btn_open_data.clicked.connect(self.open_user_data_requested.emit)
+        self.btn_auto_detect_data.clicked.connect(self._auto_detect_data_path)
 
     def _on_path_changed(self):
         """Handle path text changes and update status indicator"""
@@ -148,6 +182,33 @@ class AdvancedPage(QWidget):
         self.validation_worker.start()
         
         self.wkhtmltopdf_path_changed.emit()
+
+    def _auto_detect_data_path(self):
+        """Show absolute user data directory path (e.g., C:\\Apps\\MdxScraper\\data)"""
+        try:
+            # Try to get project_root from parent; fallback to repo root via file location
+            parent = self.parent()
+            project_root = None
+            if parent is not None and hasattr(parent, 'project_root'):
+                project_root = parent.project_root
+            else:
+                try:
+                    project_root = Path(__file__).resolve().parents[3]
+                except Exception:
+                    project_root = None
+
+            if project_root is not None:
+                data_dir = (Path(project_root) / 'data').resolve()
+                self.edit_data_path.setText(str(data_dir))
+            else:
+                # Fallback: keep default hint
+                self._update_data_path()
+        except Exception:
+            self._update_data_path()
+
+    def _update_data_path(self):
+        """Show default relative hint in grey text."""
+        self.edit_data_path.setText("data/ (relative to project root)")
 
     def _update_placeholder_text(self, is_valid: bool = None):
         """Update placeholder text based on validation status"""
