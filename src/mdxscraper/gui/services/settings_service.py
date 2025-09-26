@@ -97,10 +97,16 @@ class SettingsService:
     def get_basic_config(self) -> BasicConfig:
         """Get Basic page configuration as data class"""
         # Read exclusively from new [basic] section
+        def _to_posix(s: str) -> str:
+            try:
+                return str(Path(s).as_posix())
+            except Exception:
+                return s.replace("\\", "/") if isinstance(s, str) else s
+
         return BasicConfig(
-            input_file=str(self.get("basic.input_file", "")),
-            dictionary_file=str(self.get("basic.dictionary_file", "")),
-            output_file=str(self.get("basic.output_file", "")),
+            input_file=_to_posix(str(self.get("basic.input_file", ""))),
+            dictionary_file=_to_posix(str(self.get("basic.dictionary_file", ""))),
+            output_file=_to_posix(str(self.get("basic.output_file", ""))),
             output_add_timestamp=self.get_output_add_timestamp(),
             backup_input=self.get_backup_input(),
             save_invalid_words=self.get_save_invalid_words(),

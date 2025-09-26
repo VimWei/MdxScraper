@@ -6,7 +6,6 @@ from PySide6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QComboB
 
 from mdxscraper.gui.models.config_models import PdfConfig
 
-
 class PdfPage(QWidget):
     # Signals for communicating with MainWindow
     preset_changed = Signal(str)  # preset label
@@ -18,7 +17,7 @@ class PdfPage(QWidget):
         super().__init__(parent)
         layout = QVBoxLayout(self)
         layout.setContentsMargins(8, 8, 8, 8)
-        
+
         # Preset selection row
         row_pdf = QHBoxLayout()
         row_pdf.addWidget(QLabel("Preset:", self))
@@ -38,7 +37,7 @@ class PdfPage(QWidget):
         self.btn_pdf_save.clicked.connect(self.save_clicked.emit)
         row_pdf.addWidget(self.btn_pdf_save)
         layout.addLayout(row_pdf)
-        
+
         # PDF editor
         self.pdf_editor = QTextEdit(self)
         self.pdf_editor.setPlaceholderText("[pdf]\n# wkhtmltopdf options in TOML ...")
@@ -57,7 +56,6 @@ class PdfPage(QWidget):
 
     def set_config(self, config: PdfConfig) -> None:
         """Set page configuration from data class"""
-        # Only set preset label selection; editor text不再从配置读取
         # Set preset label if it exists in combo box
         label_raw = (config.preset_label or "").strip()
         base_label = label_raw
@@ -82,5 +80,3 @@ class PdfPage(QWidget):
             if item_base == base_label:
                 self.pdf_combo.setCurrentIndex(i)
                 return
-
-

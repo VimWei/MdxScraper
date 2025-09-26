@@ -4,7 +4,7 @@
 
 ## 一、架构概览
 
-### 目录结构
+### 目录结构（当前实现）
 ```
 src/mdxscraper/gui/
 ├── main_window.py          # 主窗口壳与编排
@@ -18,8 +18,8 @@ src/mdxscraper/gui/
 ├── components/             # 可复用组件
 │   ├── command_panel.py    # 全局操作面板（按钮+进度条）
 │   ├── log_panel.py        # 日志面板（独立组件）
-│   ├── file_picker.py      # 文件选择器（待完善）
-│   └── progress_panel.py   # 进度面板（待完善）
+│   ├── file_picker.py      # 文件选择器（基础版，可扩展过滤/策略）
+│   └── progress_panel.py   # 进度面板（已实现，统一由协调器驱动）
 ├── services/               # 业务服务层
 │   ├── settings_service.py # 配置管理服务
 │   ├── presets_service.py  # 预设管理服务
@@ -28,12 +28,34 @@ src/mdxscraper/gui/
 │   └── conversion_worker.py # 转换工作线程
 └── assets/                 # 资源文件
     └── app_icon.ico        # 应用图标
+├── coordinators/           # 协调器层（统一编排）
+│   ├── preset_coordinator.py      # 预设列表/选择/脏态/快照
+│   ├── file_coordinator.py        # 文件对话框/路径建议/打开目录
+│   ├── config_coordinator.py      # 同步/导入/导出/校验编排
+│   └── conversion_coordinator.py  # 运行/进度/日志/中断编排
+└── styles/                 # 样式与主题
+    ├── theme_loader.py     # 主题加载与基础样式应用
+    └── themes/
+        ├── default.qss/.json
+        └── dark.qss/.json
 ```
 
 ### 分层架构
-- **UI 层**：Pages + Components（展示/交互）
-- **服务层**：Services（业务逻辑）
-- **工作层**：Workers（耗时操作）
+- **UI 层（Pages + Components）**：只负责可视化与交互（布局、输入、按钮、进度显示、日志面板）。不直接进行文件 I/O、不读写配置树内细节、不跑耗时任务；以信号/槽向上游“表达意图”。
+- **协调器层（Coordinators）**：负责“流程编排”和“信号整合”。把 UI 的意图转化为一系列服务调用与线程启动，并将线程信号（进度/日志/完成/错误）统一回传 UI。当前包含：
+  - `PresetCoordinator`（预设列表/选择/编辑器加载/脏态/Untitled/快照）
+  - `FileCoordinator`（文件选择、起始目录与命名建议、打开数据目录）
+  - `ConfigCoordinator`（从配置拉取到页面、从页面回写到配置、导入/导出与校验）
+  - `ConversionCoordinator`（运行/进度/日志/错误与中断编排）
+- **服务层（Services）**：承载具体业务能力（配置 CRUD 与校验、预设 I/O 与解析、导出参数构建等）。不依赖 UI 控件与线程细节，接口稳定、易于测试与复用。
+- **工作层（Workers）**：执行耗时任务（如转换流程），仅通过信号回报进度和日志；不直接操作任何 UI，不弹窗，支持中断请求。
+- **样式与主题（Styles）**：通过 `ThemeLoader + QSS` 统一管理主题与基础样式，避免在代码中散落 `setStyleSheet`；支持多主题与按主题配置基础样式（如 Fusion）。
+
+分层收益（为什么要这样做）：
+- 可维护：流程变化只改协调器；算法/数据变化只改服务；样式变化只改样式层。职责清晰、改动局部化。
+- 可测试：服务与协调器天然可单测（输入/输出与调用顺序可验证），减少集成测试压力。
+- 可演化：新增功能优先判断“属于哪个协调器/服务”，避免逻辑分散到 UI；支持并行开发（UI 与业务解耦）。
+- 可读性：UI 代码可保持“薄壳”姿态，MainWindow 主要做装配与委托，规模可控。
 
 ## 二、新增页面指南
 
@@ -365,34 +387,37 @@ src/mdxscraper/gui/
 
 ## 九、常见模式
 
-### 9.1 配置同步模式
+### 9.1 配置同步模式（经协调器统一）
 
 ```python
-# 统一页面同步模式（推荐）
-# 1) 为页面建立数据类 NewConfig
-# 2) 在 SettingsService 中提供 get_new_config()/update_new_config()
-# 3) 页面实现 get_config()/set_config()，只绑定控件与 DTO
+# 推荐做法：通过 ConfigCoordinator 统一同步
 
-# MainWindow 侧：
-def sync_new_from_config(self):
-    config = self.settings.get_new_config()
-    self.tab_new.set_config(config)
+# MainWindow 初始化：
+self.cfgc = ConfigCoordinator(self.settings, self.presets)
 
-def sync_new_to_config(self):
-    config = self.tab_new.get_config()
-    self.settings.update_new_config(config)
+# 从配置同步到页面：
+self.cfgc.sync_all_from_config(self)
+
+# 页面变更时回写（示例：Image 页任一变更信号触发）：
+self.tab_image.width_changed.connect(lambda: self.cfgc.sync_all_to_config(self))
 ```
 
-### 9.2 信号连接模式
+### 9.2 信号连接模式（委托协调器）
 
 ```python
-# 页面信号连接
-self.page.option_changed.connect(self.sync_to_config)
+# 页面信号连接 → 统一回写
+self.page.option_changed.connect(lambda: self.cfgc.sync_all_to_config(self))
 
-# 工作线程信号连接
-self.worker.progress_sig.connect(self.command_panel.setProgress)
-self.worker.finished_sig.connect(self.on_finished)
-self.worker.error_sig.connect(self.on_error)
+# 预设信号连接 → 交给 PresetCoordinator
+self.presetc = PresetCoordinator(self.presets, self.settings)
+self.tab_pdf.preset_changed.connect(lambda label: self.presetc.on_pdf_preset_changed(self, label))
+self.tab_css.preset_changed.connect(lambda label: self.presetc.on_css_preset_changed(self, label))
+self.tab_pdf.text_changed.connect(lambda: self.presetc.on_pdf_text_changed(self))
+self.tab_css.text_changed.connect(lambda: self.presetc.on_css_text_changed(self))
+
+# 运行 → 由 ConversionCoordinator 处理
+self.convc = ConversionCoordinator(self.settings, self.presets, project_root, self.cm)
+self.command_panel.scrapeRequested.connect(lambda: self.convc.run(self))
 ```
 
 ### 9.3 错误处理模式
@@ -411,22 +436,52 @@ def on_error(self, message: str):
     self.command_panel.appendLog(f"❌ Error: {message}")
 ```
 
-### 9.4 预设加载与选择保留模式（重要）
+### 9.4 预设加载与选择保留模式（一步一步，易于落地）
 
+目标：让下拉选择与编辑器内容始终保持一致；仅保存 `preset_label`，编辑器文本按需从文件加载；用户编辑进入 `* Untitled` 缓冲态，运行/导入/退出会自动落盘。
+
+步骤：
+- 启动/导入/恢复（只做两件事）
+  1) `reload_presets(auto_select_default=False)`（只刷新下拉数据，不自动选默认）
+  2) `cfgc.sync_all_from_config(self)`（根据配置里的 label 触发选择，实际加载由 on_*_preset_changed 完成）
+
+- 选择变化（唯一入口）
+  - `on_pdf_preset_changed/on_css_preset_changed` 读取所选文件文本 → 设置到编辑器 → 仅更新 `preset_label` → 取消脏态
+
+- 用户编辑（进入 `* Untitled`）
+  - `text_changed` → `_enter_untitled_state(kind, clear_editor=False)`：下拉 `index = -1`，显示 `* Untitled`，保留用户内容，不立即落盘
+
+- 运行/退出/导入 前的自动保存
+  - 调用 `presetc.autosave_untitled_if_needed(self)`：如处于脏态，直接写入 `data/configs/{css|pdf}/Untitled.toml`，并将 `preset_label` 设为 `Untitled`
+
+- 导出（冻结 Untitled）
+  - 通过 `cfgc.export_config(...)`：若 label 为 `Untitled` 或正处脏态，则生成时间戳快照并把导出配置指向该快照；随后 `reload_presets(False)` 并 `select_label_and_load(..., 新快照)`
+
+最小代码骨架：
 ```python
-# 初始化/导入/恢复：先加载列表，后按配置恢复选择（由槽函数统一加载）
+# 初始化/导入/恢复
 self.reload_presets(auto_select_default=False)
-self.sync_from_config()  # PDF/CSS 的 set_config 仅设置下拉；加载由 on_*_preset_changed 完成
+self.cfgc.sync_all_from_config(self)
 
-# 保存/自动保存/导出后选择：重载列表并使用统一方法选择目标项
-self.reload_presets(auto_select_default=False)
-self.select_label_and_load('pdf', saved_label)  # 或 ('css', saved_label)
+# 选择变化（由协调器处理加载+去脏）
+self.tab_pdf.preset_changed.connect(lambda label: self.presetc.on_pdf_preset_changed(self, label))
+self.tab_css.preset_changed.connect(lambda label: self.presetc.on_css_preset_changed(self, label))
+
+# 用户编辑（进入 * Untitled）
+self.tab_pdf.text_changed.connect(lambda: self.presetc.on_pdf_text_changed(self))
+self.tab_css.text_changed.connect(lambda: self.presetc.on_css_text_changed(self))
+
+# 运行/退出/导入 前
+self.presetc.autosave_untitled_if_needed(self)
+
+# 导出（冻结 Untitled 并回选新快照）
+self.cfgc.export_config(self, Path('.../config.toml'))
 ```
 
 注意：
-- 采用方案A：不使用 blockSignals，所有选择变化由槽函数处理；`idx < 0` 时槽函数早退。
-- 避免在 `reload_presets()` 中自动选择默认项（如 `default [built-in]`），除非明确传入 `auto_select_default=True`。
-- `* Untitled` 状态定义为：下拉 `index == -1`（无选中项），表示未保存的缓冲态；与“名为 `Untitled` 的预设项”严格区分。
+- 选择变化是唯一触发“加载编辑器内容”的入口；不要在其他地方重复加载
+- `* Untitled` 是“无选中”显示态（`index == -1`），不同于名为 `Untitled` 的实际文件项
+- 刷新预设仅刷新列表，不改变当前有效选择；需要改变时调用 `select_label_and_load(kind, label)`
 
 ## 十、关键UI特性维护指南
 

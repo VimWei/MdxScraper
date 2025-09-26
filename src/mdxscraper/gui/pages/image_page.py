@@ -2,12 +2,11 @@ from __future__ import annotations
 
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, 
+    QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit,
     QPushButton, QCheckBox, QSlider, QSizePolicy, QSpacerItem
 )
 
 from mdxscraper.gui.models.config_models import ImageConfig
-
 
 class ImagePage(QWidget):
     # Signals for communicating with MainWindow
@@ -26,7 +25,7 @@ class ImagePage(QWidget):
         super().__init__(parent)
         layout = QVBoxLayout(self)
         layout.setContentsMargins(8, 8, 8, 8)
-        
+
         # General (single row with section label)
         row_gen = QHBoxLayout()
         _section_w = 70
@@ -132,13 +131,13 @@ class ImagePage(QWidget):
         self.webp_transparent = QCheckBox("Transparent background", self)
         row_webp.addWidget(self.webp_transparent)
         row_webp.addItem(QSpacerItem(20, 10, QSizePolicy.Expanding, QSizePolicy.Minimum))
-        
+
         # Reorder Image tab rows: General, WEBP, PNG, JPG/JPEG
         layout.addLayout(row_gen)
         layout.addLayout(row_webp)
         layout.addLayout(row_png)
         layout.addLayout(row_jpg)
-        
+
         # Connect internal signals
         self._connect_signals()
 
@@ -149,7 +148,7 @@ class ImagePage(QWidget):
         self.jpg_quality_slider.valueChanged.connect(lambda v: self.jpg_quality_value.setText(str(v)))
         self.png_compress_slider.valueChanged.connect(lambda v: self.png_compress_value.setText(str(v)))
         self.webp_quality_slider.valueChanged.connect(lambda v: self.webp_quality_value.setText(str(v)))
-        
+
         # Connect to page signals
         self.img_width.textChanged.connect(lambda: self.width_changed.emit())
         self.img_zoom_slider.valueChanged.connect(lambda: self.zoom_changed.emit())
@@ -193,5 +192,3 @@ class ImagePage(QWidget):
         self.webp_quality_value.setText(str(config.webp_quality))
         self.webp_lossless.setChecked(config.webp_lossless)
         self.webp_transparent.setChecked(config.webp_transparent_bg)
-
-

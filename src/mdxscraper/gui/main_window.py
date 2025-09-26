@@ -3,16 +3,13 @@ from __future__ import annotations
 from pathlib import Path
 
 from PySide6.QtWidgets import (
-    QApplication, QMainWindow, QWidget, QVBoxLayout, QPushButton, QLabel,
-    QFileDialog, QMessageBox, QTextEdit, QHBoxLayout, QLineEdit, QProgressBar,
-    QGridLayout, QSizePolicy, QSpacerItem, QCheckBox, QTabWidget, QComboBox, QSlider,
-    QSplitter
+    QApplication, QMainWindow, QWidget, QVBoxLayout,
+    QFileDialog, QMessageBox, QTabWidget, QSplitter
 )
-from PySide6.QtCore import QThread, Signal, Qt
+from PySide6.QtCore import Qt
 from PySide6.QtGui import QIcon
 
 from mdxscraper.config.config_manager import ConfigManager
-from mdxscraper.gui.workers.conversion_worker import ConversionWorker
 from mdxscraper.gui.services.settings_service import SettingsService
 from mdxscraper.gui.services.presets_service import PresetsService
 from mdxscraper.gui.components.command_panel import CommandPanel
@@ -24,6 +21,7 @@ from mdxscraper.gui.pages.css_page import CssPage
 from mdxscraper.gui.pages.advanced_page import AdvancedPage
 from mdxscraper.gui.pages.about_page import AboutPage
 from mdxscraper.gui.styles.theme_loader import ThemeLoader
+from mdxscraper.gui.coordinators import PresetCoordinator, FileCoordinator, ConfigCoordinator, ConversionCoordinator
 
 class MainWindow(QMainWindow):
     def __init__(self, project_root: Path):
@@ -41,6 +39,11 @@ class MainWindow(QMainWindow):
         # Ensure SettingsService shares the same ConfigManager instance
         self.settings = SettingsService(project_root, self.cm)
         self.presets = PresetsService(project_root)
+        # Coordinators (incremental adoption)
+        self.presetc = PresetCoordinator(self.presets, self.settings)
+        self.filec = FileCoordinator(self.settings, project_root)
+        self.cfgc = ConfigCoordinator(self.settings, self.presets)
+        self.convc = ConversionCoordinator(self.settings, self.presets, project_root, self.cm)
         # Announce normalization result once
         info = self.settings.get_normalize_info_once()
         if info.get("changed"):
@@ -67,17 +70,17 @@ class MainWindow(QMainWindow):
         self.tab_basic.set_config(basic_config)
         # Connect signals to existing handlers
         self.tab_basic.edit_input.editingFinished.connect(self.on_input_edited)
-        self.tab_basic.btn_input.clicked.connect(self.choose_input)
+        self.tab_basic.btn_input.clicked.connect(lambda: self.filec.choose_input(self))
         self.tab_basic.edit_dict.editingFinished.connect(self.on_dictionary_edited)
-        self.tab_basic.btn_dict.clicked.connect(self.choose_dictionary)
+        self.tab_basic.btn_dict.clicked.connect(lambda: self.filec.choose_dictionary(self))
         self.tab_basic.edit_output.editingFinished.connect(self.on_output_edited)
-        self.tab_basic.btn_output.clicked.connect(self.choose_output)
-        self.tab_basic.check_timestamp.stateChanged.connect(self.sync_basic_to_config)
-        self.tab_basic.check_backup.stateChanged.connect(self.sync_basic_to_config)
-        self.tab_basic.check_save_invalid.stateChanged.connect(self.sync_basic_to_config)
+        self.tab_basic.btn_output.clicked.connect(lambda: self.filec.choose_output(self))
+        self.tab_basic.check_timestamp.stateChanged.connect(lambda: self.cfgc.sync_all_to_config(self))
+        self.tab_basic.check_backup.stateChanged.connect(lambda: self.cfgc.sync_all_to_config(self))
+        self.tab_basic.check_save_invalid.stateChanged.connect(lambda: self.cfgc.sync_all_to_config(self))
         # new with_toc checkbox in Basic
         if hasattr(self.tab_basic, 'check_with_toc'):
-            self.tab_basic.check_with_toc.stateChanged.connect(self.sync_basic_to_config)
+            self.tab_basic.check_with_toc.stateChanged.connect(lambda: self.cfgc.sync_all_to_config(self))
         # Keep references consistent
         self.edit_input = self.tab_basic.edit_input
         self.edit_dict = self.tab_basic.edit_dict
@@ -105,6 +108,18 @@ class MainWindow(QMainWindow):
         # About Tab
         self.tab_about = AboutPage(self)
         self.tabs.addTab(self.tab_about, "About")
+
+        # Wire preset-related signals EARLY (before reload_presets) so initial selection loads editor
+        self.pdf_dirty = False
+        self.css_dirty = False
+        self._updating_pdf_editor = False
+        self._updating_css_editor = False
+        self.last_pdf_label = ''
+        self.last_css_label = ''
+        self.tab_pdf.preset_changed.connect(self.on_pdf_preset_changed)
+        self.tab_pdf.text_changed.connect(self.on_pdf_text_changed)
+        self.tab_css.preset_changed.connect(self.on_css_preset_changed)
+        self.tab_css.text_changed.connect(self.on_css_text_changed)
 
         # Reorder tabs to: Basic, CSS, Image, PDF, Advanced, About
         try:
@@ -163,45 +178,32 @@ class MainWindow(QMainWindow):
         self.setMinimumSize(800, 520)
         self.setCentralWidget(central)
 
-        # Load presets
+        # Load presets (delegated) - handlers already connected, so selection will load editor
         self.reload_presets(auto_select_default=False)
         # Sync all pages from configuration using unified methods
-        self.sync_from_config()
+        self.cfgc.sync_all_from_config(self)
         # Wire Image Tab controls to sync changes to config
-        self.tab_image.width_changed.connect(self.sync_image_to_config)
-        self.tab_image.zoom_changed.connect(self.sync_image_to_config)
-        self.tab_image.background_changed.connect(self.sync_image_to_config)
-        self.tab_image.jpg_quality_changed.connect(self.sync_image_to_config)
-        self.tab_image.png_optimize_changed.connect(self.sync_image_to_config)
-        self.tab_image.png_compress_changed.connect(self.sync_image_to_config)
-        self.tab_image.png_transparent_changed.connect(self.sync_image_to_config)
-        self.tab_image.webp_quality_changed.connect(self.sync_image_to_config)
-        self.tab_image.webp_lossless_changed.connect(self.sync_image_to_config)
-        self.tab_image.webp_transparent_changed.connect(self.sync_image_to_config)
-
-        # Wire PDF Tab controls
-        self.pdf_dirty = False
-        self.css_dirty = False
-        # Guards to avoid treating programmatic editor updates as user edits
-        self._updating_pdf_editor = False
-        self._updating_css_editor = False
-        self.last_pdf_label = ''
-        self.last_css_label = ''
-        self.tab_pdf.preset_changed.connect(self.on_pdf_preset_changed)
+        self.tab_image.width_changed.connect(lambda: self.cfgc.sync_all_to_config(self))
+        self.tab_image.zoom_changed.connect(lambda: self.cfgc.sync_all_to_config(self))
+        self.tab_image.background_changed.connect(lambda: self.cfgc.sync_all_to_config(self))
+        self.tab_image.jpg_quality_changed.connect(lambda: self.cfgc.sync_all_to_config(self))
+        self.tab_image.png_optimize_changed.connect(lambda: self.cfgc.sync_all_to_config(self))
+        self.tab_image.png_compress_changed.connect(lambda: self.cfgc.sync_all_to_config(self))
+        self.tab_image.png_transparent_changed.connect(lambda: self.cfgc.sync_all_to_config(self))
+        self.tab_image.webp_quality_changed.connect(lambda: self.cfgc.sync_all_to_config(self))
+        self.tab_image.webp_lossless_changed.connect(lambda: self.cfgc.sync_all_to_config(self))
+        self.tab_image.webp_transparent_changed.connect(lambda: self.cfgc.sync_all_to_config(self))
+        
+        # Wire remaining PDF/CSS controls (save/refresh)
         self.tab_pdf.save_clicked.connect(self.on_pdf_save_clicked)
         self.tab_pdf.refresh_clicked.connect(self.on_pdf_refresh_clicked)
-        self.tab_pdf.text_changed.connect(self.on_pdf_text_changed)
-
-        # Wire CSS Tab controls
-        self.tab_css.preset_changed.connect(self.on_css_preset_changed)
         self.tab_css.save_clicked.connect(self.on_css_save_clicked)
         self.tab_css.refresh_clicked.connect(self.on_css_refresh_clicked)
-        self.tab_css.text_changed.connect(self.on_css_text_changed)
 
         # Wire Advanced Tab controls
-        self.tab_advanced.wkhtmltopdf_path_changed.connect(self.sync_advanced_to_config)
+        self.tab_advanced.wkhtmltopdf_path_changed.connect(lambda: self.cfgc.sync_all_to_config(self))
         # Open user data directory
-        self.tab_advanced.open_user_data_requested.connect(self.open_user_data_dir)
+        self.tab_advanced.open_user_data_requested.connect(lambda: self.filec.open_user_data_dir(self))
 
         # After UI ready, show normalization log if any
         if hasattr(self, 'log_message_later') and self.log_message_later:
@@ -215,11 +217,11 @@ class MainWindow(QMainWindow):
         # Apply styling through theme system
         theme_loader = ThemeLoader(self.project_root)
         theme_name = "default"
-        
+
         # Apply base style (configurable per theme)
         app = QApplication.instance()
         theme_loader.apply_base_style(app, theme_name)
-        
+
         # Load theme from external QSS file
         self.setStyleSheet(theme_loader.load_theme(theme_name))
 
@@ -321,14 +323,9 @@ class MainWindow(QMainWindow):
         # Sync all page configurations to settings before saving
         try:
             # Sync all page configurations to settings before saving
-            self.sync_basic_to_config()
-            self.sync_image_to_config()
-            self.sync_advanced_to_config()
+            self.cfgc.sync_all_to_config(self)
             # Autosave Untitled when dirty
             self.autosave_untitled_if_needed()
-            # Only labels persisted
-            self.sync_pdf_to_config()
-            self.sync_css_to_config()
         except Exception:
             pass
 
@@ -337,47 +334,16 @@ class MainWindow(QMainWindow):
         event.accept()
 
     def run_conversion(self):
-        # Sync all page configurations to settings before running conversion
-        self.sync_basic_to_config()
-        self.sync_image_to_config()
-        self.sync_advanced_to_config()
-        # Autosave Untitled when dirty before running
-        self.autosave_untitled_if_needed()
-        self.sync_pdf_to_config()
-        self.sync_css_to_config()
-
-        output = self.settings.get("basic.output_file")
-        if not output:
-            QMessageBox.warning(self, "Run", "Please set output file first.")
-            return
-        self.command_panel.btn_scrape.setEnabled(False)
-        # Collect current preset editor contents
-        pdf_text = self.resolve_effective_preset_text('pdf')
-        css_text = self.resolve_effective_preset_text('css')
-        self.worker = ConversionWorker(self.project_root, self.cm, pdf_text=pdf_text, css_text=css_text)
-        self.worker.finished_sig.connect(self.on_run_finished)
-        self.worker.error_sig.connect(self.on_run_error)
-        self.worker.log_sig.connect(self.on_log)
-        self.worker.progress_sig.connect(self.on_progress_update)
-        self.command_panel.setProgress(0)
-        self.command_panel.setProgressText("Starting conversion...")
-        self.worker.start()
+        self.convc.run(self)
 
     def on_run_finished(self, message: str):
-        self.command_panel.btn_scrape.setEnabled(True)
-        self.command_panel.setProgress(100)
-        self.command_panel.setProgressText("Conversion completed!")
-        self.log_panel.appendLog(f"✅ {message}")
+        self.convc.on_finished(self, message)
 
     def on_run_error(self, message: str):
-        self.command_panel.btn_scrape.setEnabled(True)
-        self.command_panel.setProgress(0)
-        self.command_panel.setProgressText("Conversion failed")
-        self.log_panel.appendLog(f"❌ Error: {message}")
+        self.convc.on_error(self, message)
 
     def on_progress_update(self, progress: int, message: str):
-        self.command_panel.setProgress(progress)
-        self.command_panel.setProgressText(message)
+        self.convc.on_progress(self, progress, message)
 
     def on_splitter_moved(self, pos: int, index: int):
         """Enforce minimum sizes when splitter is moved"""
@@ -406,7 +372,7 @@ class MainWindow(QMainWindow):
             self.settings.load()
             # Reload presets first, then sync from config to preserve preset selection
             self.reload_presets(auto_select_default=False)
-            self.sync_from_config()
+            self.cfgc.sync_all_from_config(self)
             self.log_panel.appendLog("ℹ️ Restored last saved config.")
         except Exception as e:
             self.log_panel.appendLog(f"❌ Failed to restore config: {e}")
@@ -418,29 +384,7 @@ class MainWindow(QMainWindow):
         )
         if not file:
             return
-        try:
-            from pathlib import Path as _P
-            import tomllib as _tomllib
-            with open(_P(file), "rb") as f:
-                cfg = _tomllib.load(f)
-            # Before import: autosave Untitled if dirty
-            try:
-                self.autosave_untitled_if_needed()
-            except Exception:
-                pass
-            # Replace in-memory config only; normalize in-memory; persist on app close
-            self.settings.replace_config(cfg)
-            info = self.settings.get_normalize_info_once()
-            # Reload presets first, then sync from config to preserve preset selection
-            # 统一机制：reload_presets 会通过 select_label_and_load 触发信号加载内容
-            self.reload_presets(auto_select_default=False)
-            self.sync_from_config()
-            self.log_panel.appendLog(f"✅ Imported config applied: {self.settings.to_relative(file)}")
-            if info.get("changed"):
-                removed, added, type_fixed = info.get("removed", 0), info.get("added", 0), info.get("type_fixed", 0)
-                self.log_panel.appendLog(f"⚙️ Config normalized after import (removed: {removed}, added: {added}, type fixed: {type_fixed}). Please save to persist.")
-        except Exception as e:
-            self.log_panel.appendLog(f"❌ Failed to import config: {e}")
+        self.cfgc.import_config(self, Path(file))
 
     def export_config(self):
         start_dir = str((self.project_root / "data" / "configs").resolve())
@@ -463,68 +407,7 @@ class MainWindow(QMainWindow):
         if not file:
             return
         try:
-            # Sync all page configurations to settings before export
-            self.sync_basic_to_config()
-            self.sync_image_to_config()
-            self.sync_advanced_to_config()
-            # First sync current combo selections -> config
-            self.sync_pdf_to_config()
-            self.sync_css_to_config()
-            # Then autosave Untitled if dirty, which will also set label to 'Untitled'
-            self.autosave_untitled_if_needed()
-            # Validate before export; log issues but proceed
-            result = self.settings.validate()
-            if not result.is_valid:
-                problems = "\n".join(result.errors)
-                self.log_panel.appendLog("⚠️ Config validation issues before export:\n" + problems)
-            # Write selected path
-            from pathlib import Path as _P
-            from mdxscraper.config import config_manager as _cm
-            data = self.settings.get_config_dict()
-            # Freeze Untitled: if label is 'Untitled' OR current tab is dirty, create a timestamped snapshot and point label to it
-            try:
-                # Reload labels from settings after potential autosave
-                pdf_label = str(self.settings.get('pdf.preset_label', '') or '')
-                css_label = str(self.settings.get('css.preset_label', '') or '')
-                new_pdf_label = None
-                new_css_label = None
-                if self.pdf_dirty or pdf_label.strip().lower() == 'untitled':
-                    pdf_text = self.tab_pdf.pdf_editor.toPlainText()
-                    snap = self.presets.create_untitled_snapshot('pdf', pdf_text)
-                    # point label to snapshot stem
-                    self.settings.set('pdf.preset_label', snap.stem)
-                    data.setdefault('pdf', {})['preset_label'] = snap.stem
-                    self.log_panel.appendLog(f"📌 Frozen PDF Untitled to: {self.settings.to_relative(snap)}")
-                    new_pdf_label = snap.stem
-                if self.css_dirty or css_label.strip().lower() == 'untitled':
-                    css_text = self.tab_css.css_editor.toPlainText()
-                    snap = self.presets.create_untitled_snapshot('css', css_text)
-                    self.settings.set('css.preset_label', snap.stem)
-                    data.setdefault('css', {})['preset_label'] = snap.stem
-                    self.log_panel.appendLog(f"📌 Frozen CSS Untitled to: {self.settings.to_relative(snap)}")
-                    new_css_label = snap.stem
-            except Exception as fe:
-                self.log_panel.appendLog(f"⚠️ Failed to freeze Untitled: {fe}")
-            content = _cm.tomli_w.dumps(data)
-            p = _P(file)
-            p.parent.mkdir(parents=True, exist_ok=True)
-            with open(p, "w", encoding="utf-8") as f:
-                f.write(content)
-            self.log_panel.appendLog(f"✅ Exported config to: {self.settings.to_relative(file)}")
-            # If we created snapshots, reload presets and select the new labels via unified method
-            try:
-                if (locals().get('new_pdf_label') or locals().get('new_css_label')):
-                    self.reload_presets(auto_select_default=False)
-                    if locals().get('new_pdf_label'):
-                        self.select_label_and_load('pdf', new_pdf_label)
-                        self.pdf_dirty = False
-                        self.tab_pdf.show_dirty(False)
-                    if locals().get('new_css_label'):
-                        self.select_label_and_load('css', new_css_label)
-                        self.css_dirty = False
-                        self.tab_css.show_dirty(False)
-            except Exception:
-                pass
+            self.cfgc.export_config(self, Path(file))
         except Exception as e:
             self.log_panel.appendLog(f"❌ Failed to export config: {e}")
 
@@ -555,234 +438,22 @@ class MainWindow(QMainWindow):
             self.settings.set_output_file(text)
 
     def sync_from_config(self):
-        """Sync all pages from configuration using unified methods"""
-        # Sync Basic page
-        basic_config = self.settings.get_basic_config()
-        self.tab_basic.set_config(basic_config)
-
-        # Sync Image page
-        self.sync_image_from_config()
-
-        # Sync Advanced page
-        self.sync_advanced_from_config()
-
-        # Sync PDF page
-        pdf_config = self.settings.get_pdf_config()
-        self.tab_pdf.set_config(pdf_config)
-
-        # Sync CSS page
-        css_config = self.settings.get_css_config()
-        self.tab_css.set_config(css_config)
-
-        # Post-check: if configured labels are not present, enter * Untitled with empty editor
-        try:
-            # PDF label existence check (full label or base-name)
-            cfg_pdf_label = (pdf_config.preset_label or '').strip()
-            found_pdf = False
-            for i in range(self.tab_pdf.pdf_combo.count()):
-                item = self.tab_pdf.pdf_combo.itemText(i)
-                base = item.split(' [', 1)[0]
-                if item == cfg_pdf_label or base == cfg_pdf_label:
-                    found_pdf = True
-                    break
-            if not found_pdf and cfg_pdf_label:
-                self._enter_untitled_state('pdf', clear_editor=True)
-                try:
-                    self.settings.set('pdf.preset_label', '')
-                except Exception:
-                    pass
-            # CSS label existence check (full label or base-name)
-            cfg_css_label = (css_config.preset_label or '').strip()
-            found_css = False
-            for i in range(self.tab_css.css_combo.count()):
-                item = self.tab_css.css_combo.itemText(i)
-                base = item.split(' [', 1)[0]
-                if item == cfg_css_label or base == cfg_css_label:
-                    found_css = True
-                    break
-            if not found_css and cfg_css_label:
-                self._enter_untitled_state('css', clear_editor=True)
-                try:
-                    self.settings.set('css.preset_label', '')
-                except Exception:
-                    pass
-        except Exception:
-            pass
-
-        # Ensure initial load: if label is set and editor is empty, load from current selection
-        try:
-            if (self.settings.get('pdf.preset_label') or '').strip():
-                if not self.tab_pdf.pdf_editor.toPlainText().strip():
-                    idx = self.tab_pdf.pdf_combo.currentIndex()
-                    path = self.tab_pdf.pdf_combo.itemData(idx)
-                    if path:
-                        text = self.presets.load_preset_text(Path(path))
-                        self._updating_pdf_editor = True
-                        try:
-                            self.tab_pdf.pdf_editor.setPlainText(text)
-                        finally:
-                            self._updating_pdf_editor = False
-                        self.pdf_dirty = False
-                        self.tab_pdf.show_dirty(False)
-            if (self.settings.get('css.preset_label') or '').strip():
-                if not self.tab_css.css_editor.toPlainText().strip():
-                    idx = self.tab_css.css_combo.currentIndex()
-                    path = self.tab_css.css_combo.itemData(idx)
-                    if path:
-                        text = self.presets.load_preset_text(Path(path))
-                        self._updating_css_editor = True
-                        try:
-                            self.tab_css.css_editor.setPlainText(text)
-                        finally:
-                            self._updating_css_editor = False
-                        self.css_dirty = False
-                        self.tab_css.show_dirty(False)
-        except Exception:
-            pass
-
-    def sync_image_from_config(self):
-        """Sync Image page from configuration using unified method"""
-        image_config = self.settings.get_image_config()
-        self.tab_image.set_config(image_config)
-
-    def sync_image_to_config(self):
-        """Sync Image page to configuration using unified method"""
-        try:
-            image_config = self.tab_image.get_config()
-            self.settings.update_image_config(image_config)
-        except (ValueError, TypeError) as e:
-            # Ignore invalid values during typing, they'll be handled on export
-            pass
-
-    def sync_advanced_from_config(self):
-        """Sync Advanced page from configuration using unified method"""
-        advanced_config = self.settings.get_advanced_config()
-        self.tab_advanced.set_config(advanced_config)
-
-    def sync_advanced_to_config(self):
-        """Sync Advanced page to configuration using unified method"""
-        advanced_config = self.tab_advanced.get_config()
-        self.settings.update_advanced_config(advanced_config)
-
-    def sync_basic_to_config(self):
-        """Sync Basic page to configuration using unified method"""
-        basic_config = self.tab_basic.get_config()
-        self.settings.update_basic_config(basic_config)
-
-    def sync_pdf_to_config(self):
-        """Sync PDF page to configuration using unified method"""
-        pdf_config = self.tab_pdf.get_config()
-        self.settings.update_pdf_config(pdf_config)
-
-    def sync_css_to_config(self):
-        """Sync CSS page to configuration using unified method"""
-        css_config = self.tab_css.get_config()
-        self.settings.update_css_config(css_config)
+        # Deprecated: replaced by cfgc.sync_all_from_config(self)
+        self.cfgc.sync_all_from_config(self)
 
     # ---- Presets loading/saving ----
     def reload_presets(self, auto_select_default: bool = True):
-        # Preserve currently configured labels
-        current_pdf_label = str(self.settings.get('pdf.preset_label', '') or '')
-        current_css_label = str(self.settings.get('css.preset_label', '') or '')
-
-        # PDF presets - 使用统一方法选择，让信号自然触发
-        self.tab_pdf.pdf_combo.clear()
-        for label, path in self.presets.iter_presets('pdf'):
-            self.tab_pdf.pdf_combo.addItem(label, userData=str(path))
-        
-        # 使用统一方法选择预设，避免手动信号阻断
-        if current_pdf_label:
-            self.select_label_and_load('pdf', current_pdf_label)
-        elif self.tab_pdf.pdf_combo.count() > 0 and auto_select_default:
-            # 可选默认选择（保留时通常不使用）
-            preferred_label = None
-            for i in range(self.tab_pdf.pdf_combo.count()):
-                txt = self.tab_pdf.pdf_combo.itemText(i).lower()
-                if txt.startswith('default'):
-                    preferred_label = self.tab_pdf.pdf_combo.itemText(i)
-                    break
-            if preferred_label:
-                self.select_label_and_load('pdf', preferred_label)
-
-        # CSS presets - 使用统一方法选择，让信号自然触发
-        self.tab_css.css_combo.clear()
-        for label, path in self.presets.iter_presets('css'):
-            self.tab_css.css_combo.addItem(label, userData=str(path))
-        
-        # 使用统一方法选择预设，避免手动信号阻断
-        if current_css_label:
-            self.select_label_and_load('css', current_css_label)
-        elif self.tab_css.css_combo.count() > 0 and auto_select_default:
-            preferred_label = None
-            for i in range(self.tab_css.css_combo.count()):
-                txt = self.tab_css.css_combo.itemText(i).lower()
-                if txt.startswith('original'):
-                    preferred_label = self.tab_css.css_combo.itemText(i)
-                    break
-            if preferred_label:
-                self.select_label_and_load('css', preferred_label)
+        self.presetc.reload_presets(self, auto_select_default=auto_select_default)
 
     def _iter_presets(self, kind: str):
-        # Backward compatibility shim if needed elsewhere
+        # Deprecated shim
         yield from self.presets.iter_presets(kind)
 
     def on_pdf_preset_changed(self, label: str):
-        idx = self.tab_pdf.pdf_combo.currentIndex()
-        if idx < 0:
-            # No selection -> * Untitled state: ignore load
-            return
-        path = self.tab_pdf.pdf_combo.itemData(idx)
-        if path:
-            try:
-                text = self.presets.load_preset_text(Path(path))
-                # Programmatic update: suppress text_changed side effects
-                self._updating_pdf_editor = True
-                try:
-                    self.tab_pdf.pdf_editor.setPlainText(text)
-                finally:
-                    self._updating_pdf_editor = False
-                # Persist selection label only
-                self.settings.set('pdf.preset_label', label)
-                self.pdf_dirty = False
-                self.last_pdf_label = label
-                self.tab_pdf.show_dirty(False)
-            except Exception as e:
-                # Enter * Untitled state with empty editor per spec
-                self.log_panel.appendLog(f"❌ Failed to load PDF preset: {e}. Switched to * Untitled.")
-                self._enter_untitled_state('pdf', clear_editor=True)
-                # Clear invalid label from settings to avoid repeated failures
-                try:
-                    self.settings.set('pdf.preset_label', '')
-                except Exception:
-                    pass
+        self.presetc.on_pdf_preset_changed(self, label)
 
     def on_css_preset_changed(self, label: str):
-        idx = self.tab_css.css_combo.currentIndex()
-        if idx < 0:
-            # No selection -> * Untitled state: ignore load
-            return
-        path = self.tab_css.css_combo.itemData(idx)
-        if path:
-            try:
-                text = self.presets.load_preset_text(Path(path))
-                self._updating_css_editor = True
-                try:
-                    self.tab_css.css_editor.setPlainText(text)
-                finally:
-                    self._updating_css_editor = False
-                # Persist selection label only
-                self.settings.set('css.preset_label', label)
-                self.css_dirty = False
-                self.last_css_label = label
-                self.tab_css.show_dirty(False)
-            except Exception as e:
-                # Enter * Untitled state with empty editor per spec
-                self.log_panel.appendLog(f"❌ Failed to load CSS preset: {e}. Switched to * Untitled.")
-                self._enter_untitled_state('css', clear_editor=True)
-                try:
-                    self.settings.set('css.preset_label', '')
-                except Exception:
-                    pass
+        self.presetc.on_css_preset_changed(self, label)
 
     def on_pdf_save_clicked(self):
         user_dir = (self.project_root / 'data' / 'configs' / 'pdf').resolve()
@@ -798,9 +469,9 @@ class MainWindow(QMainWindow):
             # Reload presets and select the saved label via unified method
             saved_label = Path(file).stem
             self.reload_presets(auto_select_default=False)
-            self.select_label_and_load('pdf', saved_label)
+            self.presetc.select_label_and_load(self, 'pdf', saved_label)
             self.settings.set('pdf.preset_label', saved_label)
-            self.sync_pdf_to_config()
+            # settings already updated by set('pdf.preset_label')
             self.pdf_dirty = False
             self.last_pdf_label = saved_label
             self.tab_pdf.show_dirty(False)
@@ -821,9 +492,9 @@ class MainWindow(QMainWindow):
             # Reload presets and select the saved label via unified method
             saved_label = Path(file).stem
             self.reload_presets(auto_select_default=False)
-            self.select_label_and_load('css', saved_label)
+            self.presetc.select_label_and_load(self, 'css', saved_label)
             self.settings.set('css.preset_label', saved_label)
-            self.sync_css_to_config()
+            # settings already updated by set('css.preset_label')
             self.css_dirty = False
             self.last_css_label = saved_label
             self.tab_css.show_dirty(False)
@@ -831,16 +502,10 @@ class MainWindow(QMainWindow):
             self.log_panel.appendLog(f"❌ Failed to save CSS preset: {e}")
 
     def on_pdf_text_changed(self):
-        if self._updating_pdf_editor:
-            return
-        # Enter * Untitled state due to user edit, keep editor content
-        self._enter_untitled_state('pdf', clear_editor=False)
+        self.presetc.on_pdf_text_changed(self)
 
     def on_css_text_changed(self):
-        if self._updating_css_editor:
-            return
-        # Enter * Untitled state due to user edit, keep editor content
-        self._enter_untitled_state('css', clear_editor=False)
+        self.presetc.on_css_text_changed(self)
 
     def on_pdf_refresh_clicked(self):
         self.reload_presets(auto_select_default=False)
@@ -848,125 +513,20 @@ class MainWindow(QMainWindow):
     def on_css_refresh_clicked(self):
         self.reload_presets(auto_select_default=False)
 
-    def resolve_effective_preset_text(self, kind: str) -> str:
-        """Per spec: Scrape uses editor content directly (autosave handled by caller)."""
-        try:
-            if kind == 'pdf':
-                return self.tab_pdf.pdf_editor.toPlainText()
-            else:
-                return self.tab_css.css_editor.toPlainText()
-        except Exception:
-            return ''
-
-
     def autosave_untitled_if_needed(self):
-        if self.pdf_dirty:
-            self.autosave_untitled('pdf')
-        if self.css_dirty:
-            self.autosave_untitled('css')
+        self.presetc.autosave_untitled_if_needed(self)
 
     def autosave_untitled(self, kind: str):
-        try:
-            if kind == 'pdf':
-                text = self.tab_pdf.pdf_editor.toPlainText()
-                out = (self.project_root / 'data' / 'configs' / 'pdf' / 'Untitled.toml')
-                self.presets.save_preset_text(out, text)
-                self.settings.set('pdf.preset_label', 'Untitled')
-                self.pdf_dirty = False
-                self.tab_pdf.show_dirty(False)
-                # Ensure combo shows 'Untitled' after autosave
-                self.reload_presets(auto_select_default=False)
-                self.select_label_and_load('pdf', 'Untitled')
-            else:
-                text = self.tab_css.css_editor.toPlainText()
-                out = (self.project_root / 'data' / 'configs' / 'css' / 'Untitled.toml')
-                self.presets.save_preset_text(out, text)
-                self.settings.set('css.preset_label', 'Untitled')
-                self.css_dirty = False
-                self.tab_css.show_dirty(False)
-                # Ensure combo shows 'Untitled' after autosave
-                self.reload_presets(auto_select_default=False)
-                self.select_label_and_load('css', 'Untitled')
-        except Exception as e:
-            self.log_panel.appendLog(f"⚠️ Failed to autosave Untitled: {e}")
+        # Backward-compat shim: delegate to coordinator
+        if kind in ('pdf', 'css'):
+            self.presetc._autosave_untitled(self, kind)
 
     # --- Unified preset selection and * Untitled state helpers ---
     def _enter_untitled_state(self, kind: str, clear_editor: bool = True) -> None:
-        """Enter * Untitled state: combo shows no selection (-1), dirty shown.
-
-        If clear_editor is True, editor is cleared (e.g., load failure). If False,
-        keep current editor content (e.g., user edits).
-        """
-        if kind == 'pdf':
-            combo = self.tab_pdf.pdf_combo
-            editor = self.tab_pdf.pdf_editor
-            show_dirty = self.tab_pdf.show_dirty
-            if clear_editor:
-                self._updating_pdf_editor = True
-                try:
-                    editor.setPlainText("")
-                finally:
-                    self._updating_pdf_editor = False
-            combo.setCurrentIndex(-1)
-            self.pdf_dirty = True
-            show_dirty(True)
-        else:
-            combo = self.tab_css.css_combo
-            editor = self.tab_css.css_editor
-            show_dirty = self.tab_css.show_dirty
-            if clear_editor:
-                self._updating_css_editor = True
-                try:
-                    editor.setPlainText("")
-                finally:
-                    self._updating_css_editor = False
-            combo.setCurrentIndex(-1)
-            self.css_dirty = True
-            show_dirty(True)
+        self.presetc.enter_untitled_state(self, kind, clear_editor)
 
     def select_label_and_load(self, kind: str, label: str) -> None:
-        """Unified entry to select a preset by label and trigger load via signal."""
-        combo = self.tab_pdf.pdf_combo if kind == 'pdf' else self.tab_css.css_combo
-        matched_index = -1
-        for i in range(combo.count()):
-            if combo.itemText(i) == label:
-                matched_index = i
-                break
-        if matched_index >= 0:
-            combo.setCurrentIndex(matched_index)
-            return
-        # Not found: enter * Untitled state (keep content) and clear invalid config label
-        self._enter_untitled_state(kind, clear_editor=False)
-        try:
-            if kind == 'pdf':
-                self.settings.set('pdf.preset_label', '')
-            else:
-                self.settings.set('css.preset_label', '')
-        except Exception:
-            pass
-
-    def open_user_data_dir(self):
-        """Open the application's user data directory (project_root/data) in the OS file manager."""
-        try:
-            target = (self.project_root / 'data').resolve()
-            target.mkdir(parents=True, exist_ok=True)
-            # Cross-platform open
-            import platform, subprocess, os
-            system = platform.system()
-            if system == 'Windows':
-                os.startfile(str(target))  # type: ignore[attr-defined]
-            elif system == 'Darwin':
-                subprocess.Popen(['open', str(target)])
-            else:
-                subprocess.Popen(['xdg-open', str(target)])
-            # Also reflect absolute path in Advanced page field if available
-            try:
-                if hasattr(self, 'tab_advanced') and hasattr(self.tab_advanced, 'edit_data_path'):
-                    self.tab_advanced.edit_data_path.setText(str(target))
-            except Exception:
-                pass
-        except Exception as e:
-            self.log_panel.appendLog(f"❌ Failed to open data folder: {e}")
+        self.presetc.select_label_and_load(self, kind, label)
 
     # update_tab_enablement removed: tabs are always enabled now
 

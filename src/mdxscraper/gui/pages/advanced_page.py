@@ -1,37 +1,13 @@
 from __future__ import annotations
 
 from pathlib import Path
-from PySide6.QtCore import Qt, Signal, QThread
+from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (
     QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit,
-    QPushButton, QCheckBox, QFileDialog, QSizePolicy, QSpacerItem
+    QPushButton, QFileDialog, QSizePolicy, QSpacerItem
 )
-from PySide6.QtGui import QFont
 
-from mdxscraper.utils.path_utils import get_auto_detect_status, validate_wkhtmltopdf_path, force_auto_detect
 from mdxscraper.gui.models.config_models import AdvancedConfig
-
-class ValidationWorker(QThread):
-    """Worker thread for validating wkhtmltopdf paths"""
-    validation_complete = Signal(bool, str, str)  # is_valid, path, message
-
-    def __init__(self, path: str, force_redetect: bool = False):
-        super().__init__()
-        self.path = path
-        self.force_redetect = force_redetect
-
-    def run(self):
-        if not self.path or self.path in ("auto", ""):
-            # Auto-detect
-            if self.force_redetect:
-                is_valid, detected_path, message = force_auto_detect()
-            else:
-                is_valid, detected_path, message = get_auto_detect_status()
-            self.validation_complete.emit(is_valid, detected_path, message)
-        else:
-            # Manual path
-            is_valid, message = validate_wkhtmltopdf_path(self.path)
-            self.validation_complete.emit(is_valid, self.path, message)
 
 class AdvancedPage(QWidget):
     # Signals for communicating with MainWindow
@@ -65,7 +41,6 @@ class AdvancedPage(QWidget):
 
         self.btn_auto_detect = QPushButton("Auto-detect", self)
         self.btn_auto_detect.setFixedWidth(90)
-        self.btn_auto_detect.setToolTip("Auto-detect wkhtmltopdf installation")
         path_section.addWidget(self.btn_auto_detect)
         layout.addLayout(path_section)
 
@@ -87,23 +62,17 @@ class AdvancedPage(QWidget):
 
         self.btn_open_data = QPushButton("Open", self)
         self.btn_open_data.setFixedWidth(90)
-        self.btn_open_data.setToolTip("Open the application's data directory")
         self.btn_open_data.setObjectName("open-data-button")
         data_section.addWidget(self.btn_open_data)
 
-        self.btn_auto_detect_data = QPushButton("Auto-detect", self)
-        self.btn_auto_detect_data.setFixedWidth(90)
-        self.btn_auto_detect_data.setToolTip("Auto-detect data directory path")
-        data_section.addWidget(self.btn_auto_detect_data)
+        # Removed data path auto-detect button to avoid redundancy and confusion
         layout.addLayout(data_section)
 
         # Add some spacing at the bottom
         layout.addItem(QSpacerItem(20, 20, QSizePolicy.Minimum, QSizePolicy.Expanding))
 
-        # Initialize validation worker
-        self.validation_worker = None
-        self.has_been_validated = False  # Track if validation has been performed
-        self.auto_detect_failed = False  # Track if auto-detect has failed
+        # Validation state (lightweight)
+        self.auto_detect_failed = False
 
         # Connect signals
         self._connect_signals()
@@ -117,92 +86,74 @@ class AdvancedPage(QWidget):
         self.btn_browse_wkhtmltopdf.clicked.connect(self._browse_wkhtmltopdf_path)
         self.btn_auto_detect.clicked.connect(self._auto_detect)
         self.btn_open_data.clicked.connect(self.open_user_data_requested.emit)
-        self.btn_auto_detect_data.clicked.connect(self._auto_detect_data_path)
 
     def _on_path_changed(self):
         """Handle path text changes and update status indicator"""
         self._validate_current_path()
         self.wkhtmltopdf_path_changed.emit()
 
-    def _validate_current_path(self):
-        """Start validation of the current path"""
-        current_path = self.edit_wkhtmltopdf_path.text().strip()
-
-        # Cancel any existing validation
-        if self.validation_worker and self.validation_worker.isRunning():
-            self.validation_worker.terminate()
-            self.validation_worker.wait()
-
-        # Show loading state
-        self._update_status_indicator()
-
-        # Start new validation
-        self.validation_worker = ValidationWorker(current_path)
-        self.validation_worker.validation_complete.connect(self._on_validation_complete)
-        self.validation_worker.start()
-        self.has_been_validated = True
-
-    def _on_validation_complete(self, is_valid: bool, path: str, message: str):
-        """Handle validation completion"""
-        # Update placeholder text based on validation result
-        self._update_placeholder_text(is_valid)
-
-        # If auto-detect was successful, save the detected path to config
-        if is_valid and path and path != "wkhtmltopdf":
-            current_input = self.edit_wkhtmltopdf_path.text().strip()
-            if not current_input or current_input in ("auto", ""):
-                # Auto-detect was successful, save the detected path
-                self.edit_wkhtmltopdf_path.setText(path)
-                self.wkhtmltopdf_path_changed.emit()
+    def _validate_current_path(self, force_redetect: bool = False):
+        """Validate or auto-detect via ConfigCoordinator (no threading)."""
+        try:
+            filec = self._resolve_cfgc()
+            path = self.edit_wkhtmltopdf_path.text().strip()
+            if filec is None:
+                # Can't reach coordinator; keep placeholder states
+                return
+            ok, resolved, msg = filec.validate_wkhtmltopdf(path, force_redetect)
+            # Update placeholder
+            self._update_placeholder_text(ok)
+            # Apply detected path only when appropriate
+            if ok and resolved and (not path or path in ("auto", "")):
+                self.edit_wkhtmltopdf_path.setText(resolved)
                 self.auto_detect_failed = False
-        else:
-            # Auto-detect failed
+            elif not ok:
+                self.auto_detect_failed = True
+        except Exception:
             self.auto_detect_failed = True
-
-        # Clean up worker
-        if self.validation_worker:
-            self.validation_worker.deleteLater()
-            self.validation_worker = None
 
     def _auto_detect(self):
         """Trigger auto-detection"""
         # Clear the input field to trigger auto-detect
         self.edit_wkhtmltopdf_path.setText("")
 
-        # Cancel any existing validation
-        if self.validation_worker and self.validation_worker.isRunning():
-            self.validation_worker.terminate()
-            self.validation_worker.wait()
-
-        # Start forced validation
-        self.validation_worker = ValidationWorker("", force_redetect=True)
-        self.validation_worker.validation_complete.connect(self._on_validation_complete)
-        self.validation_worker.start()
-
+        self._validate_current_path(force_redetect=True)
         self.wkhtmltopdf_path_changed.emit()
 
-    def _auto_detect_data_path(self):
-        """Show absolute user data directory path (e.g., C:\\Apps\\MdxScraper\\data)"""
+    def _resolve_filec(self):
+        """Walk up the parent chain to find an object that owns 'filec'."""
         try:
-            # Try to get project_root from parent; fallback to repo root via file location
-            parent = self.parent()
-            project_root = None
-            if parent is not None and hasattr(parent, 'project_root'):
-                project_root = parent.project_root
-            else:
-                try:
-                    project_root = Path(__file__).resolve().parents[3]
-                except Exception:
-                    project_root = None
-
-            if project_root is not None:
-                data_dir = (Path(project_root) / 'data').resolve()
-                self.edit_data_path.setText(str(data_dir))
-            else:
-                # Fallback: keep default hint
-                self._update_data_path()
+            p = self.parent()
+            # Traverse up to a reasonable depth to find filec
+            for _ in range(6):
+                if p is None:
+                    break
+                if hasattr(p, 'filec'):
+                    return getattr(p, 'filec')
+                if hasattr(p, 'parent') and callable(p.parent):
+                    p = p.parent()
+                else:
+                    break
         except Exception:
-            self._update_data_path()
+            return None
+        return None
+
+    def _resolve_cfgc(self):
+        """Walk up the parent chain to find an object that owns 'cfgc' (ConfigCoordinator)."""
+        try:
+            p = self.parent()
+            for _ in range(6):
+                if p is None:
+                    break
+                if hasattr(p, 'cfgc'):
+                    return getattr(p, 'cfgc')
+                if hasattr(p, 'parent') and callable(p.parent):
+                    p = p.parent()
+                else:
+                    break
+        except Exception:
+            return None
+        return None
 
     def _update_data_path(self):
         """Show default relative hint in grey text."""

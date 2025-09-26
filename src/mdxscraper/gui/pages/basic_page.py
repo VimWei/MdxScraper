@@ -8,7 +8,6 @@ from PySide6.QtWidgets import (
 
 from mdxscraper.gui.models.config_models import BasicConfig
 
-
 class BasicPage(QWidget):
     def __init__(self, parent: QWidget | None = None):
         super().__init__(parent)
@@ -106,10 +105,4 @@ class BasicPage(QWidget):
         self.check_timestamp.setChecked(config.output_add_timestamp)
         self.check_backup.setChecked(config.backup_input)
         self.check_save_invalid.setChecked(config.save_invalid_words)
-        # default True if field missing in imported older configs
-        try:
-            self.check_with_toc.setChecked(bool(config.with_toc))
-        except Exception:
-            self.check_with_toc.setChecked(True)
-
-
+        self.check_with_toc.setChecked(config.with_toc)

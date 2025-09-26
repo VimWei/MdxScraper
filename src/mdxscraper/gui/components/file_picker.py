@@ -3,7 +3,6 @@ from __future__ import annotations
 from PySide6.QtCore import Signal
 from PySide6.QtWidgets import QWidget, QHBoxLayout, QLineEdit, QPushButton
 
-
 class FilePicker(QWidget):
     textChanged = Signal(str)
     browseRequested = Signal()
@@ -27,5 +26,3 @@ class FilePicker(QWidget):
 
     def _on_edit_finished(self) -> None:
         self.textChanged.emit(self.edit.text())
-
-

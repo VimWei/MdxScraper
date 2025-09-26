@@ -6,7 +6,6 @@ from PySide6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QComboB
 
 from mdxscraper.gui.models.config_models import CssConfig
 
-
 class CssPage(QWidget):
     # Signals for communicating with MainWindow
     preset_changed = Signal(str)  # preset label
@@ -18,7 +17,7 @@ class CssPage(QWidget):
         super().__init__(parent)
         layout = QVBoxLayout(self)
         layout.setContentsMargins(8, 8, 8, 8)
-        
+
         # Preset selection row
         row_css = QHBoxLayout()
         row_css.addWidget(QLabel("Preset:", self))
@@ -38,7 +37,7 @@ class CssPage(QWidget):
         self.btn_css_save.clicked.connect(self.save_clicked.emit)
         row_css.addWidget(self.btn_css_save)
         layout.addLayout(row_css)
-        
+
         # CSS editor
         self.css_editor = QTextEdit(self)
         self.css_editor.setPlaceholderText("[style]\n# h1_style=..., scrap_style=..., additional_styles=... (TOML)")
@@ -57,7 +56,6 @@ class CssPage(QWidget):
 
     def set_config(self, config: CssConfig) -> None:
         """Set page configuration from data class"""
-        # Only set preset label selection; editor text不再从配置读取
         # Set preset label if it exists in combo box
         label_raw = (config.preset_label or "").strip()
         base_label = label_raw
@@ -82,5 +80,3 @@ class CssPage(QWidget):
             if item_base == base_label:
                 self.css_combo.setCurrentIndex(i)
                 return
-
-

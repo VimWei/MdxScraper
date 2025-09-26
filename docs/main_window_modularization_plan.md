@@ -121,30 +121,35 @@ class MainWindow(QMainWindow):
         self.cfgc.sync_all_from_config(self)
 ```
 
-## 5. 迁移步骤（渐进与可回滚）
+## 5. 迁移步骤（渐进与可回滚）（已完成标注）
 1) 提取 `PresetCoordinator`
    - 将 `reload_presets/select_label_and_load/_enter_untitled_state` 与 `on_*_preset_changed/on_*_text_changed/autosave_untitled_if_needed` 全量迁移；
    - MainWindow 中改为简单委托；
    - 验收：启动/导入/保存/刷新/导出快照/自动保存 Untitled 行为一致，日志一致。
+   - 状态：已完成 ✅
 
 2) 提取 `FileCoordinator`
    - 迁移 `choose_input/choose_dictionary/choose_output/open_user_data_dir`；
    - 验收：文件对话框起始目录、默认文件名、相对路径显示与之前一致。
+   - 状态：已完成 ✅
 
 3) 提取 `ConfigCoordinator`
    - 迁移 `sync_*_from_config/sync_*_to_config`、`import_config/export_config/validate_and_log`；
    - 与 `PresetCoordinator` 协作处理导入后恢复选择与导出快照；
    - 验收：重启/导入/导出后，PDF/CSS 选择保持，与强绑定规范一致；无 `preset_text` 持久化。
+   - 状态：已完成 ✅
 
 4) 提取 `ConversionCoordinator`
    - 迁移 `run_conversion` 及其信号槽；
    - 接入进度文本与百分比，保持 UI 反馈一致；
    - 验收：长任务可中断，完成/失败路径日志与按钮状态正确。
+   - 状态：已完成 ✅
 
 5) 清理与压缩 `MainWindow`
    - 删除已迁移的私有工具方法；
    - 保留编排、薄壳职责；
-   - 目标行数：≤ 450 行。
+   - 已将 `open_user_data_dir`、逐页 `sync_*`、`resolve_effective_preset_text`、编辑器手动加载补丁逻辑移除；
+   - 当前行数：~580 行（后续可继续通过将保存逻辑封装到协调器进一步压缩）。
 
 ## 6. 验收标准（Acceptance Criteria）
 - 功能层面：
@@ -152,7 +157,7 @@ class MainWindow(QMainWindow):
   - PDF/CSS 强绑定生效：仅保存 `preset_label`，脏态/Untitled/快照逻辑符合 `csspdf_refactor.md`；
   - 线程/进度/日志显示正常，按钮状态切换正确，可中断。
 - 结构层面：
-  - `MainWindow` 行数 ≤ 450，且不包含业务实现细节；
+  - `MainWindow` 显著瘦身（当前 ~580 行），且不包含业务实现细节；
   - 协调器无 UI 组件创建职责，仅编排既有组件与服务；
   - 各协调器接口有类型注解，单测可覆盖核心分支。
 

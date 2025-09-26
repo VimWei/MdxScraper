@@ -181,10 +181,12 @@ class ConfigManager:
 
     def _to_external_path(self, any_path: str | Path) -> str:
         p = Path(any_path)
+        resolved = p.resolve()
         try:
-            return str(p.resolve().relative_to(self.project_root))
+            rel = resolved.relative_to(self.project_root)
+            return rel.as_posix()
         except Exception:
-            return str(p)
+            return resolved.as_posix()
 
     def _normalize_config(self) -> None:
         """Normalize in-memory config to the latest schema.

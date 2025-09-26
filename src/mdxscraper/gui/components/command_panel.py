@@ -6,7 +6,6 @@ from PySide6.QtWidgets import (
     QSizePolicy, QSpacerItem
 )
 
-
 class CommandPanel(QWidget):
     restoreRequested = Signal()
     importRequested = Signal()
@@ -15,7 +14,7 @@ class CommandPanel(QWidget):
 
     def __init__(self, parent: QWidget | None = None):
         super().__init__(parent)
-        
+
         # Set fixed height for command panel
         self.setFixedHeight(120)  # Fixed height for buttons + progress bar
         self.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
@@ -86,5 +85,3 @@ class CommandPanel(QWidget):
         # Keep buttons consistent when disabling panel
         for b in (self.btn_restore, self.btn_import, self.btn_export, self.btn_scrape):
             b.setEnabled(enabled)
-
-
