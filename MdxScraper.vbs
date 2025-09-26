@@ -6,10 +6,6 @@ Set WshShell = CreateObject("WScript.Shell")
 ' Get the directory where this VBScript is located.
 appDir = CreateObject("Scripting.FileSystemObject").GetParentFolderName(WScript.ScriptFullName)
 
-' --- User Configuration ---
-entryScript = "MdxScraper.py"
-' --------------------------
-
 ' Use chr(34) to represent the double-quote character (") for clarity.
 q = chr(34)
 
