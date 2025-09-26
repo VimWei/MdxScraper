@@ -495,7 +495,7 @@ class MainWindow(QMainWindow):
             # 统一机制：reload_presets 会通过 select_label_and_load 触发信号加载内容
             self.reload_presets(auto_select_default=False)
             self.sync_from_config()
-            self.log_panel.appendLog(f"✅ Imported config applied: {file}")
+            self.log_panel.appendLog(f"✅ Imported config applied: {self.settings.to_relative(file)}")
             if info.get("changed"):
                 removed, added, type_fixed = info.get("removed", 0), info.get("added", 0), info.get("type_fixed", 0)
                 self.log_panel.appendLog(f"⚙️ Config normalized after import (removed: {removed}, added: {added}, type fixed: {type_fixed}). Please save to persist.")
@@ -570,7 +570,7 @@ class MainWindow(QMainWindow):
             p.parent.mkdir(parents=True, exist_ok=True)
             with open(p, "w", encoding="utf-8") as f:
                 f.write(content)
-            self.log_panel.appendLog(f"✅ Exported config to: {file}")
+            self.log_panel.appendLog(f"✅ Exported config to: {self.settings.to_relative(file)}")
             # If we created snapshots, reload presets and select the new labels via unified method
             try:
                 if (locals().get('new_pdf_label') or locals().get('new_css_label')):

@@ -137,7 +137,7 @@ class ConversionWorker(QThread):
                 seconds = duration % 60
                 duration_str = f"{minutes}m {seconds:.1f}s"
 
-            self.log_sig.emit(f"⏱️ The entire process took a total of {duration_str}.")
+            self.log_sig.emit(f"⏱️ The entire process took a total of {duration_str}.\n")
         except Exception as e:
             self.error_sig.emit(str(e))
 
