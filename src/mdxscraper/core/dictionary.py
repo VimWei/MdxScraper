@@ -2,8 +2,6 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from bs4 import BeautifulSoup
-
 from mdxscraper.mdict.mdict_query import IndexBuilder
 
 
@@ -12,8 +10,8 @@ class Dictionary:
         self.mdx_path = Path(mdx_file)
         self._impl = IndexBuilder(self.mdx_path)
 
-    def lookup_html(self, word: str) -> str:
-        word = word.strip()
+    def _lookup_with_fallback(self, word: str) -> str:
+        """查找词条，包含多种回退策略"""
         definitions = self._impl.mdx_lookup(word)
         if len(definitions) == 0:
             definitions = self._impl.mdx_lookup(word, ignorecase=True)
@@ -21,11 +19,19 @@ class Dictionary:
             definitions = self._impl.mdx_lookup(word.replace("-", ""), ignorecase=True)
         if len(definitions) == 0:
             return ""
-        definition = definitions[0]
+        return definitions[0].strip()
+
+    def lookup_html(self, word: str) -> str:
+        word = word.strip()
+        definition = self._lookup_with_fallback(word)
+        if not definition:
+            return ""
+        
         if definition.startswith("@@@LINK="):
-            return self._impl.mdx_lookup(definition.replace("@@@LINK=", "").strip())[0].strip()
+            linked_word = definition.replace("@@@LINK=", "").strip()
+            return self._lookup_with_fallback(linked_word)
         else:
-            return definition.strip()
+            return definition
 
     @property
     def impl(self):
