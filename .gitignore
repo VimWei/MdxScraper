@@ -1,6 +1,5 @@
 # Application data
 data/
-tests/
 
 # Python
 **/__pycache__/
@@ -24,3 +23,15 @@ venv/
 # OS
 .DS_Store
 Thumbs.db
+
+
+# 测试相关
+tests/__pycache__/
+tests/.pytest_cache/
+tests/temp_*
+tests/test_data/
+tests/*.tmp
+
+# 但保留正式的测试文件
+!tests/test_*.py
+!tests/__init__.py
