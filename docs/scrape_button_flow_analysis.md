@@ -4,6 +4,8 @@
 
 本文档详细分析了从按下 Scrape 按钮开始，MdxScraper 程序的完整执行流程。通过模块化设计，程序采用了分层架构，每层都有明确的职责分工。
 
+**注意**: 本文档已根据v4.7的重构架构进行更新，反映了从 `gui/` 子目录到独立模块的迁移，以及新增的 Services 和 Coordinators 层。
+
 ## 完整调用流程图
 
 ```
@@ -67,7 +69,7 @@ def run_conversion(self):
 
 ### 3. 协调器层 (Coordinator)
 
-**文件**: `src/mdxscraper/gui/coordinators/conversion_coordinator.py`
+**文件**: `src/mdxscraper/coordinators/conversion_coordinator.py`
 
 ```python
 # 第22-41行: 主要协调逻辑
@@ -75,7 +77,7 @@ def run(self, mw) -> None:
     # 同步所有页面配置到设置
     mw.cfgc.sync_all_to_config(mw)
     # 自动保存未命名的预设
-    mw.presetc.autosave_untitled_if_needed(mw)
+    mw.preset_coordinator.autosave_untitled_if_needed(mw)
     # 禁用 Scrape 按钮
     mw.command_panel.btn_scrape.setEnabled(False)
     # 获取编辑器内容
@@ -101,7 +103,7 @@ def run(self, mw) -> None:
 
 ### 4. 工作线程层 (Worker)
 
-**文件**: `src/mdxscraper/gui/workers/conversion_worker.py`
+**文件**: `src/mdxscraper/workers/conversion_worker.py`
 
 ```python
 # 第30-143行: 主要工作逻辑
@@ -109,14 +111,18 @@ def run(self):
     try:
         # 获取配置信息
         cfg = self._settings_service.get_config_dict()
-        basic = cfg.get('basic', {})
+        basic = cfg.get('basic', {}) if isinstance(cfg, dict) else {}
         input_val = basic.get('input_file')
         dict_val = basic.get('dictionary_file')
         output_val = basic.get('output_file')
         
         # 验证必需字段
         if not input_val or not dict_val or not output_val:
-            # 抛出错误...
+            missing = []
+            if not input_val: missing.append('basic.input_file')
+            if not dict_val: missing.append('basic.dictionary_file')
+            if not output_val: missing.append('basic.output_file')
+            raise ValueError('Missing required field(s): ' + ', '.join(missing))
         
         # 解析路径
         input_file = self._settings_service.resolve_path(input_val)
@@ -124,10 +130,19 @@ def run(self):
         output_path = self._settings_service.resolve_path(output_val)
         
         # 应用时间戳
+        timestamp_enabled = self._settings_service.get_output_add_timestamp()
         if timestamp_enabled:
-            # 添加时间戳到输出文件名...
+            from datetime import datetime
+            current_time = datetime.now().strftime("%Y%m%d-%H%M%S")
+            output_dir = output_path.parent
+            output_name = output_path.name
+            output_path = output_dir / (current_time + '_' + output_name)
         
         # 执行转换
+        def progress_callback(progress: int, message: str):
+            scaled_progress = 10 + int((progress / 100) * 80)
+            self.progress_sig.emit(scaled_progress, message)
+        
         found, not_found, invalid_words = self._export_service.execute_export(
             input_file, mdx_file, output_path, 
             pdf_text=self._pdf_text or '', 
@@ -154,7 +169,7 @@ def run(self):
 
 ### 5. 导出服务层 (Service)
 
-**文件**: `src/mdxscraper/gui/services/export_service.py`
+**文件**: `src/mdxscraper/services/export_service.py`
 
 ```python
 # 第52-79行: 导出执行逻辑
@@ -269,7 +284,7 @@ def mdx2img(mdx_file, input_file, output_file, img_options=None, ...):
 
 ### 7. 信号回调处理
 
-**文件**: `src/mdxscraper/gui/coordinators/conversion_coordinator.py`
+**文件**: `src/mdxscraper/coordinators/conversion_coordinator.py`
 
 ```python
 # 第43-65行: 信号回调处理
@@ -305,12 +320,12 @@ def on_log(self, mw, text: str) -> None:
 
 | 层级 | 文件 | 职责 |
 |------|------|------|
-| **UI 层** | `command_panel.py` | 按钮定义和信号发射 |
-| **主窗口** | `main_window.py` | 信号连接和委托 |
-| **协调器** | `conversion_coordinator.py` | 流程协调和状态管理 |
-| **工作线程** | `conversion_worker.py` | 后台执行和进度报告 |
-| **导出服务** | `export_service.py` | 转换类型选择和参数构建 |
-| **核心转换** | `converter.py` | 实际的 MDX 到目标格式转换 |
+| **UI 层** | `gui/components/command_panel.py` | 按钮定义和信号发射 |
+| **主窗口** | `gui/main_window.py` | 信号连接和委托 |
+| **协调器** | `coordinators/conversion_coordinator.py` | 流程协调和状态管理 |
+| **工作线程** | `workers/conversion_worker.py` | 后台执行和进度报告 |
+| **导出服务** | `services/export_service.py` | 转换类型选择和参数构建 |
+| **核心转换** | `core/converter.py` | 实际的 MDX 到目标格式转换 |
 
 ## 架构特点
 
@@ -319,12 +334,19 @@ def on_log(self, mw, text: str) -> None:
 3. **异步处理**: 使用工作线程避免 UI 阻塞
 4. **模块化**: 各个功能模块独立，便于扩展和修改
 5. **错误处理**: 完善的异常处理和用户反馈机制
+6. **服务化**: 通过 Services 层统一管理配置、预设和导出逻辑
+7. **协调器模式**: 使用 Coordinators 协调不同服务之间的交互
+8. **进度回调**: 支持细粒度的进度报告和状态更新
 
 ## 扩展点
 
 - **新增输出格式**: 在 `ExportService.execute_export()` 中添加新的格式支持
-- **自定义转换逻辑**: 在 `converter.py` 中添加新的转换函数
-- **UI 增强**: 在 `command_panel.py` 中添加新的控制元素
-- **进度报告**: 在 `conversion_worker.py` 中自定义进度回调
+- **自定义转换逻辑**: 在 `core/converter.py` 中添加新的转换函数
+- **UI 增强**: 在 `gui/components/command_panel.py` 中添加新的控制元素
+- **进度报告**: 在 `workers/conversion_worker.py` 中自定义进度回调
+- **服务扩展**: 在 `services/` 目录下添加新的服务类
+- **协调器扩展**: 在 `coordinators/` 目录下添加新的协调器
+- **预设管理**: 通过 `PresetsService` 扩展预设功能
+- **配置管理**: 通过 `SettingsService` 扩展配置选项
 
 这种架构设计使得程序具有良好的可维护性和可扩展性，每个模块都可以独立开发和测试。
