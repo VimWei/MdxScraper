@@ -13,7 +13,7 @@ from bs4 import BeautifulSoup
 from PIL import Image
 
 from mdxscraper.core.dictionary import Dictionary
-from mdxscraper.core.parser import get_words
+from mdxscraper.core.parser import WordParser
 from mdxscraper.core.renderer import embed_images, merge_css
 from mdxscraper.utils.path_utils import get_wkhtmltopdf_path, validate_wkhtmltopdf_for_pdf_conversion
 
@@ -33,7 +33,7 @@ def mdx2html(
 
     mdx_file = Path(mdx_file)
     dictionary = Dictionary(mdx_file)
-    lessons = get_words(str(input_file))
+    lessons = WordParser(str(input_file)).parse()
 
     if progress_callback:
         progress_callback(5, "Loading dictionary and parsing input...")
