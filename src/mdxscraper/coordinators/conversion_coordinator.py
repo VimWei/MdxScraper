@@ -4,9 +4,9 @@ from pathlib import Path
 from typing import Optional
 
 from mdxscraper.config.config_manager import ConfigManager
-from mdxscraper.gui.services.settings_service import SettingsService
-from mdxscraper.gui.services.presets_service import PresetsService
-from mdxscraper.gui.workers.conversion_worker import ConversionWorker
+from mdxscraper.services.settings_service import SettingsService
+from mdxscraper.services.presets_service import PresetsService
+from mdxscraper.workers.conversion_worker import ConversionWorker
 
 
 class ConversionCoordinator:
@@ -23,7 +23,7 @@ class ConversionCoordinator:
         # sync pages to settings
         mw.cfgc.sync_all_to_config(mw)
         # autosave Untitled before run
-        mw.presetc.autosave_untitled_if_needed(mw)
+        mw.preset_coordinator.autosave_untitled_if_needed(mw)
 
         mw.command_panel.btn_scrape.setEnabled(False)
 

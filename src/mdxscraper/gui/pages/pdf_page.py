@@ -4,7 +4,7 @@ from pathlib import Path
 from PySide6.QtCore import Signal
 from PySide6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QComboBox, QPushButton, QTextEdit
 
-from mdxscraper.gui.models.config_models import PdfConfig
+from mdxscraper.models.config_models import PdfConfig
 
 class PdfPage(QWidget):
     # Signals for communicating with MainWindow

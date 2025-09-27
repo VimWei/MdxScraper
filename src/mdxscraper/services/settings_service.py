@@ -4,7 +4,7 @@ from pathlib import Path
 from typing import Dict, Any, Union
 
 from mdxscraper.config.config_manager import ConfigManager
-from mdxscraper.gui.models.config_models import (
+from mdxscraper.models.config_models import (
     BasicConfig, ImageConfig, AdvancedConfig, PdfConfig, CssConfig
 )
 

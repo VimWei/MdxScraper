@@ -38,6 +38,14 @@ class PresetsService:
             return self.project_root / 'data' / 'configs' / 'pdf'
         else:
             return self.project_root / 'data' / 'configs' / 'css'
+    
+    def user_pdf_dir(self) -> Path:
+        """Get user PDF presets directory"""
+        return self.get_user_dir('pdf')
+    
+    def user_css_dir(self) -> Path:
+        """Get user CSS presets directory"""
+        return self.get_user_dir('css')
 
     def create_untitled_snapshot(self, kind: str, text: str) -> Path:
         """Create a timestamped snapshot from current Untitled content and return the file path."""

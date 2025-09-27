@@ -6,7 +6,7 @@ from PySide6.QtWidgets import (
     QHBoxLayout, QCheckBox, QSizePolicy, QSpacerItem, QVBoxLayout
 )
 
-from mdxscraper.gui.models.config_models import BasicConfig
+from mdxscraper.models.config_models import BasicConfig
 
 class BasicPage(QWidget):
     def __init__(self, parent: QWidget | None = None):

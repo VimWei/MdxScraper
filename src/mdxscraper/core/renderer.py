@@ -33,24 +33,6 @@ def merge_css(soup: BeautifulSoup, mdx_path: Path, dictionary, additional_styles
     return soup
 
 
-def get_image_format_from_src(src: str) -> str:
-    ext = Path(src).suffix.lower()
-    if ext == '.png':
-        return 'png'
-    elif ext in ['.jpg', '.jpeg']:
-        return 'jpeg'
-    elif ext == '.gif':
-        return 'gif'
-    elif ext == '.webp':
-        return 'webp'
-    elif ext == '.svg':
-        return 'svg'
-    elif ext in ['.tif', '.tiff']:
-        return 'tiff'
-    elif ext == '.bmp':
-        return 'bmp'
-    else:
-        return 'jpg'
 
 
 def embed_images(soup: BeautifulSoup, dictionary) -> BeautifulSoup:
@@ -75,6 +57,7 @@ def embed_images(soup: BeautifulSoup, dictionary) -> BeautifulSoup:
 
         imgs = dictionary.mdd_lookup(lookup_src)
         if len(imgs) > 0:
+            from mdxscraper.utils.file_utils import get_image_format_from_src
             image_format = get_image_format_from_src(src)
             base64_str = 'data:image/' + image_format + ';base64,' + b64encode(imgs[0]).decode('ascii')
             cache[src_path] = base64_str

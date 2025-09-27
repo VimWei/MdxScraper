@@ -6,7 +6,7 @@ from PySide6.QtWidgets import (
     QPushButton, QCheckBox, QSlider, QSizePolicy, QSpacerItem
 )
 
-from mdxscraper.gui.models.config_models import ImageConfig
+from mdxscraper.models.config_models import ImageConfig
 
 class ImagePage(QWidget):
     # Signals for communicating with MainWindow

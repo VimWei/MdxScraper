@@ -54,7 +54,7 @@ class WordParser:
             if len(line) == 0:
                 continue
             if line.startswith("#"):
-                result.append({"name": line.strip("#"), "words": []})
+                result.append({"name": line.strip("#").strip(), "words": []})
             else:
                 if len(result) == 0:
                     currentTime = datetime.now().strftime("%Y%m%d-%H%M%S")

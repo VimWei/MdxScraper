@@ -7,7 +7,7 @@ from PySide6.QtWidgets import (
     QPushButton, QFileDialog, QSizePolicy, QSpacerItem
 )
 
-from mdxscraper.gui.models.config_models import AdvancedConfig
+from mdxscraper.models.config_models import AdvancedConfig
 
 class AdvancedPage(QWidget):
     # Signals for communicating with MainWindow

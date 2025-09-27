@@ -3,7 +3,8 @@ from __future__ import annotations
 from pathlib import Path
 from PySide6.QtWidgets import QFileDialog, QMessageBox
 
-from mdxscraper.gui.services.settings_service import SettingsService
+from mdxscraper.services.settings_service import SettingsService
+from mdxscraper.utils.system_utils import open_file_or_directory
 
 
 class FileCoordinator:
@@ -98,14 +99,7 @@ class FileCoordinator:
         try:
             target = (self.project_root / 'data').resolve()
             target.mkdir(parents=True, exist_ok=True)
-            import platform, subprocess, os
-            system = platform.system()
-            if system == 'Windows':
-                os.startfile(str(target))  # type: ignore[attr-defined]
-            elif system == 'Darwin':
-                subprocess.Popen(['open', str(target)])
-            else:
-                subprocess.Popen(['xdg-open', str(target)])
+            open_file_or_directory(target)
             try:
                 if hasattr(mw, 'tab_advanced') and hasattr(mw.tab_advanced, 'edit_data_path'):
                     mw.tab_advanced.edit_data_path.setText(str(target))

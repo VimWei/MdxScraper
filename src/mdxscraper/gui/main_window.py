@@ -10,8 +10,8 @@ from PySide6.QtCore import Qt
 from PySide6.QtGui import QIcon
 
 from mdxscraper.config.config_manager import ConfigManager
-from mdxscraper.gui.services.settings_service import SettingsService
-from mdxscraper.gui.services.presets_service import PresetsService
+from mdxscraper.services.settings_service import SettingsService
+from mdxscraper.services.presets_service import PresetsService
 from mdxscraper.gui.components.command_panel import CommandPanel
 from mdxscraper.gui.components.log_panel import LogPanel
 from mdxscraper.gui.pages.basic_page import BasicPage
@@ -21,7 +21,7 @@ from mdxscraper.gui.pages.css_page import CssPage
 from mdxscraper.gui.pages.advanced_page import AdvancedPage
 from mdxscraper.gui.pages.about_page import AboutPage
 from mdxscraper.gui.styles.theme_loader import ThemeLoader
-from mdxscraper.gui.coordinators import PresetCoordinator, FileCoordinator, ConfigCoordinator, ConversionCoordinator
+from mdxscraper.coordinators import PresetCoordinator, FileCoordinator, ConfigCoordinator, ConversionCoordinator
 
 class MainWindow(QMainWindow):
     def __init__(self, project_root: Path):
@@ -40,7 +40,7 @@ class MainWindow(QMainWindow):
         self.settings = SettingsService(project_root, self.cm)
         self.presets = PresetsService(project_root)
         # Coordinators (incremental adoption)
-        self.presetc = PresetCoordinator(self.presets, self.settings)
+        self.preset_coordinator = PresetCoordinator(self.presets, self.settings)
         self.filec = FileCoordinator(self.settings, project_root)
         self.cfgc = ConfigCoordinator(self.settings, self.presets)
         self.convc = ConversionCoordinator(self.settings, self.presets, project_root, self.cm)
@@ -443,17 +443,17 @@ class MainWindow(QMainWindow):
 
     # ---- Presets loading/saving ----
     def reload_presets(self, auto_select_default: bool = True):
-        self.presetc.reload_presets(self, auto_select_default=auto_select_default)
+        self.preset_coordinator.reload_presets(self, auto_select_default=auto_select_default)
 
     def _iter_presets(self, kind: str):
         # Deprecated shim
         yield from self.presets.iter_presets(kind)
 
     def on_pdf_preset_changed(self, label: str):
-        self.presetc.on_pdf_preset_changed(self, label)
+        self.preset_coordinator.on_pdf_preset_changed(self, label)
 
     def on_css_preset_changed(self, label: str):
-        self.presetc.on_css_preset_changed(self, label)
+        self.preset_coordinator.on_css_preset_changed(self, label)
 
     def on_pdf_save_clicked(self):
         user_dir = (self.project_root / 'data' / 'configs' / 'pdf').resolve()
@@ -469,7 +469,7 @@ class MainWindow(QMainWindow):
             # Reload presets and select the saved label via unified method
             saved_label = Path(file).stem
             self.reload_presets(auto_select_default=False)
-            self.presetc.select_label_and_load(self, 'pdf', saved_label)
+            self.preset_coordinator.select_label_and_load(self, 'pdf', saved_label)
             self.settings.set('pdf.preset_label', saved_label)
             # settings already updated by set('pdf.preset_label')
             self.pdf_dirty = False
@@ -492,7 +492,7 @@ class MainWindow(QMainWindow):
             # Reload presets and select the saved label via unified method
             saved_label = Path(file).stem
             self.reload_presets(auto_select_default=False)
-            self.presetc.select_label_and_load(self, 'css', saved_label)
+            self.preset_coordinator.select_label_and_load(self, 'css', saved_label)
             self.settings.set('css.preset_label', saved_label)
             # settings already updated by set('css.preset_label')
             self.css_dirty = False
@@ -502,10 +502,10 @@ class MainWindow(QMainWindow):
             self.log_panel.appendLog(f"❌ Failed to save CSS preset: {e}")
 
     def on_pdf_text_changed(self):
-        self.presetc.on_pdf_text_changed(self)
+        self.preset_coordinator.on_pdf_text_changed(self)
 
     def on_css_text_changed(self):
-        self.presetc.on_css_text_changed(self)
+        self.preset_coordinator.on_css_text_changed(self)
 
     def on_pdf_refresh_clicked(self):
         self.reload_presets(auto_select_default=False)
@@ -514,19 +514,19 @@ class MainWindow(QMainWindow):
         self.reload_presets(auto_select_default=False)
 
     def autosave_untitled_if_needed(self):
-        self.presetc.autosave_untitled_if_needed(self)
+        self.preset_coordinator.autosave_untitled_if_needed(self)
 
     def autosave_untitled(self, kind: str):
         # Backward-compat shim: delegate to coordinator
         if kind in ('pdf', 'css'):
-            self.presetc._autosave_untitled(self, kind)
+            self.preset_coordinator._autosave_untitled(self, kind)
 
     # --- Unified preset selection and * Untitled state helpers ---
     def _enter_untitled_state(self, kind: str, clear_editor: bool = True) -> None:
-        self.presetc.enter_untitled_state(self, kind, clear_editor)
+        self.preset_coordinator.enter_untitled_state(self, kind, clear_editor)
 
     def select_label_and_load(self, kind: str, label: str) -> None:
-        self.presetc.select_label_and_load(self, kind, label)
+        self.preset_coordinator.select_label_and_load(self, kind, label)
 
     # update_tab_enablement removed: tabs are always enabled now
 

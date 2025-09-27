@@ -278,39 +278,4 @@ def mdx2img(
     return found, not_found, invalid_words
 
 
-def write_invalid_words_file(invalid_words: OrderedDict, output_file: str | Path) -> None:
-    """Write invalid words to a text file in the same format as input files.
-    
-    Args:
-        invalid_words: Dictionary mapping lesson names to lists of invalid words
-        output_file: Path to the output file
-    """
-    if not invalid_words:
-        return
-        
-    output_path = Path(output_file)
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-    
-    with open(output_path, 'w', encoding='utf-8') as f:
-        for lesson_name, words in invalid_words.items():
-            f.write(f"# {lesson_name}\n")
-            for word in words:
-                f.write(f"{word}\n")
-            f.write("\n")
-
-def human_readable_duration(seconds: float) -> str:
-    time_delta = timedelta(seconds=seconds)
-    hours, remainder = divmod(time_delta.total_seconds(), 3600)
-    minutes, int_seconds = divmod(remainder, 60)
-    milliseconds = int((seconds - int(hours) * 3600 - int(minutes) * 60 - int(int_seconds)) * 1000)
-
-    parts: list[str] = []
-    if int(hours) > 0:
-        parts.append(f'{int(hours):02d} hours')
-    if int(minutes) > 0 or int(hours) > 0:
-        parts.append(f'{int(minutes):02d} minutes')
-    parts.append(f'{int(int_seconds):02d}.{milliseconds:03d} seconds')
-
-    return ''.join(parts)
-
 

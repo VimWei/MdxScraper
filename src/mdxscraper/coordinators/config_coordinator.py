@@ -3,8 +3,8 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Optional
 
-from mdxscraper.gui.services.settings_service import SettingsService
-from mdxscraper.gui.services.presets_service import PresetsService
+from mdxscraper.services.settings_service import SettingsService
+from mdxscraper.services.presets_service import PresetsService
 from mdxscraper.utils import path_utils
 
 
@@ -49,11 +49,11 @@ class ConfigCoordinator:
             with open(file_path, "rb") as f:
                 cfg = _tomllib.load(f)
             # autosave Untitled before overwrite
-            mw.presetc.autosave_untitled_if_needed(mw)
+            mw.preset_coordinator.autosave_untitled_if_needed(mw)
             self.settings.replace_config(cfg)
             info = self.settings.get_normalize_info_once()
             # reload presets then sync UI
-            mw.presetc.reload_presets(mw, auto_select_default=False)
+            mw.preset_coordinator.reload_presets(mw, auto_select_default=False)
             self.sync_all_from_config(mw)
             mw.log_panel.appendLog(f"✅ Imported config applied: {self.settings.to_relative(str(file_path))}")
             if info.get("changed"):
@@ -66,7 +66,7 @@ class ConfigCoordinator:
         # sync pages to settings first
         self.sync_all_to_config(mw)
         # then autosave any Untitled dirty state
-        mw.presetc.autosave_untitled_if_needed(mw)
+        mw.preset_coordinator.autosave_untitled_if_needed(mw)
 
         # validate and log, but proceed
         result = self.settings.validate()
@@ -78,7 +78,7 @@ class ConfigCoordinator:
         data = self.settings.get_config_dict()
 
         # freeze Untitled to snapshots when needed
-        new_pdf_label, new_css_label = mw.presetc.create_snapshots_if_needed_on_export(mw)
+        new_pdf_label, new_css_label = mw.preset_coordinator.create_snapshots_if_needed_on_export(mw)
         if new_pdf_label:
             data.setdefault('pdf', {})['preset_label'] = new_pdf_label
             mw.log_panel.appendLog(f"📌 Frozen PDF Untitled to: {self.settings.to_relative(self.presets.user_pdf_dir() / (new_pdf_label + '.toml'))}")
@@ -94,13 +94,13 @@ class ConfigCoordinator:
 
         # if snapshots were created, reload and select
         if new_pdf_label or new_css_label:
-            mw.presetc.reload_presets(mw, auto_select_default=False)
+            mw.preset_coordinator.reload_presets(mw, auto_select_default=False)
             if new_pdf_label:
-                mw.presetc.select_label_and_load(mw, 'pdf', new_pdf_label)
+                mw.preset_coordinator.select_label_and_load(mw, 'pdf', new_pdf_label)
                 mw.pdf_dirty = False
                 mw.tab_pdf.show_dirty(False)
             if new_css_label:
-                mw.presetc.select_label_and_load(mw, 'css', new_css_label)
+                mw.preset_coordinator.select_label_and_load(mw, 'css', new_css_label)
                 mw.css_dirty = False
                 mw.tab_css.show_dirty(False)
 
