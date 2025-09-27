@@ -25,12 +25,6 @@ class ConversionCoordinator:
         # autosave Untitled before run
         mw.presetc.autosave_untitled_if_needed(mw)
 
-        output = self.settings.get("basic.output_file")
-        if not output:
-            from PySide6.QtWidgets import QMessageBox
-            QMessageBox.warning(mw, "Run", "Please set output file first.")
-            return
-
         mw.command_panel.btn_scrape.setEnabled(False)
 
         # Use editor content directly per spec
