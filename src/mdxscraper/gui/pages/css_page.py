@@ -40,6 +40,7 @@ class CssPage(QWidget):
 
         # CSS editor
         self.css_editor = QTextEdit(self)
+        self.css_editor.setAcceptRichText(False)  # Disable rich text for plain text editing
         self.css_editor.setPlaceholderText("[style]\n# h1_style=..., scrap_style=..., additional_styles=... (TOML)")
         self.css_editor.textChanged.connect(self.text_changed.emit)
         layout.addWidget(self.css_editor, 1)

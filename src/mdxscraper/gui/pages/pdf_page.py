@@ -40,6 +40,7 @@ class PdfPage(QWidget):
 
         # PDF editor
         self.pdf_editor = QTextEdit(self)
+        self.pdf_editor.setAcceptRichText(False)  # Disable rich text for plain text editing
         self.pdf_editor.setPlaceholderText("[pdf]\n# wkhtmltopdf options in TOML ...")
         self.pdf_editor.textChanged.connect(self.text_changed.emit)
         layout.addWidget(self.pdf_editor, 1)
