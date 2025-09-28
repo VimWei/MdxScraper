@@ -162,8 +162,8 @@ class MainWindow(QMainWindow):
         self.splitter.addWidget(self.log_panel)
         
         # Configure splitter behavior
-        self.splitter.setSizes([600, 150, 250])  # Initial proportions
-        self.splitter.setStretchFactor(0, 1)     # Tab area stretchable
+        self.splitter.setSizes([600, 120, 250])  # Initial proportions - command panel is 120px
+        self.splitter.setStretchFactor(0, 0)     # Tab area fixed height (not stretchable)
         self.splitter.setStretchFactor(1, 0)     # Command panel fixed
         self.splitter.setStretchFactor(2, 1)     # Log area stretchable
         self.splitter.setChildrenCollapsible(False)  # Prevent collapse
@@ -177,6 +177,9 @@ class MainWindow(QMainWindow):
 
         self.setMinimumSize(800, 520)
         self.setCentralWidget(central)
+        
+        # Override showEvent to force splitter behavior after window is shown
+        self.showEvent = self._on_show_event
 
         # Load presets (delegated) - handlers already connected, so selection will load editor
         self.reload_presets(auto_select_default=False)
@@ -359,6 +362,73 @@ class MainWindow(QMainWindow):
             self.splitter.setSizes(adjusted_sizes)
             # Reconnect signal
             self.splitter.splitterMoved.connect(self.on_splitter_moved)
+
+    def _on_show_event(self, event):
+        """Handle window show event to force correct splitter behavior"""
+        super().showEvent(event)
+        
+        # Force splitter to behave correctly by setting sizes explicitly
+        # This ensures tab area stays fixed and only log area stretches
+        from PySide6.QtCore import QTimer
+        QTimer.singleShot(50, self._force_splitter_config)
+
+    def _force_splitter_config(self):
+        """Force splitter configuration after window is shown"""
+        # Get current splitter sizes to capture the actual tab height
+        current_sizes = self.splitter.sizes()
+        current_tab_height = current_sizes[0]  # Capture current tab height
+        
+        # Store this as the "remembered" tab height
+        self.remembered_tab_height = current_tab_height
+        
+        # Get current window height
+        window_height = self.height()
+        
+        # Calculate desired sizes: use current tab height, command fixed, log gets the rest
+        tab_height = current_tab_height  # Use current tab height as the "remembered" height
+        command_height = 120  # Fixed command height (matches CommandPanel.setFixedHeight(120))
+        log_height = window_height - tab_height - command_height - 32  # 32 for margins
+        
+        # Ensure minimum log height
+        if log_height < 150:
+            log_height = 150
+        
+        # Force set the sizes - this "teaches" the splitter to remember the current tab height
+        self.splitter.setSizes([tab_height, command_height, log_height])
+        
+        # Reconfigure stretch factors to ensure they stick
+        self.splitter.setStretchFactor(0, 0)     # Tab area fixed
+        self.splitter.setStretchFactor(1, 0)     # Command panel fixed
+        self.splitter.setStretchFactor(2, 1)     # Log area stretchable
+        
+        # Force the splitter to "remember" these sizes by triggering a resize
+        # This ensures the splitter's internal memory is set correctly
+        from PySide6.QtCore import QTimer
+        QTimer.singleShot(10, self._reinforce_splitter_memory)
+
+    def _reinforce_splitter_memory(self):
+        """Reinforce the splitter's memory of correct sizes"""
+        # Get current sizes
+        current_sizes = self.splitter.sizes()
+        
+        # If tab area is not at the remembered height, force it back
+        if hasattr(self, 'remembered_tab_height') and current_sizes[0] != self.remembered_tab_height:
+            # Recalculate with remembered tab height
+            window_height = self.height()
+            tab_height = self.remembered_tab_height
+            command_height = 120  # Fixed command height (matches CommandPanel.setFixedHeight(120))
+            log_height = window_height - tab_height - command_height - 32
+            
+            if log_height < 150:
+                log_height = 150
+            
+            # Force set the sizes again to reinforce the memory
+            self.splitter.setSizes([tab_height, command_height, log_height])
+            
+            # Reapply stretch factors
+            self.splitter.setStretchFactor(0, 0)     # Tab area fixed
+            self.splitter.setStretchFactor(1, 0)     # Command panel fixed
+            self.splitter.setStretchFactor(2, 1)     # Log area stretchable
 
     def on_log(self, text: str):
         # Skip progress messages as they're redundant with progress bar
