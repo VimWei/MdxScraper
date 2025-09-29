@@ -38,9 +38,8 @@ class ImagePage(QWidget):
         # General (single row with section label)
         row_gen = QHBoxLayout()
         _section_w = 70
-        _lbl_general = QLabel("General", self)
+        _lbl_general = QLabel("General:", self)
         _lbl_general.setProperty("class", "field-label")
-        _lbl_general.setFixedWidth(_section_w)
         _lbl_general.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
         row_gen.addWidget(_lbl_general)
         row_gen.addSpacing(8)
@@ -71,9 +70,8 @@ class ImagePage(QWidget):
 
         # JPG options (single row)
         row_jpg = QHBoxLayout()
-        _lbl_jpg = QLabel("JPG/JPEG", self)
+        _lbl_jpg = QLabel("JPG/JPEG:", self)
         _lbl_jpg.setProperty("class", "field-label")
-        _lbl_jpg.setFixedWidth(_section_w)
         _lbl_jpg.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
         row_jpg.addWidget(_lbl_jpg)
         row_jpg.addSpacing(8)
@@ -91,9 +89,8 @@ class ImagePage(QWidget):
 
         # PNG options (single row)
         row_png = QHBoxLayout()
-        _lbl_png = QLabel("PNG", self)
+        _lbl_png = QLabel("PNG:", self)
         _lbl_png.setProperty("class", "field-label")
-        _lbl_png.setFixedWidth(_section_w)
         _lbl_png.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
         row_png.addWidget(_lbl_png)
         row_png.addSpacing(8)
@@ -117,9 +114,8 @@ class ImagePage(QWidget):
 
         # WEBP options (single row)
         row_webp = QHBoxLayout()
-        _lbl_webp = QLabel("WEBP", self)
+        _lbl_webp = QLabel("WEBP:", self)
         _lbl_webp.setProperty("class", "field-label")
-        _lbl_webp.setFixedWidth(_section_w)
         _lbl_webp.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
         row_webp.addWidget(_lbl_webp)
         row_webp.addSpacing(8)
@@ -140,6 +136,11 @@ class ImagePage(QWidget):
         self.webp_transparent = QCheckBox("Transparent background", self)
         row_webp.addWidget(self.webp_transparent)
         row_webp.addItem(QSpacerItem(20, 10, QSizePolicy.Expanding, QSizePolicy.Minimum))
+
+        # Align left-side section labels to the longest width
+        section_w = max(_lbl_general.sizeHint().width(), _lbl_webp.sizeHint().width(), _lbl_png.sizeHint().width(), _lbl_jpg.sizeHint().width())
+        for _lab in (_lbl_general, _lbl_webp, _lbl_png, _lbl_jpg):
+            _lab.setFixedWidth(section_w)
 
         # Reorder Image tab rows: General, WEBP, PNG, JPG/JPEG
         layout.addLayout(row_gen)

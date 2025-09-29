@@ -184,7 +184,7 @@ class MainWindow(QMainWindow):
         self.splitter.addWidget(self.log_panel)
 
         # Configure splitter behavior
-        self.splitter.setSizes([600, 120, 250])  # Initial proportions - command panel is 120px
+        self.splitter.setSizes([220, 120, 260])  # Initial proportions - command panel is 120px
         self.splitter.setStretchFactor(0, 0)  # Tab area fixed height (not stretchable)
         self.splitter.setStretchFactor(1, 0)  # Command panel fixed
         self.splitter.setStretchFactor(2, 1)  # Log area stretchable
@@ -646,6 +646,6 @@ def run_gui():
         app.setWindowIcon(QIcon(str(icon_path)))
 
     w = MainWindow(root)
-    w.resize(640, 360)
+    w.resize(800, 600)
     w.show()
     sys.exit(app.exec())

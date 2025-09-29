@@ -30,13 +30,13 @@ class AdvancedPage(QWidget):
         layout.setContentsMargins(8, 8, 8, 8)
 
         # Label width for fields in this page
-        _section_w = 120  # Increased width for better text visibility
+        # Determine section label width from actual texts to minimize unused space while aligned
+        _section_w = None
 
         # wkhtmltopdf path section
         path_section = QHBoxLayout()
         _lbl_path = QLabel("wkhtmltopdf Path:", self)
         _lbl_path.setProperty("class", "field-label")
-        _lbl_path.setFixedWidth(_section_w)
         _lbl_path.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
         path_section.addWidget(_lbl_path)
         path_section.addSpacing(8)
@@ -60,7 +60,6 @@ class AdvancedPage(QWidget):
         data_section = QHBoxLayout()
         _lbl_data = QLabel("User Data Path:", self)
         _lbl_data.setProperty("class", "field-label")
-        _lbl_data.setFixedWidth(_section_w)
         _lbl_data.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
         data_section.addWidget(_lbl_data)
         data_section.addSpacing(8)
@@ -82,7 +81,6 @@ class AdvancedPage(QWidget):
         config_section = QHBoxLayout()
         _lbl_config = QLabel("Config Actions:", self)
         _lbl_config.setProperty("class", "field-label")
-        _lbl_config.setFixedWidth(_section_w)
         _lbl_config.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
         config_section.addWidget(_lbl_config)
         config_section.addSpacing(8)
@@ -95,6 +93,12 @@ class AdvancedPage(QWidget):
         # Add spacer to push button to the left
         config_section.addItem(QSpacerItem(20, 10, QSizePolicy.Expanding, QSizePolicy.Minimum))
         layout.addLayout(config_section)
+
+        # Align section labels to the longest label width
+        _section_w = max(_lbl_path.sizeHint().width(), _lbl_data.sizeHint().width(), _lbl_config.sizeHint().width())
+        _lbl_path.setFixedWidth(_section_w)
+        _lbl_data.setFixedWidth(_section_w)
+        _lbl_config.setFixedWidth(_section_w)
 
         # Add some spacing at the bottom
         layout.addItem(QSpacerItem(20, 20, QSizePolicy.Minimum, QSizePolicy.Expanding))
