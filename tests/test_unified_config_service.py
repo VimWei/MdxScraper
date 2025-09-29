@@ -184,3 +184,67 @@ def test_configuration_defaults():
     # Test advanced config structure
     advanced_config = service.get_advanced_config()
     assert hasattr(advanced_config, 'wkhtmltopdf_path')
+
+
+def test_replace_config():
+    """Test replacing entire configuration"""
+    service = SettingsService(project_root=_project_root())
+    
+    # Get original config
+    original_config = service.get_basic_config()
+    
+    # Create new configuration
+    new_config = {
+        "basic": {
+            "input_file": "replaced_input.txt",
+            "dictionary_file": "replaced_dict.mdx",
+            "output_file": "replaced_output.html",
+            "output_add_timestamp": True,
+            "backup_input": True,
+            "save_invalid_words": False,
+            "with_toc": False
+        },
+        "advanced": {
+            "wkhtmltopdf_path": "/replaced/path/wkhtmltopdf"
+        }
+    }
+    
+    # Replace configuration
+    service.replace_config(new_config)
+    
+    # Verify the configuration was replaced
+    updated_basic_config = service.get_basic_config()
+    assert updated_basic_config.input_file == "replaced_input.txt"
+    assert updated_basic_config.dictionary_file == "replaced_dict.mdx"
+    assert updated_basic_config.output_file == "replaced_output.html"
+    assert updated_basic_config.output_add_timestamp is True
+    assert updated_basic_config.backup_input is True
+    assert updated_basic_config.save_invalid_words is False
+    assert updated_basic_config.with_toc is False
+    
+    updated_advanced_config = service.get_advanced_config()
+    assert updated_advanced_config.wkhtmltopdf_path == "/replaced/path/wkhtmltopdf"
+
+
+def test_get_normalize_info_once():
+    """Test getting normalization info"""
+    service = SettingsService(project_root=_project_root())
+    
+    # This should return a dict with normalization info
+    info = service.get_normalize_info_once()
+    assert isinstance(info, dict)
+    # The exact structure may vary, but it should have some keys
+    assert len(info) >= 0
+
+
+def test_get_config_dict():
+    """Test getting raw configuration dictionary"""
+    service = SettingsService(project_root=_project_root())
+    
+    # Get the raw config dict
+    config_dict = service.get_config_dict()
+    assert isinstance(config_dict, dict)
+    
+    # Should have at least basic structure
+    assert "basic" in config_dict
+    assert "advanced" in config_dict

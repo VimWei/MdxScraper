@@ -239,5 +239,93 @@ def test_export_config(config_coordinator, mock_settings, mock_presets):
             mock_toml.assert_called_once()
 
 
+def test_restore_last_config(config_coordinator, mock_settings, mock_presets):
+    """Test restoring last saved configuration"""
+    # Mock main window
+    mock_mw = Mock()
+    mock_mw.settings = mock_settings
+    mock_mw.preset_coordinator = Mock()
+    mock_mw.log_panel = Mock()
+    
+    # Mock settings methods
+    mock_settings.load.return_value = None
+    
+    # Mock the sync method
+    with patch.object(config_coordinator, 'sync_all_from_config') as mock_sync:
+        # Call the method
+        config_coordinator.restore_last_config(mock_mw)
+        
+        # Verify settings.load was called
+        mock_settings.load.assert_called_once()
+        # Verify preset coordinator was called
+        mock_mw.preset_coordinator.reload_presets.assert_called_once_with(mock_mw, auto_select_default=False)
+        # Verify sync was called
+        mock_sync.assert_called_once_with(mock_mw)
+        # Verify log message
+        mock_mw.log_panel.appendLog.assert_called_with("ℹ️ Restored last saved config.")
+
+
+def test_restore_default_config(config_coordinator, mock_settings, mock_presets):
+    """Test restoring default configuration"""
+    # Mock main window
+    mock_mw = Mock()
+    mock_mw.project_root = Path("/test/project")
+    mock_mw.settings = mock_settings
+    mock_mw.preset_coordinator = Mock()
+    mock_mw.log_panel = Mock()
+    
+    # Mock default config content
+    default_config = {
+        "basic": {"input_file": "default.txt"},
+        "advanced": {"wkhtmltopdf_path": "auto"}
+    }
+    mock_settings.cm._read_toml.return_value = default_config
+    
+    with patch("pathlib.Path.exists", return_value=True):
+        with patch.object(config_coordinator, 'sync_all_from_config') as mock_sync:
+            # Call the method
+            config_coordinator.restore_default_config(mock_mw)
+            
+            # Verify settings were updated
+            mock_settings.replace_config.assert_called_once_with(default_config)
+            # Verify preset coordinator was called
+            mock_mw.preset_coordinator.reload_presets.assert_called_once_with(mock_mw, auto_select_default=False)
+            # Verify sync was called
+            mock_sync.assert_called_once_with(mock_mw)
+            # Verify log message
+            mock_mw.log_panel.appendLog.assert_called_with("ℹ️ Restored default configuration.")
+
+
+def test_restore_default_config_file_not_found(config_coordinator, mock_settings, mock_presets):
+    """Test restoring default configuration when file doesn't exist"""
+    # Mock main window
+    mock_mw = Mock()
+    mock_mw.project_root = Path("/test/project")
+    mock_mw.log_panel = Mock()
+    
+    with patch("pathlib.Path.exists", return_value=False):
+        # Call the method
+        config_coordinator.restore_default_config(mock_mw)
+        
+        # Verify error log message
+        mock_mw.log_panel.appendLog.assert_called_with("❌ Default config file not found.")
+
+
+def test_restore_default_config_exception(config_coordinator, mock_settings, mock_presets):
+    """Test restoring default configuration with exception"""
+    # Mock main window
+    mock_mw = Mock()
+    mock_mw.project_root = Path("/test/project")
+    mock_mw.log_panel = Mock()
+    
+    with patch("pathlib.Path.exists", return_value=True):
+        with patch.object(config_coordinator.settings, 'replace_config', side_effect=Exception("Test error")):
+            # Call the method
+            config_coordinator.restore_default_config(mock_mw)
+            
+            # Verify error log message
+            mock_mw.log_panel.appendLog.assert_called_with("❌ Failed to restore default config: Test error")
+
+
 # Note: validate_config method doesn't exist in ConfigCoordinator
 # The validation is handled by SettingsService.validate()
