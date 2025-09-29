@@ -1,6 +1,6 @@
 [project]
 name = "MdxScraper"
-version = "4.0"
+version = "5.0"
 description = "Scraping web pages and convert to clean, readable Markdown files."
 readme = "README.md"
 requires-python = ">=3.11"
