@@ -73,6 +73,18 @@ jobs:
           
           # Save to file for GitHub release
           printf "%s\n" "$CHANGELOG" > release_notes.md
+
+      - name: Append Full Changelog link
+        run: |
+          CURRENT_TAG="v${{ steps.version.outputs.version }}"
+          # Find previous tag (second most recent annotated/tagged commit)
+          PREV_TAG=$(git describe --tags --abbrev=0 $(git rev-list --tags --max-count=1 --skip=1) 2>/dev/null || true)
+          if [ -z "$PREV_TAG" ]; then
+            echo "No previous tag found; skipping Full Changelog link."
+          else
+            echo "" >> release_notes.md
+            echo "**Full Changelog**: https://github.com/${{ github.repository }}/compare/${PREV_TAG}...${CURRENT_TAG}" >> release_notes.md
+          fi
       
       - name: Check if release exists
         id: release_exists
