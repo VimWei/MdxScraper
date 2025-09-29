@@ -1,5 +1,10 @@
 # 更新日志
 
+## [5.2.0] - 2025-09-30
+
+- Style: format with isort/black
+- refactor(gui): unify layout, alignment, and spacing across pages
+
 ## [5.1.5] - 2025-09-29
 
 - chore: Enhance release script's print messages improve snapshot preparation messages, sync formatting after restoring unstaged changes, and remove redundant next steps printout.
