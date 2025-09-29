@@ -6,9 +6,8 @@ Adds the vendored mdict-query directory to sys.path and imports the upstream
 module unchanged, so we can sync vendor code without edits.
 """
 
-from pathlib import Path
 import sys
-
+from pathlib import Path
 
 # Ensure vendored mdict-query is importable as top-level module names
 _vendor_dir = Path(__file__).resolve().parent / "vendor"

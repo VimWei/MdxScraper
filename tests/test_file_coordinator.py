@@ -1,8 +1,10 @@
 """Tests for FileCoordinator"""
 
-import pytest
 from pathlib import Path
 from unittest.mock import Mock, patch
+
+import pytest
+
 from mdxscraper.coordinators.file_coordinator import FileCoordinator
 from mdxscraper.services.settings_service import SettingsService
 

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from PySide6.QtWidgets import QWidget, QVBoxLayout, QProgressBar
+from PySide6.QtWidgets import QProgressBar, QVBoxLayout, QWidget
 
 
 class ProgressPanel(QWidget):

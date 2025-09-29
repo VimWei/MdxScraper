@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 from PySide6.QtCore import Signal
-from PySide6.QtWidgets import QWidget, QHBoxLayout, QLineEdit, QPushButton
+from PySide6.QtWidgets import QHBoxLayout, QLineEdit, QPushButton, QWidget
+
 
 class FilePicker(QWidget):
     textChanged = Signal(str)

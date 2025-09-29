@@ -9,6 +9,7 @@ import subprocess
 from pathlib import Path
 from typing import Optional, Tuple
 
+
 def get_version() -> str:
     """Get the current version from uv.
     

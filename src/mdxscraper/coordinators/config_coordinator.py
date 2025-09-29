@@ -3,8 +3,8 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Optional
 
-from mdxscraper.services.settings_service import SettingsService
 from mdxscraper.services.presets_service import PresetsService
+from mdxscraper.services.settings_service import SettingsService
 from mdxscraper.utils import path_utils
 
 

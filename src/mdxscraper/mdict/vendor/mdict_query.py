@@ -1,16 +1,18 @@
 # -*- coding: utf-8 -*-
 
-from readmdict import MDX, MDD
-from struct import pack, unpack
-from io import BytesIO
-import re
-import sys
-import os
-import sqlite3
 import json
+import os
+import re
+import sqlite3
+import sys
 
 # zlib compression is used for engine version >=2.0
 import zlib
+from io import BytesIO
+from struct import pack, unpack
+
+from readmdict import MDD, MDX
+
 # LZO compression is used for engine version < 2.0
 try:
     import lzo

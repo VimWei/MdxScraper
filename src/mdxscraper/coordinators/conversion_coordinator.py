@@ -4,8 +4,8 @@ from pathlib import Path
 from typing import Optional
 
 from mdxscraper.config.config_manager import ConfigManager
-from mdxscraper.services.settings_service import SettingsService
 from mdxscraper.services.presets_service import PresetsService
+from mdxscraper.services.settings_service import SettingsService
 from mdxscraper.workers.conversion_worker import ConversionWorker
 
 

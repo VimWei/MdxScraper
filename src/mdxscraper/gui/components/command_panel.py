@@ -1,10 +1,16 @@
 from __future__ import annotations
 
-from PySide6.QtCore import Signal, Qt
+from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (
-    QWidget, QHBoxLayout, QVBoxLayout, QPushButton, QProgressBar,
-    QSizePolicy, QSpacerItem
+    QHBoxLayout,
+    QProgressBar,
+    QPushButton,
+    QSizePolicy,
+    QSpacerItem,
+    QVBoxLayout,
+    QWidget,
 )
+
 
 class CommandPanel(QWidget):
     restoreRequested = Signal()

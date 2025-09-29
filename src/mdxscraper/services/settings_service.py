@@ -1,12 +1,17 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Dict, Any, Union
+from typing import Any, Dict, Union
 
 from mdxscraper.config.config_manager import ConfigManager
 from mdxscraper.models.config_models import (
-    BasicConfig, ImageConfig, AdvancedConfig, PdfConfig, CssConfig
+    AdvancedConfig,
+    BasicConfig,
+    CssConfig,
+    ImageConfig,
+    PdfConfig,
 )
+
 
 class SettingsService:
     def __init__(self, project_root: Path, cm: ConfigManager | None = None):

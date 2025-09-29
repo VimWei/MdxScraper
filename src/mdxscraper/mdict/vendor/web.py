@@ -1,16 +1,20 @@
-from flask import Flask, send_from_directory, abort, render_template, jsonify, Response
-from mdict_dir import Dir
+import json
+
 #from mdict_query import IndexBuilder
 import os
 import re
 import sys
-import json
+
+from flask import Flask, Response, abort, jsonify, render_template, send_from_directory
+from mdict_dir import Dir
+
 #IndexBuilder('vocab.mdx')
 #pass
 app = Flask(__name__)
 
 # add reg support
 from werkzeug.routing import BaseConverter
+
 
 class RegexConverter(BaseConverter):
         def __init__(self, url_map, *items):

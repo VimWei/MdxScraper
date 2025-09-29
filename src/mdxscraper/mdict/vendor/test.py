@@ -1,9 +1,11 @@
-from mdict_query import IndexBuilder
-import unittest
-import os
 import glob
+import os
 import time
+import unittest
 from timeit import timeit
+
+from mdict_query import IndexBuilder
+
 
 class TestMdict(unittest.TestCase):
 

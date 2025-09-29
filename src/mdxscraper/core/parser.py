@@ -9,6 +9,7 @@ from typing import Any, Dict, List
 import openpyxl
 from chardet import detect
 
+
 class WordParser:
     """统一的单词解析器接口，提供面向对象的文件解析方式"""
 

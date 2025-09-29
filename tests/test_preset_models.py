@@ -1,8 +1,10 @@
 """Tests for preset data models"""
 
-import pytest
 from pathlib import Path
-from mdxscraper.models.preset_models import PresetInfo, PresetData, PresetCategory
+
+import pytest
+
+from mdxscraper.models.preset_models import PresetCategory, PresetData, PresetInfo
 
 
 def test_preset_category_creation():

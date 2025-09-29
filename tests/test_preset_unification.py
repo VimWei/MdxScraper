@@ -1,14 +1,15 @@
 """Tests for preset unification functionality"""
 
-import pytest
 from pathlib import Path
 from unittest.mock import Mock, patch
-from PySide6.QtWidgets import QApplication, QComboBox, QTextEdit
+
+import pytest
 from PySide6.QtCore import Qt
+from PySide6.QtWidgets import QApplication, QComboBox, QTextEdit
 
 from mdxscraper.gui.main_window import MainWindow
-from mdxscraper.services.settings_service import SettingsService
 from mdxscraper.services.presets_service import PresetsService
+from mdxscraper.services.settings_service import SettingsService
 
 
 @pytest.fixture(scope="session")

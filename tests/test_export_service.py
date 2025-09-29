@@ -1,11 +1,13 @@
 """Tests for ExportService"""
 
-import pytest
-from unittest.mock import Mock, patch
 from pathlib import Path
+from unittest.mock import Mock, patch
+
+import pytest
+
 from mdxscraper.services.export_service import ExportService
-from mdxscraper.services.settings_service import SettingsService
 from mdxscraper.services.presets_service import PresetsService
+from mdxscraper.services.settings_service import SettingsService
 
 
 def _project_root() -> Path:

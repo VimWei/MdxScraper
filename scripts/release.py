@@ -14,11 +14,11 @@ Usage:
     Default: patch
 """
 
+import re
 import subprocess
 import sys
-import re
-from pathlib import Path
 from datetime import datetime
+from pathlib import Path
 from typing import Optional
 
 # Valid bump types

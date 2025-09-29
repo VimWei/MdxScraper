@@ -2,11 +2,20 @@ from __future__ import annotations
 
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
-    QWidget, QGridLayout, QLabel, QLineEdit, QPushButton,
-    QHBoxLayout, QCheckBox, QSizePolicy, QSpacerItem, QVBoxLayout
+    QCheckBox,
+    QGridLayout,
+    QHBoxLayout,
+    QLabel,
+    QLineEdit,
+    QPushButton,
+    QSizePolicy,
+    QSpacerItem,
+    QVBoxLayout,
+    QWidget,
 )
 
 from mdxscraper.models.config_models import BasicConfig
+
 
 class BasicPage(QWidget):
     def __init__(self, parent: QWidget | None = None):

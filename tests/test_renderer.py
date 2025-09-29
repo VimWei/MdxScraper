@@ -1,10 +1,12 @@
 """Tests for renderer functions"""
 
-import pytest
 from pathlib import Path
-from unittest.mock import Mock, patch, mock_open
+from unittest.mock import Mock, mock_open, patch
+
+import pytest
 from bs4 import BeautifulSoup
-from mdxscraper.core.renderer import get_css, merge_css, embed_images
+
+from mdxscraper.core.renderer import embed_images, get_css, merge_css
 
 
 def test_get_css_from_file():

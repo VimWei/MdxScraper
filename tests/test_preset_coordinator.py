@@ -1,11 +1,13 @@
 """Tests for PresetCoordinator"""
 
-import pytest
 from pathlib import Path
-from unittest.mock import Mock, patch, mock_open
+from unittest.mock import Mock, mock_open, patch
+
+import pytest
+
 from mdxscraper.coordinators.preset_coordinator import PresetCoordinator
-from mdxscraper.services.settings_service import SettingsService
 from mdxscraper.services.presets_service import PresetsService
+from mdxscraper.services.settings_service import SettingsService
 
 
 def _project_root() -> Path:

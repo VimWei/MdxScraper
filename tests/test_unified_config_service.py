@@ -1,9 +1,11 @@
 """Tests for unified configuration service functionality"""
 
-import pytest
 from pathlib import Path
+
+import pytest
+
+from mdxscraper.models.config_models import AdvancedConfig, BasicConfig, ImageConfig
 from mdxscraper.services.settings_service import SettingsService
-from mdxscraper.models.config_models import BasicConfig, ImageConfig, AdvancedConfig
 
 
 def _project_root() -> Path:

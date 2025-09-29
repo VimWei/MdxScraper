@@ -1,8 +1,13 @@
 """Tests for configuration data models"""
 
 import pytest
+
 from mdxscraper.models.config_models import (
-    BasicConfig, ImageConfig, AdvancedConfig, PdfConfig, CssConfig
+    AdvancedConfig,
+    BasicConfig,
+    CssConfig,
+    ImageConfig,
+    PdfConfig,
 )
 
 

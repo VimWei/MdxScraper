@@ -1,11 +1,10 @@
 from __future__ import annotations
 
+import json
+import os
 import platform
 import subprocess
 from pathlib import Path
-import json
-import os
-
 
 # In-memory cache for current session only (portable-friendly)
 _session_cache = {

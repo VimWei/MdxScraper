@@ -5,9 +5,9 @@ from pathlib import Path
 from PySide6.QtCore import QThread, Signal
 
 from mdxscraper.config.config_manager import ConfigManager
-from mdxscraper.services.settings_service import SettingsService
-from mdxscraper.services.presets_service import PresetsService
 from mdxscraper.services.export_service import ExportService
+from mdxscraper.services.presets_service import PresetsService
+from mdxscraper.services.settings_service import SettingsService
 
 
 class ConversionWorker(QThread):
@@ -109,6 +109,7 @@ class ConversionWorker(QThread):
             self.progress_sig.emit(95, "Saving invalid words...")
             if self.cm.get_save_invalid_words() and invalid_words:
                 from mdxscraper.utils.file_utils import write_invalid_words_file
+
                 # Filename pattern: [timestamp_]input_name_invalid.txt
                 input_stem = Path(input_file).stem
                 base_name = f"{input_stem}_invalid.txt"

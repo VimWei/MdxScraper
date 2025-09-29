@@ -1,6 +1,7 @@
 """Tests for time utility functions"""
 
 import pytest
+
 from mdxscraper.utils.time_utils import human_readable_duration
 
 

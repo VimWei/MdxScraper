@@ -1,10 +1,15 @@
 """Tests for file utility functions"""
 
-import pytest
-from pathlib import Path
 from collections import OrderedDict
-from unittest.mock import patch, mock_open, call
-from mdxscraper.utils.file_utils import write_invalid_words_file, get_image_format_from_src
+from pathlib import Path
+from unittest.mock import call, mock_open, patch
+
+import pytest
+
+from mdxscraper.utils.file_utils import (
+    get_image_format_from_src,
+    write_invalid_words_file,
+)
 
 
 def test_write_invalid_words_file_empty():

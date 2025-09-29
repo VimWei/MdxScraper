@@ -171,6 +171,7 @@
     February, 2010
 """
 import sys
+
 assert(sys.version_info >= (2, 6))
 
 if sys.version_info >= (3,):
@@ -181,6 +182,7 @@ else:
 	python3 = False
 
 from struct import Struct
+
 little_u64 = Struct( "<Q" )      #    little-endian 64-bit unsigned.
                                  #    Unpacks to a tuple of one element!
 

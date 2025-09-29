@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Iterator, Tuple, Dict, Optional, Any
+from typing import Any, Dict, Iterator, Optional, Tuple
 
 
 class PresetsService:

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Dict, Any, Tuple, Optional, List, Callable
+from typing import Any, Callable, Dict, List, Optional, Tuple
 
 from mdxscraper.services.presets_service import PresetsService
 from mdxscraper.services.settings_service import SettingsService
@@ -52,7 +52,7 @@ class ExportService:
     def execute_export(self, input_file: Path, mdx_file: Path, output_path: Path,
                         pdf_text: str = '', css_text: str = '', settings_service: Optional[SettingsService] = None,
                         progress_callback: Optional[Callable[[int, str], None]] = None) -> Tuple[int, int, List[str]]:
-        from mdxscraper.core.converter import mdx2html, mdx2pdf, mdx2img
+        from mdxscraper.core.converter import mdx2html, mdx2img, mdx2pdf
 
         suffix = output_path.suffix.lower()
         h1_style, scrap_style, additional_styles = self.parse_css_styles(css_text)

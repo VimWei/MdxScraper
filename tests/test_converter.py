@@ -1,9 +1,11 @@
 """Tests for converter functions"""
 
-import pytest
 from pathlib import Path
-from unittest.mock import Mock, patch, mock_open
-from mdxscraper.core.converter import mdx2html, mdx2pdf, mdx2img
+from unittest.mock import Mock, mock_open, patch
+
+import pytest
+
+from mdxscraper.core.converter import mdx2html, mdx2img, mdx2pdf
 
 
 def test_mdx2html_basic():

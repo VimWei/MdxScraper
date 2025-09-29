@@ -1,12 +1,14 @@
 """Tests for ConfigCoordinator"""
 
-import pytest
 from pathlib import Path
-from unittest.mock import Mock, patch, mock_open
+from unittest.mock import Mock, mock_open, patch
+
+import pytest
+
 from mdxscraper.coordinators.config_coordinator import ConfigCoordinator
-from mdxscraper.services.settings_service import SettingsService
+from mdxscraper.models.config_models import AdvancedConfig, BasicConfig, ImageConfig
 from mdxscraper.services.presets_service import PresetsService
-from mdxscraper.models.config_models import BasicConfig, ImageConfig, AdvancedConfig
+from mdxscraper.services.settings_service import SettingsService
 
 
 def _project_root() -> Path:

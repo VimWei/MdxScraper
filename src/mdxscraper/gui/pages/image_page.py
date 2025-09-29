@@ -2,11 +2,20 @@ from __future__ import annotations
 
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtWidgets import (
-    QWidget, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit,
-    QPushButton, QCheckBox, QSlider, QSizePolicy, QSpacerItem
+    QCheckBox,
+    QHBoxLayout,
+    QLabel,
+    QLineEdit,
+    QPushButton,
+    QSizePolicy,
+    QSlider,
+    QSpacerItem,
+    QVBoxLayout,
+    QWidget,
 )
 
 from mdxscraper.models.config_models import ImageConfig
+
 
 class ImagePage(QWidget):
     # Signals for communicating with MainWindow

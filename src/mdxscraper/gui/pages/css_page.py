@@ -1,10 +1,20 @@
 from __future__ import annotations
 
 from pathlib import Path
+
 from PySide6.QtCore import Signal
-from PySide6.QtWidgets import QWidget, QVBoxLayout, QHBoxLayout, QLabel, QComboBox, QPushButton, QTextEdit
+from PySide6.QtWidgets import (
+    QComboBox,
+    QHBoxLayout,
+    QLabel,
+    QPushButton,
+    QTextEdit,
+    QVBoxLayout,
+    QWidget,
+)
 
 from mdxscraper.models.config_models import CssConfig
+
 
 class CssPage(QWidget):
     # Signals for communicating with MainWindow

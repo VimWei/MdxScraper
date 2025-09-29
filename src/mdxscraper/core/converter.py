@@ -5,7 +5,7 @@ import tempfile
 from collections import OrderedDict
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Tuple, Callable, Optional
+from typing import Callable, Optional, Tuple
 
 import imgkit
 import pdfkit
@@ -15,7 +15,10 @@ from PIL import Image
 from mdxscraper.core.dictionary import Dictionary
 from mdxscraper.core.parser import WordParser
 from mdxscraper.core.renderer import embed_images, merge_css
-from mdxscraper.utils.path_utils import get_wkhtmltopdf_path, validate_wkhtmltopdf_for_pdf_conversion
+from mdxscraper.utils.path_utils import (
+    get_wkhtmltopdf_path,
+    validate_wkhtmltopdf_for_pdf_conversion,
+)
 
 
 def mdx2html(

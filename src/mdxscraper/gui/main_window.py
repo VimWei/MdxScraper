@@ -2,26 +2,38 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from PySide6.QtWidgets import (
-    QApplication, QMainWindow, QWidget, QVBoxLayout,
-    QFileDialog, QMessageBox, QTabWidget, QSplitter
-)
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QIcon
+from PySide6.QtWidgets import (
+    QApplication,
+    QFileDialog,
+    QMainWindow,
+    QMessageBox,
+    QSplitter,
+    QTabWidget,
+    QVBoxLayout,
+    QWidget,
+)
 
 from mdxscraper.config.config_manager import ConfigManager
-from mdxscraper.services.settings_service import SettingsService
-from mdxscraper.services.presets_service import PresetsService
+from mdxscraper.coordinators import (
+    ConfigCoordinator,
+    ConversionCoordinator,
+    FileCoordinator,
+    PresetCoordinator,
+)
 from mdxscraper.gui.components.command_panel import CommandPanel
 from mdxscraper.gui.components.log_panel import LogPanel
+from mdxscraper.gui.pages.about_page import AboutPage
+from mdxscraper.gui.pages.advanced_page import AdvancedPage
 from mdxscraper.gui.pages.basic_page import BasicPage
+from mdxscraper.gui.pages.css_page import CssPage
 from mdxscraper.gui.pages.image_page import ImagePage
 from mdxscraper.gui.pages.pdf_page import PdfPage
-from mdxscraper.gui.pages.css_page import CssPage
-from mdxscraper.gui.pages.advanced_page import AdvancedPage
-from mdxscraper.gui.pages.about_page import AboutPage
 from mdxscraper.gui.styles.theme_loader import ThemeLoader
-from mdxscraper.coordinators import PresetCoordinator, FileCoordinator, ConfigCoordinator, ConversionCoordinator
+from mdxscraper.services.presets_service import PresetsService
+from mdxscraper.services.settings_service import SettingsService
+
 
 class MainWindow(QMainWindow):
     def __init__(self, project_root: Path):

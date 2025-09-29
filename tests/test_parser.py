@@ -1,9 +1,11 @@
 """Tests for WordParser"""
 
-import pytest
 import json
 from pathlib import Path
-from unittest.mock import patch, mock_open, Mock
+from unittest.mock import Mock, mock_open, patch
+
+import pytest
+
 from mdxscraper.core.parser import WordParser
 
 

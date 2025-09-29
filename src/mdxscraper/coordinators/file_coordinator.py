@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+
 from PySide6.QtWidgets import QFileDialog, QMessageBox
 
 from mdxscraper.services.settings_service import SettingsService

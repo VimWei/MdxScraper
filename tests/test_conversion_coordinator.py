@@ -1,11 +1,13 @@
 """Tests for ConversionCoordinator"""
 
-import pytest
 from pathlib import Path
 from unittest.mock import Mock, patch
+
+import pytest
+
 from mdxscraper.coordinators.conversion_coordinator import ConversionCoordinator
-from mdxscraper.services.settings_service import SettingsService
 from mdxscraper.services.presets_service import PresetsService
+from mdxscraper.services.settings_service import SettingsService
 from mdxscraper.workers.conversion_worker import ConversionWorker
 
 

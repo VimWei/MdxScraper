@@ -1,13 +1,15 @@
 """Tests for path utility functions"""
 
-import pytest
 import platform
 from pathlib import Path
-from unittest.mock import patch, Mock
+from unittest.mock import Mock, patch
+
+import pytest
+
 from mdxscraper.utils.path_utils import (
     detect_wkhtmltopdf_path,
+    get_wkhtmltopdf_path,
     validate_wkhtmltopdf_path,
-    get_wkhtmltopdf_path
 )
 
 

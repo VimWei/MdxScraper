@@ -1,6 +1,7 @@
-from mdict_query import IndexBuilder
-import os
 import json
+import os
+
+from mdict_query import IndexBuilder
 
 
 class Dir(object):

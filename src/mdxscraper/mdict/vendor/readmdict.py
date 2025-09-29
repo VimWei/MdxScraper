@@ -17,17 +17,18 @@
 # MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
 # GNU General Public License for more details.
 
-from struct import pack, unpack
-from io import BytesIO
+import json
 import re
 import sys
-import json
-
-from ripemd128 import ripemd128
-from pureSalsa20 import Salsa20
 
 # zlib compression is used for engine version >=2.0
 import zlib
+from io import BytesIO
+from struct import pack, unpack
+
+from pureSalsa20 import Salsa20
+from ripemd128 import ripemd128
+
 # LZO compression is used for engine version < 2.0
 try:
     import lzo
@@ -858,11 +859,11 @@ class MDX(MDict):
 
         return {"index_dict_list":index_dict_list, 'meta':meta}
 if __name__ == '__main__':
-    import sys
-    import os
-    import os.path
     import argparse
     import codecs
+    import os
+    import os.path
+    import sys
 
     def passcode(s):
         try:
@@ -891,8 +892,8 @@ if __name__ == '__main__':
 
     # use GUI to select file, default to extract
     if not args.filename:
-        import Tkinter
         import tkFileDialog
+        import Tkinter
         root = Tkinter.Tk()
         root.withdraw()
         args.filename = tkFileDialog.askopenfilename(parent=root)

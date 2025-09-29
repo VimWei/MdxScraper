@@ -16,7 +16,6 @@ Usage:
 
 import struct
 
-
 # follows this description: http://homes.esat.kuleuven.be/~bosselae/ripemd/rmd128.txt
 
 def f(j, x, y, z):

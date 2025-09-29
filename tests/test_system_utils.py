@@ -1,9 +1,11 @@
 """Tests for system utility functions"""
 
-import pytest
 import platform
-from unittest.mock import patch, Mock
 from pathlib import Path
+from unittest.mock import Mock, patch
+
+import pytest
+
 from mdxscraper.utils.system_utils import open_file_or_directory
 
 
