@@ -1,0 +1,122 @@
+name: Version Consistency Check
+
+on:
+  pull_request:
+    paths:
+      - 'pyproject.toml'
+      - 'docs/changelog.md'
+  push:
+    branches:
+      - main
+    paths:
+      - 'pyproject.toml'
+      - 'docs/changelog.md'
+
+jobs:
+  version-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          version: "latest"
+      
+      - name: Check version consistency
+        run: |
+          echo "🔍 Checking version consistency..."
+          VERSION=$(uv version --short)
+          echo "Current version: $VERSION"
+          
+          # Check if changelog has this version
+          if [ -f "docs/changelog.md" ]; then
+            if grep -q "## \[$VERSION\]" docs/changelog.md; then
+              echo "✅ Version $VERSION found in changelog.md"
+            else
+              echo "⚠️ Warning: Version $VERSION not found in changelog.md"
+              echo "Available versions in changelog:"
+              grep "^## \[" docs/changelog.md | head -5
+            fi
+          else
+            echo "❌ changelog.md not found"
+            exit 1
+          fi
+          
+          # Check if git tag exists
+          if git tag -l | grep -q "v$VERSION"; then
+            echo "✅ Git tag v$VERSION exists"
+          else
+            echo "ℹ️ Info: Git tag v$VERSION does not exist yet"
+          fi
+          
+          # Check version format (basic validation)
+          if [[ $VERSION =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9.-]+)?$ ]]; then
+            echo "✅ Version format is valid"
+          else
+            echo "❌ Invalid version format: $VERSION"
+            echo "Expected format: X.Y.Z or X.Y.Z-suffix"
+            exit 1
+          fi
+          
+          echo "🎉 Version consistency check completed"
+      
+      - name: Check for version conflicts
+        run: |
+          echo "🔍 Checking for potential version conflicts..."
+          
+          # Get current version
+          CURRENT_VERSION=$(uv version --short)
+          echo "Current version: $CURRENT_VERSION"
+          
+          # Check if this version already exists as a tag
+          if git tag -l | grep -q "v$CURRENT_VERSION"; then
+            echo "❌ Error: Version $CURRENT_VERSION already exists as a git tag"
+            echo "Please bump the version before pushing changes"
+            exit 1
+          fi
+          
+          # Check if this version already exists in changelog
+          if grep -q "## \[$CURRENT_VERSION\]" docs/changelog.md; then
+            echo "ℹ️ Version $CURRENT_VERSION already exists in changelog"
+            echo "This might indicate a duplicate version entry"
+          fi
+          
+          echo "✅ No version conflicts detected"
+      
+      - name: Validate changelog format
+        run: |
+          echo "🔍 Validating changelog format..."
+          
+          if [ ! -f "docs/changelog.md" ]; then
+            echo "❌ changelog.md not found"
+            exit 1
+          fi
+          
+          # Check for proper header format
+          if ! grep -q "^# 更新日志" docs/changelog.md; then
+            echo "❌ changelog.md missing proper header"
+            exit 1
+          fi
+          
+          # Check for version entries format
+          VERSION_ENTRIES=$(grep -c "^## \[" docs/changelog.md || true)
+          if [ "$VERSION_ENTRIES" -eq 0 ]; then
+            echo "❌ No version entries found in changelog.md"
+            exit 1
+          fi
+          
+          echo "✅ Found $VERSION_ENTRIES version entries in changelog"
+          
+          # Check latest version entry format
+          LATEST_VERSION_LINE=$(grep "^## \[" docs/changelog.md | head -1)
+          if [[ $LATEST_VERSION_LINE =~ ^## \[[0-9]+\.[0-9]+\.[0-9]+.*\] - [0-9]{4}-[0-9]{2}-[0-9]{2}$ ]]; then
+            echo "✅ Latest version entry format is correct: $LATEST_VERSION_LINE"
+          else
+            echo "⚠️ Warning: Latest version entry format might be incorrect: $LATEST_VERSION_LINE"
+            echo "Expected format: ## [X.Y.Z] - YYYY-MM-DD"
+          fi
+          
+          echo "✅ Changelog format validation completed"
+

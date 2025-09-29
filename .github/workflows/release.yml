@@ -1,0 +1,95 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Fetch all history for tags
+      
+      - name: Install uv
+        uses: astral-sh/setup-uv@v3
+        with:
+          version: "latest"
+      
+      - name: Get version from tag
+        id: version
+        run: echo "version=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+      
+      - name: Verify version consistency
+        run: |
+          echo "Verifying version consistency..."
+          TAG_VERSION="${{ steps.version.outputs.version }}"
+          UV_VERSION=$(uv version --short)
+          
+          echo "Tag version: $TAG_VERSION"
+          echo "UV version: $UV_VERSION"
+          
+          if [ "$TAG_VERSION" != "$UV_VERSION" ]; then
+            echo "❌ Version mismatch: tag ($TAG_VERSION) != pyproject.toml ($UV_VERSION)"
+            exit 1
+          fi
+          
+          echo "✅ Version consistency verified"
+      
+      - name: Extract changelog for version
+        id: changelog
+        run: |
+          VERSION="${{ steps.version.outputs.version }}"
+          
+          # Extract changelog section for this version
+          if [ -f "docs/changelog.md" ]; then
+            # Use awk to extract the changelog section for this version
+            CHANGELOG=$(awk "/^## \[$VERSION\]/,/^## \[/" docs/changelog.md | head -n -1)
+            
+            if [ -z "$CHANGELOG" ]; then
+              echo "⚠️ No changelog found for version $VERSION"
+              CHANGELOG="No changelog available for this version."
+            fi
+          else
+            echo "⚠️ changelog.md not found"
+            CHANGELOG="No changelog available."
+          fi
+          
+          # Save to file for GitHub release
+          echo "$CHANGELOG" > release_notes.md
+          
+          # Also set as output (truncated for GitHub limits)
+          echo "changelog<<EOF" >> $GITHUB_OUTPUT
+          echo "$CHANGELOG" | head -c 1000 >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+      
+      - name: Create Release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Release ${{ steps.version.outputs.version }}
+          body_path: release_notes.md
+          draft: false
+          prerelease: false
+      
+      - name: Upload Release Assets (optional)
+        if: false  # Set to true if you want to upload build artifacts
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./dist/
+          asset_name: mdxscraper-${{ steps.version.outputs.version }}
+          asset_content_type: application/zip
+      
+      - name: Notify release completion
+        run: |
+          echo "🎉 Release ${{ steps.version.outputs.version }} completed successfully!"
+          echo "📋 Release URL: https://github.com/${{ github.repository }}/releases/tag/v${{ steps.version.outputs.version }}"
+
