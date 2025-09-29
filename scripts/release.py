@@ -234,7 +234,12 @@ def check_code_quality() -> bool:
     print("🔍 Checking code quality...")
 
     # 1) Isolate release snapshot from local unstaged changes
+    print("🧩 Preparing release snapshot (stash unstaged/untracked, keep index)...")
     stashed, _stash_name = _stash_unstaged_if_any()
+    if stashed:
+        print("🧩 Release snapshot ready (working tree now reflects what will be released)")
+    else:
+        print("🧩 No unstaged/untracked changes found; using current tree as release snapshot")
     try:
         try:
             run_command("uv run black --check .", capture_output=False)
@@ -255,6 +260,7 @@ def check_code_quality() -> bool:
             print("📦 Creating 'Style: format with isort/black' commit (release snapshot)...")
             run_command("git add .")
             run_command('git commit -m "Style: format with isort/black"')
+            print("📦 Style commit created on release snapshot")
 
             # Re-check
             try:
@@ -268,11 +274,13 @@ def check_code_quality() -> bool:
     finally:
         # 2) Restore user's unstaged changes and optionally sync formatting to working tree
         if stashed:
+            print("🔁 Restoring your unstaged changes from stash...")
             _pop_stash_quiet()
             # Mandatory: sync formatting across the working tree (no commit)
             print("♻️  Sync formatting in working tree (no commit)...")
             run_command("uv run isort .", capture_output=False)
             run_command("uv run black .", capture_output=False)
+            print("♻️  Workspace formatting synced")
 
 
 def release(bump_type: str = "patch") -> None:
@@ -349,13 +357,6 @@ def release(bump_type: str = "patch") -> None:
 
     # 12. Success message
     print(f"\n🎉 Release {new_version} completed successfully!")
-    print("=" * 50)
-    print(f"📋 Next steps:")
-    print(f"   1. Create GitHub Release: https://github.com/VimWei/MdxScraper/releases/new")
-    print(f"   2. Select tag: v{new_version}")
-    print(f"   3. Copy changelog content for release notes")
-    print(f"   4. Publish the release")
-    print("=" * 50)
 
 
 def show_help() -> None:
