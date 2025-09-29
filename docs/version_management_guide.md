@@ -115,9 +115,15 @@ uv version --dry-run --bump minor
 5. 🤔 确认发布
 6. 📝 更新版本号
 7. 📄 更新 changelog
-8. 💾 提交更改
+8. 💾 提交更改（包含 pyproject.toml、uv.lock、docs/changelog.md）
 9. 🏷️ 创建 Git 标签
 10. 🚀 推送到远程
+
+### 运行发布脚本前准备
+
+1. 提交所有希望包含到本次发布的内容：完成从 `git add` 到 `git commit`。
+2. 取消暂存（unstage）不希望纳入本次发布的所有内容（例如：`git restore --staged <path>`）。
+3. 不要手动修改 `pyproject.toml` / `uv.lock` / `docs/changelog.md`：这 3 个文件无论当前是未暂存还是已暂存，都会在发布脚本运行过程中被自动更新并纳入发布提交。
 
 ### 使用发布脚本
 
@@ -134,6 +140,49 @@ uv run python scripts/release.py major
 # 预发布版本
 uv run python scripts/release.py alpha
 ```
+
+### 代码风格检查失败时如何处理
+
+发布脚本在第 3 步会执行代码质量检查（对“将要发布的代码快照”进行）：
+
+```bash
+uv run black --check .
+uv run isort --check-only .
+```
+
+如果出现类似提示：
+
+```
+would reformat scripts/release.py
+Oh no! 💥 💔 💥
+Code quality checks failed
+```
+
+直接在发布脚本的交互提示里选择 `y`，进行一键自动修复（或手动做如下操作）：
+
+```bash
+# 1) 暂存当前未暂存/未跟踪改动（仅临时保存，保留暂存区）
+git stash push -u -k -m release-temp-<timestamp>
+
+# 2) 在“发布快照”上执行自动修复
+uv run isort .
+uv run black .
+
+# 3) 自动重新检查（无需人工再次运行）
+uv run black --check .
+uv run isort --check-only .
+
+# 4) 对本次格式化的 .py 文件创建一个独立的“Style”提交
+git add .
+git commit -m "Style: format with isort/black"
+
+# 5) 恢复你的未暂存改动，并在工作区同步一次格式（不提交）
+git stash pop -q
+uv run isort .
+uv run black .
+```
+
+修复完成后脚本会自动重新检查（手动修复方案则需执行再次启动发布流程）；若通过将继续发布流程。这样既保证“发布提交”中的代码已通过风格检查，又让你的工作区改动与发布快照在格式上保持一致，减少后续无意义 diff。
 
 ## 版本信息统一管理
 

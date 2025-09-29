@@ -14,7 +14,6 @@ Usage:
     Default: patch
 """
 
-import re
 import subprocess
 import sys
 from datetime import datetime
@@ -44,12 +43,49 @@ def get_current_version() -> str:
 
 
 def check_git_status() -> bool:
-    """Check if git working directory is clean"""
+    """Guardrail around staged/unstaged changes.
+
+    - Allow unstaged changes (they won't be included in the release commit).
+    - Disallow unrelated staged changes to avoid mixing content into the release commit.
+      Only allow these staged paths (which the script itself stages):
+        - pyproject.toml
+        - uv.lock
+        - docs/changelog.md
+    Returns True if it's safe to proceed, otherwise False.
+    """
     result = run_command("git status --porcelain", capture_output=True)
-    if result.stdout.strip():
-        print("❌ Git working directory is not clean:")
-        print(result.stdout)
+    output = result.stdout.splitlines()
+
+    allowed_staged = {"pyproject.toml", "uv.lock", "docs/changelog.md"}
+    other_staged: list[str] = []
+    has_unstaged = False
+
+    for line in output:
+        # Porcelain format: XY <path>
+        if not line:
+            continue
+        status = line[:2]
+        path = line[3:].strip()
+        staged_flag = status[0]
+        unstaged_flag = status[1]
+
+        if staged_flag != " ":
+            # Something is staged
+            if path not in allowed_staged:
+                other_staged.append(path)
+        if unstaged_flag != " ":
+            has_unstaged = True
+
+    if other_staged:
+        print("❌ Found unrelated staged changes that could be mixed into the release commit:")
+        for p in other_staged:
+            print(f"   - {p}")
+        print("Please commit or unstage these before releasing.")
         return False
+
+    if has_unstaged:
+        print("ℹ️  Unstaged changes detected. They will NOT be included in the release commit.")
+
     return True
 
 
@@ -154,24 +190,90 @@ def run_tests() -> bool:
         print("❌ Tests failed")
         return False
 
+def _stash_unstaged_if_any() -> tuple[bool, str]:
+    """Stash unstaged/untracked changes keeping index. Returns (stashed, stash_name)."""
+    status_lines = run_command("git status --porcelain", capture_output=True).stdout.splitlines()
+    has_unstaged = any(line and line[1] != " " for line in status_lines)
+    has_untracked = any(line.startswith("?? ") for line in status_lines)
+    if not has_unstaged and not has_untracked:
+        return False, ""
+    stamp = datetime.now().strftime("%Y%m%d%H%M%S")
+    name = f"release-temp-{stamp}"
+    # Keep index (-k), include untracked (-u)
+    run_command(f"git stash push -u -k -m {name}")
+    return True, name
 
-def check_code_quality() -> bool:
-    """Check code quality with black and isort"""
-    print("🔍 Checking code quality...")
 
+def _pop_stash_quiet() -> None:
+    # Pop latest stash quietly (ignore failures)
+    run_command("git stash pop -q", check=False)
+
+
+def _auto_fix_code_style() -> bool:
+    """Attempt to auto-fix code style issues using isort + black.
+
+    Returns True if auto-fix completed successfully, otherwise False.
+    """
+    print("🛠️  Attempting to auto-fix style (isort + black)...")
     try:
-        # Check black formatting
-        run_command("uv run black --check .", capture_output=False)
-        print("✅ Black formatting check passed")
-
-        # Check isort imports
-        run_command("uv run isort --check-only .", capture_output=False)
-        print("✅ Import sorting check passed")
-
+        run_command("uv run isort .", capture_output=False)
+        run_command("uv run black .", capture_output=False)
+        print("✅ Auto-fix completed")
         return True
     except SystemExit:
-        print("❌ Code quality checks failed")
+        print("❌ Auto-fix failed")
         return False
+
+
+def check_code_quality() -> bool:
+    """Check code quality on the release snapshot and optionally sync formatting.
+
+    - Temporarily stash unstaged/untracked changes to isolate the release snapshot
+    - Run checks; on failure, offer auto-fix and optional style commit
+    - Restore stashed changes and optionally apply the same formatting to working tree (no commit)
+    """
+    print("🔍 Checking code quality...")
+
+    # 1) Isolate release snapshot from local unstaged changes
+    stashed, _stash_name = _stash_unstaged_if_any()
+    try:
+        try:
+            run_command("uv run black --check .", capture_output=False)
+            print("✅ Black formatting check passed")
+            run_command("uv run isort --check-only .", capture_output=False)
+            print("✅ Import sorting check passed")
+            return True
+        except SystemExit:
+            print("❌ Code quality checks failed")
+            try_fix = input("🔧 Auto-fix with isort+black on release snapshot? (y/N): ")
+            if try_fix.lower() != "y":
+                return False
+
+            # Run auto-fix on the release snapshot
+            if not _auto_fix_code_style():
+                return False
+            # Mandatory: create a separate Style commit for snapshot formatting
+            print("📦 Creating 'Style: format with isort/black' commit (release snapshot)...")
+            run_command("git add .")
+            run_command("git commit -m \"Style: format with isort/black\"")
+
+            # Re-check
+            try:
+                run_command("uv run black --check .", capture_output=False)
+                run_command("uv run isort --check-only .", capture_output=False)
+                print("✅ Code quality checks passed after auto-fix")
+                return True
+            except SystemExit:
+                print("❌ Checks still failing after auto-fix")
+                return False
+    finally:
+        # 2) Restore user's unstaged changes and optionally sync formatting to working tree
+        if stashed:
+            _pop_stash_quiet()
+            # Mandatory: sync formatting across the working tree (no commit)
+            print("♻️  Sync formatting in working tree (no commit)...")
+            run_command("uv run isort .", capture_output=False)
+            run_command("uv run black .", capture_output=False)
 
 
 def release(bump_type: str = "patch") -> None:
@@ -230,7 +332,8 @@ def release(bump_type: str = "patch") -> None:
 
     # 9. Commit changes
     print(f"\n8️⃣ Committing changes...")
-    run_command("git add pyproject.toml docs/changelog.md")
+    # Stage version, lockfile (if changed), and changelog together
+    run_command("git add pyproject.toml uv.lock docs/changelog.md")
     # Use double quotes for Windows shell compatibility
     run_command(f'git commit -m "Bump version to {new_version}"')
     print("✅ Changes committed")
