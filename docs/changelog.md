@@ -1,5 +1,9 @@
 # 更新日志
 
+## [5.1.5] - 2025-09-29
+
+- chore: Enhance release script's print messages improve snapshot preparation messages, sync formatting after restoring unstaged changes, and remove redundant next steps printout.
+
 ## [5.1.4] - 2025-09-29
 
 - Style: format with isort/black
