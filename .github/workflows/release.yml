@@ -8,6 +8,9 @@ on:
 jobs:
   release:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -48,6 +51,10 @@ jobs:
           if [ -f "docs/changelog.md" ]; then
             # Use awk to extract the changelog section for this version
             CHANGELOG=$(awk "/^## \[$VERSION\]/,/^## \[/" docs/changelog.md | head -n -1)
+            # If it's the last entry (no next header), fall back to end-of-file
+            if [ -z "$CHANGELOG" ]; then
+              CHANGELOG=$(sed -n "/^## \[$VERSION\]/,\$p" docs/changelog.md)
+            fi
             
             if [ -z "$CHANGELOG" ]; then
               echo "⚠️ No changelog found for version $VERSION"
@@ -66,7 +73,22 @@ jobs:
           echo "$CHANGELOG" | head -c 1000 >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
       
+      - name: Check if release exists
+        id: release_exists
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="v${{ steps.version.outputs.version }}"
+          API="https://api.github.com/repos/${{ github.repository }}/releases/tags/$TAG"
+          STATUS=$(curl -s -H "Authorization: Bearer $GITHUB_TOKEN" -H "Accept: application/vnd.github+json" -o /dev/null -w "%{http_code}" "$API")
+          if [ "$STATUS" = "200" ]; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+          fi
+
       - name: Create Release
+        if: steps.release_exists.outputs.exists == 'false'
         uses: actions/create-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
