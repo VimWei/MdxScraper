@@ -103,14 +103,13 @@ jobs:
             exit 1
           fi
           
-          # Check for version entries format
-          VERSION_ENTRIES=$(grep -c "^## \[" docs/changelog.md || true)
-          if [ "$VERSION_ENTRIES" -eq 0 ]; then
+          # Check for at least one version entry
+          if ! grep -q "^## \[" docs/changelog.md; then
             echo "❌ No version entries found in changelog.md"
             exit 1
           fi
           
-          echo "✅ Found $VERSION_ENTRIES version entries in changelog"
+          echo "✅ Found version entries in changelog"
           
           # Check latest version entry format (portable check via grep -E)
           LATEST_VERSION_LINE=$(grep "^## \[" docs/changelog.md | head -1)
