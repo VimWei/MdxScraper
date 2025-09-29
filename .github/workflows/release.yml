@@ -5,6 +5,9 @@ on:
     tags:
       - 'v*'
 
+permissions:
+  contents: write
+
 jobs:
   release:
     runs-on: ubuntu-latest
@@ -66,12 +69,7 @@ jobs:
           fi
           
           # Save to file for GitHub release
-          echo "$CHANGELOG" > release_notes.md
-          
-          # Also set as output (truncated for GitHub limits)
-          echo "changelog<<EOF" >> $GITHUB_OUTPUT
-          echo "$CHANGELOG" | head -c 1000 >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
+          printf "%s\n" "$CHANGELOG" > release_notes.md
       
       - name: Check if release exists
         id: release_exists
