@@ -1,5 +1,11 @@
 # 更新日志
 
+## [5.1.4] - 2025-09-29
+
+- Style: format with isort/black
+- feat: enhance release script and update version management guide.
+- refactor: enhance changelog generation in release workflow
+
 ## [5.1.3] - 2025-09-29
 
 - 自动发布: 修复版本更新
