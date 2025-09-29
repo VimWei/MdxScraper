@@ -15,6 +15,9 @@ on:
 jobs:
   version-check:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -51,8 +54,8 @@ jobs:
             echo "ℹ️ Info: Git tag v$VERSION does not exist yet"
           fi
           
-          # Check version format (basic validation)
-          if [[ $VERSION =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[a-zA-Z0-9.-]+)?$ ]]; then
+          # Check version format (basic validation) using grep for portability
+          if echo "$VERSION" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+(-[A-Za-z0-9.-]+)?$'; then
             echo "✅ Version format is valid"
           else
             echo "❌ Invalid version format: $VERSION"
@@ -109,9 +112,9 @@ jobs:
           
           echo "✅ Found $VERSION_ENTRIES version entries in changelog"
           
-          # Check latest version entry format
+          # Check latest version entry format (portable check via grep -E)
           LATEST_VERSION_LINE=$(grep "^## \[" docs/changelog.md | head -1)
-          if [[ $LATEST_VERSION_LINE =~ ^## \[[0-9]+\.[0-9]+\.[0-9]+.*\] - [0-9]{4}-[0-9]{2}-[0-9]{2}$ ]]; then
+          if echo "$LATEST_VERSION_LINE" | grep -Eq '^## \[[0-9]+\.[0-9]+\.[0-9]+.*\] - [0-9]{4}-[0-9]{2}-[0-9]{2}$'; then
             echo "✅ Latest version entry format is correct: $LATEST_VERSION_LINE"
           else
             echo "⚠️ Warning: Latest version entry format might be incorrect: $LATEST_VERSION_LINE"
