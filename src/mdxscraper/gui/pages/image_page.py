@@ -138,7 +138,12 @@ class ImagePage(QWidget):
         row_webp.addItem(QSpacerItem(20, 10, QSizePolicy.Expanding, QSizePolicy.Minimum))
 
         # Align left-side section labels to the longest width
-        section_w = max(_lbl_general.sizeHint().width(), _lbl_webp.sizeHint().width(), _lbl_png.sizeHint().width(), _lbl_jpg.sizeHint().width())
+        section_w = max(
+            _lbl_general.sizeHint().width(),
+            _lbl_webp.sizeHint().width(),
+            _lbl_png.sizeHint().width(),
+            _lbl_jpg.sizeHint().width(),
+        )
         for _lab in (_lbl_general, _lbl_webp, _lbl_png, _lbl_jpg):
             _lab.setFixedWidth(section_w)
 

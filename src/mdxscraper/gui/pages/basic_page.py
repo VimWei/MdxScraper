@@ -78,11 +78,14 @@ class BasicPage(QWidget):
         row_out.addWidget(btn_output)
 
         # Align labels to longest label width (add a small safety margin)
-        label_w = max(
-            lbl_in.sizeHint().width(),
-            lbl_dict.sizeHint().width(),
-            lbl_out.sizeHint().width(),
-        ) + 6
+        label_w = (
+            max(
+                lbl_in.sizeHint().width(),
+                lbl_dict.sizeHint().width(),
+                lbl_out.sizeHint().width(),
+            )
+            + 6
+        )
         lbl_in.setFixedWidth(label_w)
         lbl_dict.setFixedWidth(label_w)
         lbl_out.setFixedWidth(label_w)

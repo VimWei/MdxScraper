@@ -95,7 +95,11 @@ class AdvancedPage(QWidget):
         layout.addLayout(config_section)
 
         # Align section labels to the longest label width
-        _section_w = max(_lbl_path.sizeHint().width(), _lbl_data.sizeHint().width(), _lbl_config.sizeHint().width())
+        _section_w = max(
+            _lbl_path.sizeHint().width(),
+            _lbl_data.sizeHint().width(),
+            _lbl_config.sizeHint().width(),
+        )
         _lbl_path.setFixedWidth(_section_w)
         _lbl_data.setFixedWidth(_section_w)
         _lbl_config.setFixedWidth(_section_w)
