@@ -108,6 +108,8 @@ def _collect_commits_since_last_tag() -> list[str]:
     rev_range = f"{prev_tag}..HEAD" if prev_tag else "HEAD~20..HEAD"
     log = _git_output(f"git log --pretty=format:%s --no-merges {rev_range}")
     subjects = [line.strip() for line in log.splitlines() if line.strip()]
+    # Filter out non-essential style-only commits created during release formatting
+    subjects = [s for s in subjects if s != "Style: format with isort/black"]
     return subjects
 
 
