@@ -106,9 +106,7 @@ def _collect_commits_since_last_tag() -> list[str]:
     # Previous tag (exclude current HEAD's tag if already tagged)
     prev_tag = _git_output("git describe --tags --abbrev=0 2>NUL || true")
     rev_range = f"{prev_tag}..HEAD" if prev_tag else "HEAD~20..HEAD"
-    log = _git_output(
-        f"git log --pretty=format:%s --no-merges {rev_range}"
-    )
+    log = _git_output(f"git log --pretty=format:%s --no-merges {rev_range}")
     subjects = [line.strip() for line in log.splitlines() if line.strip()]
     return subjects
 
@@ -190,6 +188,7 @@ def run_tests() -> bool:
         print("❌ Tests failed")
         return False
 
+
 def _stash_unstaged_if_any() -> tuple[bool, str]:
     """Stash unstaged/untracked changes keeping index. Returns (stashed, stash_name)."""
     status_lines = run_command("git status --porcelain", capture_output=True).stdout.splitlines()
@@ -255,7 +254,7 @@ def check_code_quality() -> bool:
             # Mandatory: create a separate Style commit for snapshot formatting
             print("📦 Creating 'Style: format with isort/black' commit (release snapshot)...")
             run_command("git add .")
-            run_command("git commit -m \"Style: format with isort/black\"")
+            run_command('git commit -m "Style: format with isort/black"')
 
             # Re-check
             try:
