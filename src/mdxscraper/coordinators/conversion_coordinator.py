@@ -12,7 +12,13 @@ from mdxscraper.workers.conversion_worker import ConversionWorker
 class ConversionCoordinator:
     """Coordinate running conversion, progress, logs, and interruption."""
 
-    def __init__(self, settings: SettingsService, presets: PresetsService, project_root: Path, cm: ConfigManager) -> None:
+    def __init__(
+        self,
+        settings: SettingsService,
+        presets: PresetsService,
+        project_root: Path,
+        cm: ConfigManager,
+    ) -> None:
         self.settings = settings
         self.presets = presets
         self.project_root = project_root
@@ -31,7 +37,9 @@ class ConversionCoordinator:
         pdf_text = mw.tab_pdf.pdf_editor.toPlainText()
         css_text = mw.tab_css.css_editor.toPlainText()
 
-        self.worker = ConversionWorker(self.project_root, self.cm, pdf_text=pdf_text, css_text=css_text)
+        self.worker = ConversionWorker(
+            self.project_root, self.cm, pdf_text=pdf_text, css_text=css_text
+        )
         self.worker.finished_sig.connect(lambda msg: self.on_finished(mw, msg))
         self.worker.error_sig.connect(lambda msg: self.on_error(mw, msg))
         self.worker.log_sig.connect(lambda text: self.on_log(mw, text))
@@ -66,5 +74,3 @@ class ConversionCoordinator:
     def request_stop(self) -> None:
         if self.worker:
             self.worker.requestInterruption()
-
-

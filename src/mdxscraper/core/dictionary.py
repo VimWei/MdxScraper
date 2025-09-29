@@ -9,10 +9,10 @@ class Dictionary:
     def __init__(self, mdx_file: Path | str):
         self.mdx_path = Path(mdx_file)
         self._impl = IndexBuilder(self.mdx_path)
-    
+
     def __enter__(self):
         return self
-    
+
     def __exit__(self, exc_type, exc_val, exc_tb):
         # 清理资源，如关闭数据库连接
         # IndexBuilder 内部会管理自己的资源清理
@@ -34,7 +34,7 @@ class Dictionary:
         definition = self._lookup_with_fallback(word)
         if not definition:
             return ""
-        
+
         if definition.startswith("@@@LINK="):
             linked_word = definition.replace("@@@LINK=", "").strip()
             return self._lookup_with_fallback(linked_word)
@@ -44,5 +44,3 @@ class Dictionary:
     @property
     def impl(self):
         return self._impl
-
-

@@ -41,9 +41,11 @@ def mdx2html(
     if progress_callback:
         progress_callback(5, "Loading dictionary and parsing input...")
 
-    right_soup = BeautifulSoup('<body style="font-family:Arial Unicode MS;"><div class="right"></div></body>', 'lxml')
-    right_soup.find('body').insert_before('\n')
-    left_soup = BeautifulSoup('<div class="left"></div>', 'lxml')
+    right_soup = BeautifulSoup(
+        '<body style="font-family:Arial Unicode MS;"><div class="right"></div></body>', "lxml"
+    )
+    right_soup.find("body").insert_before("\n")
+    left_soup = BeautifulSoup('<div class="left"></div>', "lxml")
 
     invalid_words = OrderedDict()
     total_lessons = len(lessons)
@@ -53,79 +55,83 @@ def mdx2html(
         if progress_callback:
             progress = 10 + int((processed_lessons / total_lessons) * 60)
             progress_callback(progress, f"Processing lesson: {lesson['name']}")
-        
-        h1 = right_soup.new_tag('h1', id='lesson_' + lesson['name'])
+
+        h1 = right_soup.new_tag("h1", id="lesson_" + lesson["name"])
         if h1_style:
-            h1['style'] = h1_style
-        h1.string = lesson['name']
+            h1["style"] = h1_style
+        h1.string = lesson["name"]
         right_soup.div.append(h1)
 
-        a = left_soup.new_tag('a', href='#lesson_' + lesson['name'], **{'class': 'lesson'})
-        a.string = lesson['name']
+        a = left_soup.new_tag("a", href="#lesson_" + lesson["name"], **{"class": "lesson"})
+        a.string = lesson["name"]
         left_soup.div.append(a)
-        left_soup.div.append(left_soup.new_tag('br'))
-        left_soup.div.append('\n')
+        left_soup.div.append(left_soup.new_tag("br"))
+        left_soup.div.append("\n")
 
         invalid = False
-        for word in lesson['words']:
+        for word in lesson["words"]:
             result = dictionary.lookup_html(word)
             if len(result) == 0:
                 not_found_count += 1
                 # Always collect invalid words and embed a warning
-                if lesson['name'] in invalid_words:
-                    invalid_words[lesson['name']].append(word)
+                if lesson["name"] in invalid_words:
+                    invalid_words[lesson["name"]].append(word)
                 else:
-                    invalid_words[lesson['name']] = [word]
+                    invalid_words[lesson["name"]] = [word]
                 invalid = True
                 # result = '<div style="padding:0 0 15px 0"><b>WARNING:</b> "' + word + '" not found</div>'
             else:
                 found_count += 1
 
-            definition = BeautifulSoup(result, 'lxml')
+            definition = BeautifulSoup(result, "lxml")
             if right_soup.head is None and definition.head is not None:
                 right_soup.html.insert_before(definition.head)
-                right_soup.head.append(right_soup.new_tag('meta', charset='utf-8'))
+                right_soup.head.append(right_soup.new_tag("meta", charset="utf-8"))
 
-            new_div = right_soup.new_tag('div')
+            new_div = right_soup.new_tag("div")
             if scrap_style:
-                new_div['style'] = scrap_style
-            new_div['id'] = 'word_' + word
-            new_div['class'] = 'scrapedword'
+                new_div["style"] = scrap_style
+            new_div["id"] = "word_" + word
+            new_div["class"] = "scrapedword"
             if definition.body:
                 new_div.append(definition.body)
-            right_soup.div.append('\n')
+            right_soup.div.append("\n")
             right_soup.div.append(new_div)
 
-            a = left_soup.new_tag('a', href='#word_' + word, **{'class': 'word' + (' invalid_word' if invalid else '')})
+            a = left_soup.new_tag(
+                "a",
+                href="#word_" + word,
+                **{"class": "word" + (" invalid_word" if invalid else "")},
+            )
             invalid = False
             a.string = word
             left_soup.div.append(a)
-            left_soup.div.append(left_soup.new_tag('br'))
-            left_soup.div.append('\n')
+            left_soup.div.append(left_soup.new_tag("br"))
+            left_soup.div.append("\n")
 
-        left_soup.div.append(left_soup.new_tag('br'))
+        left_soup.div.append(left_soup.new_tag("br"))
         processed_lessons += 1
 
     if with_toc:
-        main_div = right_soup.new_tag('div', **{'class': 'main'})
+        main_div = right_soup.new_tag("div", **{"class": "main"})
         right_soup.div.wrap(main_div)
         right_soup.div.insert_before(left_soup.div)
 
     if progress_callback:
         progress_callback(75, "Merging CSS styles...")
     right_soup = merge_css(right_soup, mdx_file.parent, dictionary.impl, additional_styles)
-    
+
     if progress_callback:
         progress_callback(85, "Embedding images...")
     right_soup = embed_images(right_soup, dictionary.impl)
 
     if progress_callback:
         progress_callback(90, "Writing HTML file...")
-    html = str(right_soup).encode('utf-8')
-    html = html.replace(b'<body>', b'').replace(b'</body>', b'', html.count(b'</body>') - 1)
+    html = str(right_soup).encode("utf-8")
+    html = html.replace(b"<body>", b"").replace(b"</body>", b"", html.count(b"</body>") - 1)
     # Ensure output directory exists
     Path(output_file).parent.mkdir(parents=True, exist_ok=True)
-    with open(output_file, 'wb') as file:
+    with open(output_file, "wb") as file:
         file.write(html)
 
     if progress_callback:
@@ -144,21 +150,27 @@ def mdx2pdf(
     h1_style: str | None = None,
     scrap_style: str | None = None,
     additional_styles: str | None = None,
-    wkhtmltopdf_path: str = 'auto',
+    wkhtmltopdf_path: str = "auto",
     progress_callback: Optional[Callable[[int, str], None]] = None,
 ) -> tuple[int, int, OrderedDict]:
-    with tempfile.NamedTemporaryFile(suffix='.html', delete=False) as temp:
+    with tempfile.NamedTemporaryFile(suffix=".html", delete=False) as temp:
         temp_file = temp.name
+
         # Create a progress callback that scales HTML progress to 0-80%
         def html_progress_callback(progress: int, message: str):
             if progress_callback:
                 scaled_progress = int((progress / 100) * 80)
                 progress_callback(scaled_progress, message)
-        
+
         found, not_found, invalid_words = mdx2html(
-            mdx_file, input_file, temp_file, with_toc=with_toc,
-            h1_style=h1_style, scrap_style=scrap_style, additional_styles=additional_styles,
-            progress_callback=html_progress_callback
+            mdx_file,
+            input_file,
+            temp_file,
+            with_toc=with_toc,
+            h1_style=h1_style,
+            scrap_style=scrap_style,
+            additional_styles=additional_styles,
+            progress_callback=html_progress_callback,
         )
 
     # Validate wkhtmltopdf path before conversion
@@ -168,17 +180,17 @@ def mdx2pdf(
     if not is_valid:
         os.remove(temp_file)
         raise RuntimeError(error_message)
-    
+
     config_path = get_wkhtmltopdf_path(wkhtmltopdf_path)
     config = pdfkit.configuration(wkhtmltopdf=config_path)
     # Ensure output directory exists
     Path(output_file).parent.mkdir(parents=True, exist_ok=True)
-    
+
     if progress_callback:
         progress_callback(90, "Converting HTML to PDF...")
     pdfkit.from_file(temp_file, str(output_file), configuration=config, options=pdf_options)
     os.remove(temp_file)
-    
+
     if progress_callback:
         progress_callback(100, "PDF conversion completed!")
     return found, not_found, invalid_words
@@ -200,25 +212,31 @@ def mdx2img(
     The output format is inferred from the output file suffix (.jpg/.jpeg/.png/.webp).
     Additional imgkit options can be supplied via img_options.
     """
-    with tempfile.NamedTemporaryFile(suffix='.html', delete=False) as temp:
+    with tempfile.NamedTemporaryFile(suffix=".html", delete=False) as temp:
         temp_file = temp.name
+
         # Create a progress callback that scales HTML progress to 0-80%
         def html_progress_callback(progress: int, message: str):
             if progress_callback:
                 scaled_progress = int((progress / 100) * 80)
                 progress_callback(scaled_progress, message)
-        
+
         found, not_found, invalid_words = mdx2html(
-            mdx_file, input_file, temp_file, with_toc=with_toc,
-            h1_style=h1_style, scrap_style=scrap_style, additional_styles=additional_styles,
-            progress_callback=html_progress_callback
+            mdx_file,
+            input_file,
+            temp_file,
+            with_toc=with_toc,
+            h1_style=h1_style,
+            scrap_style=scrap_style,
+            additional_styles=additional_styles,
+            progress_callback=html_progress_callback,
         )
 
     # Ensure output directory exists
     output_path = Path(output_file)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     # Build wkhtmltoimage options - whitelist only supported keys
-    options = {'enable-local-file-access': ''}
+    options = {"enable-local-file-access": ""}
     if img_options:
         # Supported wkhtmltoimage keys we allow
         allowed_keys = {"width", "zoom", "quality"}
@@ -229,56 +247,64 @@ def mdx2img(
     suffix = output_path.suffix.lower()
     if progress_callback:
         progress_callback(85, f"Converting HTML to {suffix.upper()}...")
-    
+
     # -------- WEBP --------
-    if suffix == '.webp':
+    if suffix == ".webp":
         # Render to a temporary PNG first, then convert to WEBP via Pillow
-        with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as tmp_png:
+        with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as tmp_png:
             tmp_png_path = tmp_png.name
         try:
             imgkit.from_file(temp_file, str(tmp_png_path), options=options)
             with Image.open(tmp_png_path) as im:
-                webp_quality = 80 if not img_options else int(img_options.get('webp_quality', 80))
-                webp_lossless = False if not img_options else bool(img_options.get('webp_lossless', False))
+                webp_quality = 80 if not img_options else int(img_options.get("webp_quality", 80))
+                webp_lossless = (
+                    False if not img_options else bool(img_options.get("webp_lossless", False))
+                )
                 if webp_lossless:
-                    im.save(str(output_path), format='WEBP', lossless=True, quality=webp_quality)
+                    im.save(str(output_path), format="WEBP", lossless=True, quality=webp_quality)
                 else:
-                    im.save(str(output_path), format='WEBP', quality=webp_quality, method=6)
+                    im.save(str(output_path), format="WEBP", quality=webp_quality, method=6)
         finally:
             try:
                 os.remove(tmp_png_path)
             except Exception:
                 pass
     # -------- PNG --------
-    elif suffix == '.png':
+    elif suffix == ".png":
         # Render to temp, then Pillow optimize and recompress
-        with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as tmp_png:
+        with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as tmp_png:
             tmp_png_path = tmp_png.name
         try:
             imgkit.from_file(temp_file, str(tmp_png_path), options=options)
             with Image.open(tmp_png_path) as im:
-                png_optimize = True if not img_options else bool(img_options.get('png_optimize', True))
-                png_compress_level = 9 if not img_options else int(img_options.get('png_compress_level', 9))
-                im.save(str(output_path), format='PNG', optimize=png_optimize, compress_level=png_compress_level)
+                png_optimize = (
+                    True if not img_options else bool(img_options.get("png_optimize", True))
+                )
+                png_compress_level = (
+                    9 if not img_options else int(img_options.get("png_compress_level", 9))
+                )
+                im.save(
+                    str(output_path),
+                    format="PNG",
+                    optimize=png_optimize,
+                    compress_level=png_compress_level,
+                )
         finally:
             try:
                 os.remove(tmp_png_path)
             except Exception:
                 pass
     # -------- JPG / JPEG --------
-    elif suffix in ('.jpg', '.jpeg'):
+    elif suffix in (".jpg", ".jpeg"):
         # Set default JPEG quality for wkhtmltoimage
-        options.setdefault('quality', '85')
+        options.setdefault("quality", "85")
         imgkit.from_file(temp_file, str(output_path), options=options)
     # -------- Others (fallback to wkhtmltoimage) --------
     else:
         imgkit.from_file(temp_file, str(output_path), options=options)
 
     os.remove(temp_file)
-    
+
     if progress_callback:
         progress_callback(100, f"{suffix.upper()} conversion completed!")
     return found, not_found, invalid_words
-
-
-

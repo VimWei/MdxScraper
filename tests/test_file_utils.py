@@ -16,10 +16,10 @@ def test_write_invalid_words_file_empty():
     """Test writing empty invalid words file"""
     invalid_words = OrderedDict()
     output_file = Path("test_invalid.txt")
-    
+
     with patch("builtins.open", mock_open()) as mock_file:
         write_invalid_words_file(invalid_words, output_file)
-        
+
         # Should not write anything for empty dict
         mock_file.assert_not_called()
 
@@ -29,13 +29,13 @@ def test_write_invalid_words_file_single_lesson():
     invalid_words = OrderedDict()
     invalid_words["Lesson 1"] = ["word1", "word2", "word3"]
     output_file = Path("test_invalid.txt")
-    
+
     with patch("builtins.open", mock_open()) as mock_file:
         write_invalid_words_file(invalid_words, output_file)
-        
+
         # Verify file was opened
-        mock_file.assert_called_once_with(output_file, 'w', encoding='utf-8')
-        
+        mock_file.assert_called_once_with(output_file, "w", encoding="utf-8")
+
         # Verify content was written
         handle = mock_file()
         expected_calls = [
@@ -43,7 +43,7 @@ def test_write_invalid_words_file_single_lesson():
             call("word1\n"),
             call("word2\n"),
             call("word3\n"),
-            call("\n")
+            call("\n"),
         ]
         handle.write.assert_has_calls(expected_calls)
 
@@ -54,13 +54,13 @@ def test_write_invalid_words_file_multiple_lessons():
     invalid_words["Lesson 1"] = ["word1", "word2"]
     invalid_words["Lesson 2"] = ["word3", "word4", "word5"]
     output_file = Path("test_invalid.txt")
-    
+
     with patch("builtins.open", mock_open()) as mock_file:
         write_invalid_words_file(invalid_words, output_file)
-        
+
         # Verify file was opened
-        mock_file.assert_called_once_with(output_file, 'w', encoding='utf-8')
-        
+        mock_file.assert_called_once_with(output_file, "w", encoding="utf-8")
+
         # Verify content was written
         handle = mock_file()
         expected_calls = [
@@ -72,7 +72,7 @@ def test_write_invalid_words_file_multiple_lessons():
             call("word3\n"),
             call("word4\n"),
             call("word5\n"),
-            call("\n")
+            call("\n"),
         ]
         handle.write.assert_has_calls(expected_calls)
 
@@ -82,19 +82,16 @@ def test_write_invalid_words_file_empty_lesson():
     invalid_words = OrderedDict()
     invalid_words["Lesson 1"] = []
     output_file = Path("test_invalid.txt")
-    
+
     with patch("builtins.open", mock_open()) as mock_file:
         write_invalid_words_file(invalid_words, output_file)
-        
+
         # Verify file was opened
-        mock_file.assert_called_once_with(output_file, 'w', encoding='utf-8')
-        
+        mock_file.assert_called_once_with(output_file, "w", encoding="utf-8")
+
         # Verify content was written
         handle = mock_file()
-        expected_calls = [
-            call("# Lesson 1\n"),
-            call("\n")
-        ]
+        expected_calls = [call("# Lesson 1\n"), call("\n")]
         handle.write.assert_has_calls(expected_calls)
 
 
@@ -103,12 +100,12 @@ def test_write_invalid_words_file_string_path():
     invalid_words = OrderedDict()
     invalid_words["Lesson 1"] = ["word1"]
     output_file = "test_invalid.txt"
-    
+
     with patch("builtins.open", mock_open()) as mock_file:
         write_invalid_words_file(invalid_words, output_file)
-        
+
         # Verify file was opened
-        mock_file.assert_called_once_with(Path(output_file), 'w', encoding='utf-8')
+        mock_file.assert_called_once_with(Path(output_file), "w", encoding="utf-8")
 
 
 def test_write_invalid_words_file_create_directory():
@@ -116,11 +113,11 @@ def test_write_invalid_words_file_create_directory():
     invalid_words = OrderedDict()
     invalid_words["Lesson 1"] = ["word1"]
     output_file = Path("nonexistent_dir/test_invalid.txt")
-    
+
     with patch("builtins.open", mock_open()) as mock_file:
         with patch.object(Path, "mkdir") as mock_mkdir:
             write_invalid_words_file(invalid_words, output_file)
-            
+
             # Verify directory was created
             mock_mkdir.assert_called_once_with(parents=True, exist_ok=True)
 

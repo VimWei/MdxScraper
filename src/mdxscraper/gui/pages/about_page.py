@@ -10,13 +10,14 @@ class AboutPage(QWidget):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(8, 8, 8, 8)
         layout.addStretch(1)
-        title = QLabel('<b>Homepage</b>', self)
+        title = QLabel("<b>Homepage</b>", self)
         title.setAlignment(Qt.AlignHCenter)
         layout.addWidget(title)
-        link = QLabel('<a href="https://github.com/VimWei/MdxScraper">https://github.com/VimWei/MdxScraper</a>', self)
+        link = QLabel(
+            '<a href="https://github.com/VimWei/MdxScraper">https://github.com/VimWei/MdxScraper</a>',
+            self,
+        )
         link.setOpenExternalLinks(True)
         link.setAlignment(Qt.AlignHCenter)
         layout.addWidget(link)
         layout.addStretch(1)
-
-

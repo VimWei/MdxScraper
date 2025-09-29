@@ -8,4 +8,3 @@ from .mdict_query import IndexBuilder
 __all__ = [
     "IndexBuilder",
 ]
-

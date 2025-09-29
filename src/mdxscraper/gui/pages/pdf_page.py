@@ -61,8 +61,7 @@ class PdfPage(QWidget):
     def get_config(self) -> PdfConfig:
         """Get current page configuration as data class"""
         return PdfConfig(
-            preset_text=self.pdf_editor.toPlainText(),
-            preset_label=self.pdf_combo.currentText()
+            preset_text=self.pdf_editor.toPlainText(), preset_label=self.pdf_combo.currentText()
         )
 
     def set_config(self, config: PdfConfig) -> None:
@@ -78,16 +77,16 @@ class PdfPage(QWidget):
         # 2) user-first base-name match (no [built-in] in item)
         for i in range(self.pdf_combo.count()):
             item = self.pdf_combo.itemText(i)
-            if ' [built-in]' in item:
+            if " [built-in]" in item:
                 continue
-            item_base = item.split(' [', 1)[0]
+            item_base = item.split(" [", 1)[0]
             if item_base == base_label:
                 self.pdf_combo.setCurrentIndex(i)
                 return
         # 3) built-in base-name match as last resort
         for i in range(self.pdf_combo.count()):
             item = self.pdf_combo.itemText(i)
-            item_base = item.split(' [', 1)[0]
+            item_base = item.split(" [", 1)[0]
             if item_base == base_label:
                 self.pdf_combo.setCurrentIndex(i)
                 return

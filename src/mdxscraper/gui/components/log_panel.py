@@ -15,10 +15,10 @@ from PySide6.QtWidgets import (
 class LogPanel(QWidget):
     def __init__(self, parent: QWidget | None = None):
         super().__init__(parent)
-        
+
         # Set minimum height for log panel
         self.setMinimumHeight(150)
-        
+
         root = QVBoxLayout(self)
         root.setContentsMargins(0, 0, 0, 0)
         root.setSpacing(8)

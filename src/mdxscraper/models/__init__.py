@@ -16,7 +16,7 @@ from .preset_models import (
 __all__ = [
     # 配置模型
     "BasicConfig",
-    "ImageConfig", 
+    "ImageConfig",
     "AdvancedConfig",
     "PdfConfig",
     "CssConfig",

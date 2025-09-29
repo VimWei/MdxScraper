@@ -5,10 +5,10 @@ from datetime import timedelta
 
 def human_readable_duration(seconds: float) -> str:
     """Convert seconds to human readable duration string.
-    
+
     Args:
         seconds: Duration in seconds
-        
+
     Returns:
         Human readable duration string (e.g., "01h 23m 45.123s")
     """
@@ -19,9 +19,9 @@ def human_readable_duration(seconds: float) -> str:
 
     parts: list[str] = []
     if int(hours) > 0:
-        parts.append(f'{int(hours):02d} hours')
+        parts.append(f"{int(hours):02d} hours")
     if int(minutes) > 0 or int(hours) > 0:
-        parts.append(f'{int(minutes):02d} minutes')
-    parts.append(f'{int(int_seconds):02d}.{milliseconds:03d} seconds')
+        parts.append(f"{int(minutes):02d} minutes")
+    parts.append(f"{int(int_seconds):02d}.{milliseconds:03d} seconds")
 
-    return ''.join(parts)
+    return "".join(parts)

@@ -7,6 +7,7 @@ from typing import Optional
 @dataclass
 class BasicConfig:
     """Basic page configuration data class"""
+
     input_file: str = ""
     dictionary_file: str = ""
     output_file: str = ""
@@ -19,6 +20,7 @@ class BasicConfig:
 @dataclass
 class ImageConfig:
     """Image page configuration data class"""
+
     width: int = 0
     zoom: float = 1.0
     background: bool = True
@@ -34,12 +36,14 @@ class ImageConfig:
 @dataclass
 class AdvancedConfig:
     """Advanced page configuration data class"""
+
     wkhtmltopdf_path: str = "auto"
 
 
 @dataclass
 class PdfConfig:
     """PDF page configuration data class"""
+
     preset_text: str = ""
     preset_label: str = ""
 
@@ -47,5 +51,6 @@ class PdfConfig:
 @dataclass
 class CssConfig:
     """CSS page configuration data class"""
+
     preset_text: str = ""
     preset_label: str = ""

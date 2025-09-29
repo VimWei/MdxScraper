@@ -70,15 +70,15 @@ def test_human_readable_duration_edge_cases():
     # Exactly 60 seconds
     result = human_readable_duration(60.0)
     assert result == "01 minutes00.000 seconds"
-    
+
     # Exactly 3600 seconds (1 hour)
     result = human_readable_duration(3600.0)
     assert result == "01 hours00 minutes00.000 seconds"
-    
+
     # Just under 1 minute
     result = human_readable_duration(59.999)
     assert result == "59.999 seconds"
-    
+
     # Just under 1 hour
     result = human_readable_duration(3599.999)
     assert result == "59 minutes59.998 seconds"  # Actual result due to floating point precision

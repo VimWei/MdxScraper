@@ -51,7 +51,9 @@ class CssPage(QWidget):
         # CSS editor
         self.css_editor = QTextEdit(self)
         self.css_editor.setAcceptRichText(False)  # Disable rich text for plain text editing
-        self.css_editor.setPlaceholderText("[style]\n# h1_style=..., scrap_style=..., additional_styles=... (TOML)")
+        self.css_editor.setPlaceholderText(
+            "[style]\n# h1_style=..., scrap_style=..., additional_styles=... (TOML)"
+        )
         self.css_editor.textChanged.connect(self.text_changed.emit)
         layout.addWidget(self.css_editor, 1)
 
@@ -61,8 +63,7 @@ class CssPage(QWidget):
     def get_config(self) -> CssConfig:
         """Get current page configuration as data class"""
         return CssConfig(
-            preset_text=self.css_editor.toPlainText(),
-            preset_label=self.css_combo.currentText()
+            preset_text=self.css_editor.toPlainText(), preset_label=self.css_combo.currentText()
         )
 
     def set_config(self, config: CssConfig) -> None:
@@ -78,16 +79,16 @@ class CssPage(QWidget):
         # 2) user-first base-name match (no [built-in] in item)
         for i in range(self.css_combo.count()):
             item = self.css_combo.itemText(i)
-            if ' [built-in]' in item:
+            if " [built-in]" in item:
                 continue
-            item_base = item.split(' [', 1)[0]
+            item_base = item.split(" [", 1)[0]
             if item_base == base_label:
                 self.css_combo.setCurrentIndex(i)
                 return
         # 3) built-in base-name match as last resort
         for i in range(self.css_combo.count()):
             item = self.css_combo.itemText(i)
-            item_base = item.split(' [', 1)[0]
+            item_base = item.split(" [", 1)[0]
             if item_base == base_label:
                 self.css_combo.setCurrentIndex(i)
                 return

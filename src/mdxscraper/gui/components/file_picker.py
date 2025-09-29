@@ -8,7 +8,7 @@ class FilePicker(QWidget):
     textChanged = Signal(str)
     browseRequested = Signal()
 
-    def __init__(self, text: str = '', parent: QWidget | None = None):
+    def __init__(self, text: str = "", parent: QWidget | None = None):
         super().__init__(parent)
         layout = QHBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)

@@ -50,10 +50,12 @@ class SettingsService:
         return self.cm._config
 
     # Specific helpers mentioned in the refactor doc
-    def persist_session_state(self, pdf_text: str, pdf_label: str, css_text: str, css_label: str) -> None:
+    def persist_session_state(
+        self, pdf_text: str, pdf_label: str, css_text: str, css_label: str
+    ) -> None:
         try:
-            self.cm.set('pdf.preset_label', pdf_label)
-            self.cm.set('css.preset_label', css_label)
+            self.cm.set("pdf.preset_label", pdf_label)
+            self.cm.set("css.preset_label", css_label)
         except Exception:
             pass
 
@@ -101,6 +103,7 @@ class SettingsService:
     # Unified configuration access methods
     def get_basic_config(self) -> BasicConfig:
         """Get Basic page configuration as data class"""
+
         # Read exclusively from new [basic] section
         def _to_posix(s: str) -> str:
             try:
@@ -115,7 +118,7 @@ class SettingsService:
             output_add_timestamp=self.get_output_add_timestamp(),
             backup_input=self.get_backup_input(),
             save_invalid_words=self.get_save_invalid_words(),
-            with_toc=bool(self.get("basic.with_toc", True))
+            with_toc=bool(self.get("basic.with_toc", True)),
         )
 
     def update_basic_config(self, config: BasicConfig) -> None:
@@ -128,7 +131,7 @@ class SettingsService:
         self.set_backup_input(config.backup_input)
         self.set_save_invalid_words(config.save_invalid_words)
         # Persist with_toc only in new [basic] section
-        with_toc_val = bool(getattr(config, 'with_toc', True))
+        with_toc_val = bool(getattr(config, "with_toc", True))
         self.set("basic.with_toc", with_toc_val)
 
     def get_image_config(self) -> ImageConfig:
@@ -143,7 +146,7 @@ class SettingsService:
             png_transparent_bg=bool(self.get("image.png.transparent_bg", False)),
             webp_quality=int(self.get("image.webp.quality", 80) or 80),
             webp_lossless=bool(self.get("image.webp.lossless", False)),
-            webp_transparent_bg=bool(self.get("image.webp.transparent_bg", False))
+            webp_transparent_bg=bool(self.get("image.webp.transparent_bg", False)),
         )
 
     def update_image_config(self, config: ImageConfig) -> None:
@@ -161,9 +164,7 @@ class SettingsService:
 
     def get_advanced_config(self) -> AdvancedConfig:
         """Get Advanced page configuration as data class"""
-        return AdvancedConfig(
-            wkhtmltopdf_path=str(self.get("advanced.wkhtmltopdf_path", "auto"))
-        )
+        return AdvancedConfig(wkhtmltopdf_path=str(self.get("advanced.wkhtmltopdf_path", "auto")))
 
     def update_advanced_config(self, config: AdvancedConfig) -> None:
         """Update Advanced page configuration from data class"""
@@ -172,10 +173,7 @@ class SettingsService:
     def get_pdf_config(self) -> PdfConfig:
         """Get PDF page configuration as data class"""
         # New behavior: only persist and read label from config; preset_text is view-only
-        return PdfConfig(
-            preset_text="",
-            preset_label=str(self.get("pdf.preset_label", ""))
-        )
+        return PdfConfig(preset_text="", preset_label=str(self.get("pdf.preset_label", "")))
 
     def update_pdf_config(self, config: PdfConfig) -> None:
         """Update PDF page configuration from data class"""
@@ -185,10 +183,7 @@ class SettingsService:
     def get_css_config(self) -> CssConfig:
         """Get CSS page configuration as data class"""
         # New behavior: only persist and read label from config; preset_text is view-only
-        return CssConfig(
-            preset_text="",
-            preset_label=str(self.get("css.preset_label", ""))
-        )
+        return CssConfig(preset_text="", preset_label=str(self.get("css.preset_label", "")))
 
     def update_css_config(self, config: CssConfig) -> None:
         """Update CSS page configuration from data class"""

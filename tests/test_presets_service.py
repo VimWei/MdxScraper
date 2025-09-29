@@ -23,22 +23,22 @@ def test_parse_pdf_preset_empty():
     """Test parsing empty PDF preset"""
     service = PresetsService(project_root=_project_root())
     result = service.parse_pdf_preset("")
-    
+
     assert result == {}
 
 
 def test_parse_pdf_preset_valid():
     """Test parsing valid PDF preset"""
     service = PresetsService(project_root=_project_root())
-    
+
     preset_content = """[pdf]
 page-size = "A4"
 margin-top = "20mm"
 margin-bottom = "20mm"
 encoding = "UTF-8" """
-    
+
     result = service.parse_pdf_preset(preset_content)
-    
+
     assert isinstance(result, dict)
     assert "page-size" in result or "margin-top" in result
 
@@ -46,10 +46,10 @@ encoding = "UTF-8" """
 def test_parse_pdf_preset_invalid():
     """Test parsing invalid PDF preset"""
     service = PresetsService(project_root=_project_root())
-    
+
     invalid_content = "This is not a valid PDF preset"
     result = service.parse_pdf_preset(invalid_content)
-    
+
     # Should return empty dict for invalid content
     assert result == {}
 
@@ -58,21 +58,21 @@ def test_parse_css_preset_empty():
     """Test parsing empty CSS preset"""
     service = PresetsService(project_root=_project_root())
     result = service.parse_css_preset("")
-    
+
     assert result == (None, None, None)
 
 
 def test_parse_css_preset_valid():
     """Test parsing valid CSS preset"""
     service = PresetsService(project_root=_project_root())
-    
+
     preset_content = """[style]
 body = "body { margin: 0; padding: 0; }"
 h1 = "h1 { color: red; font-size: 24px; }"
 custom = ".custom { background: blue; }" """
-    
+
     result = service.parse_css_preset(preset_content)
-    
+
     assert isinstance(result, tuple)
     assert len(result) == 3
     # The actual implementation might return None for all values if parsing fails
@@ -85,32 +85,32 @@ custom = ".custom { background: blue; }" """
 def test_parse_css_preset_invalid():
     """Test parsing invalid CSS preset"""
     service = PresetsService(project_root=_project_root())
-    
+
     invalid_content = "This is not valid CSS"
     result = service.parse_css_preset(invalid_content)
-    
+
     # Should return None values for invalid content
     assert result == (None, None, None)
 
 
-@patch('builtins.open', new_callable=mock_open)
+@patch("builtins.open", new_callable=mock_open)
 def test_load_preset_text(mock_file):
     """Test loading preset text from file"""
     mock_file.return_value.read.return_value = "test preset content"
-    
+
     service = PresetsService(project_root=_project_root())
     result = service.load_preset_text("test_preset.txt")
-    
+
     assert result == "test preset content"
     mock_file.assert_called_once()
 
 
-@patch('builtins.open', new_callable=mock_open)
+@patch("builtins.open", new_callable=mock_open)
 def test_save_preset_text(mock_file):
     """Test saving preset text to file"""
     service = PresetsService(project_root=_project_root())
     service.save_preset_text(Path("test_preset.txt"), "test content")
-    
+
     mock_file.assert_called_once()
     mock_file.return_value.write.assert_called_once_with("test content")
 
@@ -118,7 +118,7 @@ def test_save_preset_text(mock_file):
 def test_get_preset_files():
     """Test getting preset files"""
     service = PresetsService(project_root=_project_root())
-    
+
     # This test might need to be adjusted based on actual implementation
     # For now, just test that the method exists and doesn't crash
     try:
@@ -132,7 +132,7 @@ def test_get_preset_files():
 def test_get_preset_files_css():
     """Test getting CSS preset files"""
     service = PresetsService(project_root=_project_root())
-    
+
     # This test might need to be adjusted based on actual implementation
     # For now, just test that the method exists and doesn't crash
     try:

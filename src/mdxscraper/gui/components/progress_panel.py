@@ -15,5 +15,3 @@ class ProgressPanel(QWidget):
 
     def setProgress(self, value: int) -> None:  # noqa: N802
         self.progress.setValue(max(0, min(100, int(value))))
-
-

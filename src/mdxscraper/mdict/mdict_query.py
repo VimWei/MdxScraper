@@ -20,4 +20,3 @@ import mdict_query as _mdict_query  # type: ignore
 IndexBuilder = _mdict_query.IndexBuilder  # noqa: N816 (preserve original name)
 
 __all__ = ["IndexBuilder"]
-

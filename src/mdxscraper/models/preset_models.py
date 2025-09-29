@@ -9,6 +9,7 @@ from typing import Any, Dict, Optional
 @dataclass
 class PresetInfo:
     """预设信息数据类"""
+
     name: str
     label: str
     description: str = ""
@@ -20,10 +21,11 @@ class PresetInfo:
 @dataclass
 class PresetData:
     """预设数据类"""
+
     info: PresetInfo
     content: str
     metadata: Dict[str, Any] = None
-    
+
     def __post_init__(self):
         if self.metadata is None:
             self.metadata = {}
@@ -32,11 +34,12 @@ class PresetData:
 @dataclass
 class PresetCategory:
     """预设分类数据类"""
+
     name: str
     label: str
     description: str = ""
     presets: list[PresetInfo] = None
-    
+
     def __post_init__(self):
         if self.presets is None:
             self.presets = []

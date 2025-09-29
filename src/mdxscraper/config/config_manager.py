@@ -116,7 +116,9 @@ class ConfigManager:
         return ValidationResult(is_valid=len(errors) == 0, errors=errors)
 
     def backup(self, suffix: str = "bak") -> Path:
-        backup_path = self.latest_config_path.with_suffix(self.latest_config_path.suffix + f".{suffix}")
+        backup_path = self.latest_config_path.with_suffix(
+            self.latest_config_path.suffix + f".{suffix}"
+        )
         if self.latest_config_path.is_file():
             data = self._read_toml(self.latest_config_path)
             self._atomic_write(backup_path, data)
@@ -275,5 +277,3 @@ class ConfigManager:
         self._norm_changed = False
         self._norm_counts = {"removed": 0, "added": 0, "type_fixed": 0}
         return info
-
-

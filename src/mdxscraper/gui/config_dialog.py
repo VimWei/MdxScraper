@@ -11,5 +11,3 @@ class ConfigDialog(QDialog):
         self.setWindowTitle("Configuration (stub)")
         layout = QVBoxLayout(self)
         layout.addWidget(QLabel("Future advanced options here."))
-
-

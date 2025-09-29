@@ -10,5 +10,3 @@ __all__ = [
     "write_invalid_words_file",
     "get_image_format_from_src",
 ]
-
-

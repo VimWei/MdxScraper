@@ -69,7 +69,10 @@ class WordParser:
         result = []
         for sheet_name in wb.sheetnames:
             ws = wb[sheet_name]
-            words = [row[0].value for row in ws.iter_rows(min_row=ws.min_row, max_row=ws.max_row, max_col=1)]
+            words = [
+                row[0].value
+                for row in ws.iter_rows(min_row=ws.min_row, max_row=ws.max_row, max_col=1)
+            ]
             words = list(filter(lambda x: x is not None and len(x) > 0, words))
             result.append({"name": sheet_name, "words": words})
         return result

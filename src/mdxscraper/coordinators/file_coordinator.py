@@ -30,8 +30,7 @@ class FileCoordinator:
         else:
             start_dir = str(fallback_dir if fallback_dir.exists() else self.project_root)
         file, _ = QFileDialog.getOpenFileName(
-            mw, "Select input file", start_dir,
-            "Supported files (*.txt *.md *.json *.xlsx)"
+            mw, "Select input file", start_dir, "Supported files (*.txt *.md *.json *.xlsx)"
         )
         if file:
             self.settings.set_input_file(file)
@@ -68,13 +67,25 @@ class FileCoordinator:
                     start_dir = str(resolved_path.parent)
                 else:
                     output_dir = self.settings.get("output.directory", "data/output")
-                    start_dir = str(Path(output_dir).resolve()) if Path(output_dir).exists() else str(self.project_root / "data" / "output")
+                    start_dir = (
+                        str(Path(output_dir).resolve())
+                        if Path(output_dir).exists()
+                        else str(self.project_root / "data" / "output")
+                    )
             except Exception:
                 output_dir = self.settings.get("output.directory", "data/output")
-                start_dir = str(Path(output_dir).resolve()) if Path(output_dir).exists() else str(self.project_root / "data" / "output")
+                start_dir = (
+                    str(Path(output_dir).resolve())
+                    if Path(output_dir).exists()
+                    else str(self.project_root / "data" / "output")
+                )
         else:
             output_dir = self.settings.get("output.directory", "data/output")
-            start_dir = str(Path(output_dir).resolve()) if Path(output_dir).exists() else str(self.project_root / "data" / "output")
+            start_dir = (
+                str(Path(output_dir).resolve())
+                if Path(output_dir).exists()
+                else str(self.project_root / "data" / "output")
+            )
 
         default_filename = ""
         input_file = mw.edit_input.text().strip()
@@ -87,10 +98,11 @@ class FileCoordinator:
 
         filters = "HTML files (*.html);;PDF files (*.pdf);;JPG files (*.jpg);;PNG files (*.png);;WEBP files (*.webp);;All files (*.*)"
         file, _ = QFileDialog.getSaveFileName(
-            mw, "Select output file",
+            mw,
+            "Select output file",
             str(Path(start_dir) / (default_filename + ".html" if default_filename else "")),
             filters,
-            "All files (*.*)"
+            "All files (*.*)",
         )
         if file:
             self.settings.set_output_file(file)
@@ -98,11 +110,11 @@ class FileCoordinator:
 
     def open_user_data_dir(self, mw) -> None:
         try:
-            target = (self.project_root / 'data').resolve()
+            target = (self.project_root / "data").resolve()
             target.mkdir(parents=True, exist_ok=True)
             open_file_or_directory(target)
             try:
-                if hasattr(mw, 'tab_advanced') and hasattr(mw.tab_advanced, 'edit_data_path'):
+                if hasattr(mw, "tab_advanced") and hasattr(mw.tab_advanced, "edit_data_path"):
                     mw.tab_advanced.edit_data_path.setText(str(target))
             except Exception:
                 pass
@@ -111,8 +123,6 @@ class FileCoordinator:
 
     def get_user_data_dir(self) -> Path:
         """Return the absolute user data directory path without opening UI."""
-        target = (self.project_root / 'data').resolve()
+        target = (self.project_root / "data").resolve()
         target.mkdir(parents=True, exist_ok=True)
         return target
-
-

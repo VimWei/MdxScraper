@@ -42,7 +42,9 @@ class AdvancedPage(QWidget):
         path_section.addSpacing(8)
 
         self.edit_wkhtmltopdf_path = QLineEdit(self)
-        self.edit_wkhtmltopdf_path.setPlaceholderText("Auto-detect (click Browse to specify manually)")
+        self.edit_wkhtmltopdf_path.setPlaceholderText(
+            "Auto-detect (click Browse to specify manually)"
+        )
         path_section.addWidget(self.edit_wkhtmltopdf_path, 1)
 
         self.btn_browse_wkhtmltopdf = QPushButton("Browse...", self)
@@ -89,7 +91,7 @@ class AdvancedPage(QWidget):
         self.btn_restore_default.setFixedWidth(150)
         self.btn_restore_default.setObjectName("restore-default-button")
         config_section.addWidget(self.btn_restore_default)
-        
+
         # Add spacer to push button to the left
         config_section.addItem(QSpacerItem(20, 10, QSizePolicy.Expanding, QSizePolicy.Minimum))
         layout.addLayout(config_section)
@@ -155,9 +157,9 @@ class AdvancedPage(QWidget):
             for _ in range(6):
                 if p is None:
                     break
-                if hasattr(p, 'filec'):
-                    return getattr(p, 'filec')
-                if hasattr(p, 'parent') and callable(p.parent):
+                if hasattr(p, "filec"):
+                    return getattr(p, "filec")
+                if hasattr(p, "parent") and callable(p.parent):
                     p = p.parent()
                 else:
                     break
@@ -172,9 +174,9 @@ class AdvancedPage(QWidget):
             for _ in range(6):
                 if p is None:
                     break
-                if hasattr(p, 'cfgc'):
-                    return getattr(p, 'cfgc')
-                if hasattr(p, 'parent') and callable(p.parent):
+                if hasattr(p, "cfgc"):
+                    return getattr(p, "cfgc")
+                if hasattr(p, "parent") and callable(p.parent):
                     p = p.parent()
                 else:
                     break
@@ -196,7 +198,9 @@ class AdvancedPage(QWidget):
                 self.edit_wkhtmltopdf_path.setPlaceholderText("Click Browse to specify manually")
             else:
                 # Default auto-detect message
-                self.edit_wkhtmltopdf_path.setPlaceholderText("Auto-detect (click Browse to specify manually)")
+                self.edit_wkhtmltopdf_path.setPlaceholderText(
+                    "Auto-detect (click Browse to specify manually)"
+                )
         else:
             # Manual path specified, no placeholder needed
             self.edit_wkhtmltopdf_path.setPlaceholderText("")
@@ -214,8 +218,10 @@ class AdvancedPage(QWidget):
             start_dir = ""
 
         file, _ = QFileDialog.getOpenFileName(
-            self, "Select wkhtmltopdf executable", start_dir,
-            "Executable files (*.exe);;All files (*.*)"
+            self,
+            "Select wkhtmltopdf executable",
+            start_dir,
+            "Executable files (*.exe);;All files (*.*)",
         )
         if file:
             self.edit_wkhtmltopdf_path.setText(file)
@@ -239,9 +245,7 @@ class AdvancedPage(QWidget):
 
     def get_config(self) -> AdvancedConfig:
         """Get current page configuration as data class"""
-        return AdvancedConfig(
-            wkhtmltopdf_path=self.get_wkhtmltopdf_path()
-        )
+        return AdvancedConfig(wkhtmltopdf_path=self.get_wkhtmltopdf_path())
 
     def set_config(self, config: AdvancedConfig) -> None:
         """Set page configuration from data class"""

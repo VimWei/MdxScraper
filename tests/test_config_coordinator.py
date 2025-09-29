@@ -49,7 +49,7 @@ def test_sync_all_from_config(config_coordinator, mock_settings):
     mock_mw.tab_basic = Mock()
     mock_mw.tab_image = Mock()
     mock_mw.tab_advanced = Mock()
-    
+
     # Mock settings methods
     mock_settings.get_basic_config.return_value = BasicConfig(
         input_file="test.txt",
@@ -58,20 +58,14 @@ def test_sync_all_from_config(config_coordinator, mock_settings):
         output_add_timestamp=True,
         backup_input=False,
         save_invalid_words=True,
-        with_toc=True
+        with_toc=True,
     )
-    mock_settings.get_image_config.return_value = ImageConfig(
-        width=800,
-        zoom=1.0,
-        background=True
-    )
-    mock_settings.get_advanced_config.return_value = AdvancedConfig(
-        wkhtmltopdf_path="auto"
-    )
-    
+    mock_settings.get_image_config.return_value = ImageConfig(width=800, zoom=1.0, background=True)
+    mock_settings.get_advanced_config.return_value = AdvancedConfig(wkhtmltopdf_path="auto")
+
     # Call the method
     config_coordinator.sync_all_from_config(mock_mw)
-    
+
     # Verify settings methods were called
     mock_settings.get_basic_config.assert_called_once()
     mock_settings.get_image_config.assert_called_once()
@@ -85,7 +79,7 @@ def test_sync_all_to_config(config_coordinator, mock_settings):
     mock_mw.tab_basic = Mock()
     mock_mw.tab_image = Mock()
     mock_mw.tab_advanced = Mock()
-    
+
     # Mock page methods
     mock_mw.tab_basic.get_config.return_value = BasicConfig(
         input_file="test.txt",
@@ -94,20 +88,14 @@ def test_sync_all_to_config(config_coordinator, mock_settings):
         output_add_timestamp=True,
         backup_input=False,
         save_invalid_words=True,
-        with_toc=True
+        with_toc=True,
     )
-    mock_mw.tab_image.get_config.return_value = ImageConfig(
-        width=800,
-        zoom=1.0,
-        background=True
-    )
-    mock_mw.tab_advanced.get_config.return_value = AdvancedConfig(
-        wkhtmltopdf_path="auto"
-    )
-    
+    mock_mw.tab_image.get_config.return_value = ImageConfig(width=800, zoom=1.0, background=True)
+    mock_mw.tab_advanced.get_config.return_value = AdvancedConfig(wkhtmltopdf_path="auto")
+
     # Call the method
     config_coordinator.sync_all_to_config(mock_mw)
-    
+
     # Verify settings methods were called
     mock_settings.update_basic_config.assert_called_once()
     mock_settings.update_image_config.assert_called_once()
@@ -125,11 +113,11 @@ def test_import_config(config_coordinator, mock_settings, mock_presets):
     mock_mw.tab_css = Mock()
     mock_mw.preset_coordinator = Mock()
     mock_mw.log_panel = Mock()
-    
+
     # Mock settings methods
     mock_settings.replace_config.return_value = None
     mock_settings.get_normalize_info_once.return_value = {"changed": False}
-    
+
     # Mock file content
     config_content = """
 [basic]
@@ -151,7 +139,7 @@ h1_style = "color: blue;"
 scrap_style = "font-size: 16px;"
 additional_styles = "body { padding: 10px; }"
 """
-    
+
     with patch("builtins.open", mock_open(read_data=config_content)):
         with patch("tomllib.load") as mock_toml:
             mock_toml.return_value = {
@@ -162,26 +150,22 @@ additional_styles = "body { padding: 10px; }"
                     "output_add_timestamp": True,
                     "backup_input": False,
                     "save_invalid_words": True,
-                    "with_toc": True
+                    "with_toc": True,
                 },
-                "image": {
-                    "width": 1024,
-                    "height": 768,
-                    "format": "jpg"
-                },
+                "image": {"width": 1024, "height": 768, "format": "jpg"},
                 "advanced": {
                     "h1_style": "color: blue;",
                     "scrap_style": "font-size: 16px;",
-                    "additional_styles": "body { padding: 10px; }"
-                }
+                    "additional_styles": "body { padding: 10px; }",
+                },
             }
-            
+
             # Call the method
             result = config_coordinator.import_config(mock_mw, Path("test_config.toml"))
-            
+
             # Verify result (import_config returns None)
             assert result is None
-            
+
             # Verify settings were updated
             mock_settings.replace_config.assert_called_once()
             mock_settings.get_normalize_info_once.assert_called_once()
@@ -196,7 +180,7 @@ def test_export_config(config_coordinator, mock_settings, mock_presets):
     mock_mw.tab_advanced = Mock()
     mock_mw.tab_pdf = Mock()
     mock_mw.tab_css = Mock()
-    
+
     # Mock page methods
     mock_mw.tab_basic.get_config.return_value = BasicConfig(
         input_file="export.txt",
@@ -205,37 +189,31 @@ def test_export_config(config_coordinator, mock_settings, mock_presets):
         output_add_timestamp=True,
         backup_input=False,
         save_invalid_words=True,
-        with_toc=True
+        with_toc=True,
     )
-    mock_mw.tab_image.get_config.return_value = ImageConfig(
-        width=800,
-        zoom=1.0,
-        background=True
-    )
-    mock_mw.tab_advanced.get_config.return_value = AdvancedConfig(
-        wkhtmltopdf_path="auto"
-    )
-    
+    mock_mw.tab_image.get_config.return_value = ImageConfig(width=800, zoom=1.0, background=True)
+    mock_mw.tab_advanced.get_config.return_value = AdvancedConfig(wkhtmltopdf_path="auto")
+
     # Mock preset methods
     mock_mw.tab_pdf.get_preset_text.return_value = "pdf_preset_content"
     mock_mw.tab_css.get_preset_text.return_value = "css_preset_content"
-    
+
     # Mock preset coordinator
     mock_mw.preset_coordinator = Mock()
     mock_mw.preset_coordinator.autosave_untitled_if_needed.return_value = None
     mock_mw.preset_coordinator.create_snapshots_if_needed_on_export.return_value = (None, None)
-    
+
     # Mock log panel
     mock_mw.log_panel = Mock()
-    
+
     with patch("builtins.open", mock_open()) as mock_file:
         with patch("mdxscraper.config.config_manager.tomli_w.dumps") as mock_toml:
             # Call the method
             result = config_coordinator.export_config(mock_mw, Path("export_config.toml"))
-            
+
             # Verify result (export_config returns None)
             assert result is None
-            
+
             # Verify file was opened and toml.dump was called
             mock_file.assert_called_once()
             mock_toml.assert_called_once()
@@ -248,19 +226,21 @@ def test_restore_last_config(config_coordinator, mock_settings, mock_presets):
     mock_mw.settings = mock_settings
     mock_mw.preset_coordinator = Mock()
     mock_mw.log_panel = Mock()
-    
+
     # Mock settings methods
     mock_settings.load.return_value = None
-    
+
     # Mock the sync method
-    with patch.object(config_coordinator, 'sync_all_from_config') as mock_sync:
+    with patch.object(config_coordinator, "sync_all_from_config") as mock_sync:
         # Call the method
         config_coordinator.restore_last_config(mock_mw)
-        
+
         # Verify settings.load was called
         mock_settings.load.assert_called_once()
         # Verify preset coordinator was called
-        mock_mw.preset_coordinator.reload_presets.assert_called_once_with(mock_mw, auto_select_default=False)
+        mock_mw.preset_coordinator.reload_presets.assert_called_once_with(
+            mock_mw, auto_select_default=False
+        )
         # Verify sync was called
         mock_sync.assert_called_once_with(mock_mw)
         # Verify log message
@@ -275,23 +255,25 @@ def test_restore_default_config(config_coordinator, mock_settings, mock_presets)
     mock_mw.settings = mock_settings
     mock_mw.preset_coordinator = Mock()
     mock_mw.log_panel = Mock()
-    
+
     # Mock default config content
     default_config = {
         "basic": {"input_file": "default.txt"},
-        "advanced": {"wkhtmltopdf_path": "auto"}
+        "advanced": {"wkhtmltopdf_path": "auto"},
     }
     mock_settings.cm._read_toml.return_value = default_config
-    
+
     with patch("pathlib.Path.exists", return_value=True):
-        with patch.object(config_coordinator, 'sync_all_from_config') as mock_sync:
+        with patch.object(config_coordinator, "sync_all_from_config") as mock_sync:
             # Call the method
             config_coordinator.restore_default_config(mock_mw)
-            
+
             # Verify settings were updated
             mock_settings.replace_config.assert_called_once_with(default_config)
             # Verify preset coordinator was called
-            mock_mw.preset_coordinator.reload_presets.assert_called_once_with(mock_mw, auto_select_default=False)
+            mock_mw.preset_coordinator.reload_presets.assert_called_once_with(
+                mock_mw, auto_select_default=False
+            )
             # Verify sync was called
             mock_sync.assert_called_once_with(mock_mw)
             # Verify log message
@@ -304,11 +286,11 @@ def test_restore_default_config_file_not_found(config_coordinator, mock_settings
     mock_mw = Mock()
     mock_mw.project_root = Path("/test/project")
     mock_mw.log_panel = Mock()
-    
+
     with patch("pathlib.Path.exists", return_value=False):
         # Call the method
         config_coordinator.restore_default_config(mock_mw)
-        
+
         # Verify error log message
         mock_mw.log_panel.appendLog.assert_called_with("❌ Default config file not found.")
 
@@ -319,14 +301,18 @@ def test_restore_default_config_exception(config_coordinator, mock_settings, moc
     mock_mw = Mock()
     mock_mw.project_root = Path("/test/project")
     mock_mw.log_panel = Mock()
-    
+
     with patch("pathlib.Path.exists", return_value=True):
-        with patch.object(config_coordinator.settings, 'replace_config', side_effect=Exception("Test error")):
+        with patch.object(
+            config_coordinator.settings, "replace_config", side_effect=Exception("Test error")
+        ):
             # Call the method
             config_coordinator.restore_default_config(mock_mw)
-            
+
             # Verify error log message
-            mock_mw.log_panel.appendLog.assert_called_with("❌ Failed to restore default config: Test error")
+            mock_mw.log_panel.appendLog.assert_called_with(
+                "❌ Failed to restore default config: Test error"
+            )
 
 
 # Note: validate_config method doesn't exist in ConfigCoordinator

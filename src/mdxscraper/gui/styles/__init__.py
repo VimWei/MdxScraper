@@ -2,4 +2,4 @@
 
 from .theme_loader import ThemeLoader
 
-__all__ = ['ThemeLoader']
+__all__ = ["ThemeLoader"]

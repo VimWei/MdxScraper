@@ -20,9 +20,9 @@ def test_basic_config():
         output_add_timestamp=True,
         backup_input=False,
         save_invalid_words=True,
-        with_toc=True
+        with_toc=True,
     )
-    
+
     assert config.input_file == "test.txt"
     assert config.dictionary_file == "dict.mdx"
     assert config.output_file == "output.html"
@@ -35,7 +35,7 @@ def test_basic_config():
 def test_basic_config_defaults():
     """Test BasicConfig default values"""
     config = BasicConfig()
-    
+
     assert config.input_file == ""
     assert config.dictionary_file == ""
     assert config.output_file == ""
@@ -57,9 +57,9 @@ def test_image_config():
         png_transparent_bg=True,
         webp_quality=85,
         webp_lossless=True,
-        webp_transparent_bg=True
+        webp_transparent_bg=True,
     )
-    
+
     assert config.width == 800
     assert config.zoom == 1.5
     assert config.background is False
@@ -75,7 +75,7 @@ def test_image_config():
 def test_image_config_defaults():
     """Test ImageConfig default values"""
     config = ImageConfig()
-    
+
     assert config.width == 0
     assert config.zoom == 1.0
     assert config.background is True
@@ -102,10 +102,7 @@ def test_advanced_config_defaults():
 
 def test_pdf_config():
     """Test PdfConfig data class"""
-    config = PdfConfig(
-        preset_text="test preset content",
-        preset_label="test_preset"
-    )
+    config = PdfConfig(preset_text="test preset content", preset_label="test_preset")
     assert config.preset_text == "test preset content"
     assert config.preset_label == "test_preset"
 
@@ -119,10 +116,7 @@ def test_pdf_config_defaults():
 
 def test_css_config():
     """Test CssConfig data class"""
-    config = CssConfig(
-        preset_text="body { margin: 0; }",
-        preset_label="custom_css"
-    )
+    config = CssConfig(preset_text="body { margin: 0; }", preset_label="custom_css")
     assert config.preset_text == "body { margin: 0; }"
     assert config.preset_label == "custom_css"
 

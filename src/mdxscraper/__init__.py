@@ -1,6 +1,3 @@
 """MdxScraper package."""
 
-__all__ = [
-]
-
-
+__all__ = []

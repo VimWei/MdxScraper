@@ -103,7 +103,7 @@ class BasicPage(QWidget):
             output_add_timestamp=self.check_timestamp.isChecked(),
             backup_input=self.check_backup.isChecked(),
             save_invalid_words=self.check_save_invalid.isChecked(),
-            with_toc=self.check_with_toc.isChecked()
+            with_toc=self.check_with_toc.isChecked(),
         )
 
     def set_config(self, config: BasicConfig) -> None:

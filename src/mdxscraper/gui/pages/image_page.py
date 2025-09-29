@@ -153,10 +153,18 @@ class ImagePage(QWidget):
     def _connect_signals(self):
         """Connect internal widget signals to page signals"""
         # Wire sliders and numeric displays
-        self.img_zoom_slider.valueChanged.connect(lambda v: self.img_zoom_value.setText(f"{v/10:.1f}"))
-        self.jpg_quality_slider.valueChanged.connect(lambda v: self.jpg_quality_value.setText(str(v)))
-        self.png_compress_slider.valueChanged.connect(lambda v: self.png_compress_value.setText(str(v)))
-        self.webp_quality_slider.valueChanged.connect(lambda v: self.webp_quality_value.setText(str(v)))
+        self.img_zoom_slider.valueChanged.connect(
+            lambda v: self.img_zoom_value.setText(f"{v/10:.1f}")
+        )
+        self.jpg_quality_slider.valueChanged.connect(
+            lambda v: self.jpg_quality_value.setText(str(v))
+        )
+        self.png_compress_slider.valueChanged.connect(
+            lambda v: self.png_compress_value.setText(str(v))
+        )
+        self.webp_quality_slider.valueChanged.connect(
+            lambda v: self.webp_quality_value.setText(str(v))
+        )
 
         # Connect to page signals
         self.img_width.textChanged.connect(lambda: self.width_changed.emit())
@@ -182,7 +190,7 @@ class ImagePage(QWidget):
             png_transparent_bg=self.png_transparent.isChecked(),
             webp_quality=int(self.webp_quality_value.text() or 80),
             webp_lossless=self.webp_lossless.isChecked(),
-            webp_transparent_bg=self.webp_transparent.isChecked()
+            webp_transparent_bg=self.webp_transparent.isChecked(),
         )
 
     def set_config(self, config: ImageConfig) -> None:
