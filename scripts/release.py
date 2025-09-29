@@ -197,7 +197,8 @@ def release(bump_type: str = "patch") -> None:
     # 9. Commit changes
     print(f"\n8️⃣ Committing changes...")
     run_command("git add pyproject.toml docs/changelog.md")
-    run_command(f"git commit -m 'Bump version to {new_version}'")
+    # Use double quotes for Windows shell compatibility
+    run_command(f"git commit -m \"Bump version to {new_version}\"")
     print("✅ Changes committed")
 
     # 10. Create tag
