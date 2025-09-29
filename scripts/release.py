@@ -53,8 +53,35 @@ def check_git_status() -> bool:
     return True
 
 
+def _git_output(cmd: str) -> str:
+    """Run a git command and return stdout (empty if fails)."""
+    try:
+        result = run_command(cmd, check=True)
+        return result.stdout.strip()
+    except SystemExit:
+        return ""
+
+
+def _collect_commits_since_last_tag() -> list[str]:
+    """Collect commit subjects since the previous tag.
+
+    Falls back to the last 20 commits if no previous tag exists.
+    """
+    # Previous tag (exclude current HEAD's tag if already tagged)
+    prev_tag = _git_output("git describe --tags --abbrev=0 2>NUL || true")
+    rev_range = f"{prev_tag}..HEAD" if prev_tag else "HEAD~20..HEAD"
+    log = _git_output(
+        f"git log --pretty=format:%s --no-merges {rev_range}"
+    )
+    subjects = [line.strip() for line in log.splitlines() if line.strip()]
+    return subjects
+
+
 def update_changelog(new_version: str, bump_type: str) -> None:
-    """Update changelog.md with new version"""
+    """Update changelog.md with new version.
+
+    Generates the section body from recent commit messages to make entries meaningful.
+    """
     changelog_path = Path("docs/changelog.md")
 
     if not changelog_path.exists():
@@ -83,9 +110,16 @@ def update_changelog(new_version: str, bump_type: str) -> None:
 
     change_desc = change_descriptions.get(bump_type, f"{bump_type} 版本更新")
 
+    # Build bullets from commits
+    commits = _collect_commits_since_last_tag()
+    if commits:
+        bullets = "\n".join(f"- {c}" for c in commits)
+    else:
+        bullets = f"- 自动发布: {change_desc}"
+
     version_entry = f"""## [{new_version}] - {today}
 
-- 自动发布: {change_desc}
+{bullets}
 
 """
 
@@ -99,8 +133,8 @@ def update_changelog(new_version: str, bump_type: str) -> None:
             insert_index = i
             break
 
-    # Insert new version entry
-    lines.insert(insert_index, version_entry.strip())
+    # Insert new version entry and ensure a blank line separates sections
+    lines.insert(insert_index, version_entry.strip() + "\n")
 
     # Write back to file
     with open(changelog_path, "w", encoding="utf-8") as f:

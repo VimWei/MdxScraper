@@ -52,12 +52,15 @@ jobs:
           
           # Extract changelog section for this version
           if [ -f "docs/changelog.md" ]; then
-            # Use awk to extract the changelog section for this version
-            CHANGELOG=$(awk "/^## \[$VERSION\]/,/^## \[/" docs/changelog.md | head -n -1)
-            # If it's the last entry (no next header), fall back to end-of-file
-            if [ -z "$CHANGELOG" ]; then
-              CHANGELOG=$(sed -n "/^## \[$VERSION\]/,\$p" docs/changelog.md)
-            fi
+            # Robust single-section extractor: start at "## [VERSION]" and stop before next "## ["
+            CHANGELOG=$(awk -v v="$VERSION" '
+              BEGIN { inside=0 }
+              /^## \[/ {
+                if (inside) exit 0
+                if ($0 ~ "^## \\[" v "\\]") { inside=1; print; next }
+              }
+              inside { print }
+            ' docs/changelog.md)
             
             if [ -z "$CHANGELOG" ]; then
               echo "⚠️ No changelog found for version $VERSION"
