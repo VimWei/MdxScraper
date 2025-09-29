@@ -1,5 +1,9 @@
 # 更新日志
 
+## [5.2.2] - 2025-09-30
+
+- feat: Add Full Changelog link to release notes in GitHub workflow
+
 ## [5.2.1] - 2025-09-30
 
 - feat: Filter out non-essential style-only commits from release log

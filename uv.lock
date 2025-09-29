@@ -253,7 +253,7 @@ wheels = [
 
 [[package]]
 name = "mdxscraper"
-version = "5.2.1"
+version = "5.2.2"
 source = { editable = "." }
 dependencies = [
     { name = "beautifulsoup4" },
