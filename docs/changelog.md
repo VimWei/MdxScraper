@@ -2,6 +2,8 @@
 
 ## [4.9.1] - 2025-09-29
 
+- 优化界面伸缩体验，方便编辑 css/pdf 配置
+- 将 css/pdf 编辑区域更改为纯文本
 - 添加了"Restore default config"按钮
 - 一致性修复: 统一了所有配置操作，包括使用 ConfigCoordinator、异常处理模式
 
