@@ -13,6 +13,7 @@ class AdvancedPage(QWidget):
     # Signals for communicating with MainWindow
     wkhtmltopdf_path_changed = Signal()
     open_user_data_requested = Signal()
+    restore_default_config_requested = Signal()
 
     def __init__(self, parent: QWidget | None = None):
         super().__init__(parent)
@@ -57,7 +58,6 @@ class AdvancedPage(QWidget):
         self.edit_data_path.setReadOnly(True)
         # Always show as grey text to indicate non-editable
         self.edit_data_path.setProperty("class", "readonly-input")
-        # Text will be set by _update_data_path / _auto_detect_data_path
         data_section.addWidget(self.edit_data_path, 1)
 
         self.btn_open_data = QPushButton("Open", self)
@@ -65,8 +65,25 @@ class AdvancedPage(QWidget):
         self.btn_open_data.setObjectName("open-data-button")
         data_section.addWidget(self.btn_open_data)
 
-        # Removed data path auto-detect button to avoid redundancy and confusion
         layout.addLayout(data_section)
+
+        # Configuration actions section
+        config_section = QHBoxLayout()
+        _lbl_config = QLabel("Config Actions:", self)
+        _lbl_config.setProperty("class", "field-label")
+        _lbl_config.setFixedWidth(_section_w)
+        _lbl_config.setAlignment(Qt.AlignRight | Qt.AlignVCenter)
+        config_section.addWidget(_lbl_config)
+        config_section.addSpacing(8)
+
+        self.btn_restore_default = QPushButton("Restore default config", self)
+        self.btn_restore_default.setFixedWidth(150)
+        self.btn_restore_default.setObjectName("restore-default-button")
+        config_section.addWidget(self.btn_restore_default)
+        
+        # Add spacer to push button to the left
+        config_section.addItem(QSpacerItem(20, 10, QSizePolicy.Expanding, QSizePolicy.Minimum))
+        layout.addLayout(config_section)
 
         # Add some spacing at the bottom
         layout.addItem(QSpacerItem(20, 20, QSizePolicy.Minimum, QSizePolicy.Expanding))
@@ -86,6 +103,7 @@ class AdvancedPage(QWidget):
         self.btn_browse_wkhtmltopdf.clicked.connect(self._browse_wkhtmltopdf_path)
         self.btn_auto_detect.clicked.connect(self._auto_detect)
         self.btn_open_data.clicked.connect(self.open_user_data_requested.emit)
+        self.btn_restore_default.clicked.connect(self.restore_default_config_requested.emit)
 
     def _on_path_changed(self):
         """Handle path text changes and update status indicator"""

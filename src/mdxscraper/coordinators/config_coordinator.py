@@ -63,46 +63,81 @@ class ConfigCoordinator:
             mw.log_panel.appendLog(f"❌ Failed to import config: {e}")
 
     def export_config(self, mw, file_path: Path) -> None:
-        # sync pages to settings first
-        self.sync_all_to_config(mw)
-        # then autosave any Untitled dirty state
-        mw.preset_coordinator.autosave_untitled_if_needed(mw)
+        try:
+            # sync pages to settings first
+            self.sync_all_to_config(mw)
+            # then autosave any Untitled dirty state
+            mw.preset_coordinator.autosave_untitled_if_needed(mw)
 
-        # validate and log, but proceed
-        result = self.settings.validate()
-        if not result.is_valid:
-            problems = "\n".join(result.errors)
-            mw.log_panel.appendLog("⚠️ Config validation issues before export:\n" + problems)
+            # validate and log, but proceed
+            result = self.settings.validate()
+            if not result.is_valid:
+                problems = "\n".join(result.errors)
+                mw.log_panel.appendLog("⚠️ Config validation issues before export:\n" + problems)
 
-        from mdxscraper.config import config_manager as _cm
-        data = self.settings.get_config_dict()
+            from mdxscraper.config import config_manager as _cm
+            data = self.settings.get_config_dict()
 
-        # freeze Untitled to snapshots when needed
-        new_pdf_label, new_css_label = mw.preset_coordinator.create_snapshots_if_needed_on_export(mw)
-        if new_pdf_label:
-            data.setdefault('pdf', {})['preset_label'] = new_pdf_label
-            mw.log_panel.appendLog(f"📌 Frozen PDF Untitled to: {self.settings.to_relative(self.presets.user_pdf_dir() / (new_pdf_label + '.toml'))}")
-        if new_css_label:
-            data.setdefault('css', {})['preset_label'] = new_css_label
-            mw.log_panel.appendLog(f"📌 Frozen CSS Untitled to: {self.settings.to_relative(self.presets.user_css_dir() / (new_css_label + '.toml'))}")
-
-        content = _cm.tomli_w.dumps(data)
-        file_path.parent.mkdir(parents=True, exist_ok=True)
-        with open(file_path, "w", encoding="utf-8") as f:
-            f.write(content)
-        mw.log_panel.appendLog(f"✅ Exported config to: {self.settings.to_relative(str(file_path))}")
-
-        # if snapshots were created, reload and select
-        if new_pdf_label or new_css_label:
-            mw.preset_coordinator.reload_presets(mw, auto_select_default=False)
+            # freeze Untitled to snapshots when needed
+            new_pdf_label, new_css_label = mw.preset_coordinator.create_snapshots_if_needed_on_export(mw)
             if new_pdf_label:
-                mw.preset_coordinator.select_label_and_load(mw, 'pdf', new_pdf_label)
-                mw.pdf_dirty = False
-                mw.tab_pdf.show_dirty(False)
+                data.setdefault('pdf', {})['preset_label'] = new_pdf_label
+                mw.log_panel.appendLog(f"📌 Frozen PDF Untitled to: {self.settings.to_relative(self.presets.user_pdf_dir() / (new_pdf_label + '.toml'))}")
             if new_css_label:
-                mw.preset_coordinator.select_label_and_load(mw, 'css', new_css_label)
-                mw.css_dirty = False
-                mw.tab_css.show_dirty(False)
+                data.setdefault('css', {})['preset_label'] = new_css_label
+                mw.log_panel.appendLog(f"📌 Frozen CSS Untitled to: {self.settings.to_relative(self.presets.user_css_dir() / (new_css_label + '.toml'))}")
+
+            content = _cm.tomli_w.dumps(data)
+            file_path.parent.mkdir(parents=True, exist_ok=True)
+            with open(file_path, "w", encoding="utf-8") as f:
+                f.write(content)
+            mw.log_panel.appendLog(f"✅ Exported config to: {self.settings.to_relative(str(file_path))}")
+
+            # if snapshots were created, reload and select
+            if new_pdf_label or new_css_label:
+                mw.preset_coordinator.reload_presets(mw, auto_select_default=False)
+                if new_pdf_label:
+                    mw.preset_coordinator.select_label_and_load(mw, 'pdf', new_pdf_label)
+                    mw.pdf_dirty = False
+                    mw.tab_pdf.show_dirty(False)
+                if new_css_label:
+                    mw.preset_coordinator.select_label_and_load(mw, 'css', new_css_label)
+                    mw.css_dirty = False
+                    mw.tab_css.show_dirty(False)
+        except Exception as e:
+            mw.log_panel.appendLog(f"❌ Failed to export config: {e}")
+
+    # --- config restoration ---
+    def restore_last_config(self, mw) -> None:
+        """Restore last saved configuration from disk"""
+        try:
+            # Reload latest config from disk and refresh GUI
+            mw.settings.load()
+            # Reload presets first, then sync from config to preserve preset selection
+            mw.preset_coordinator.reload_presets(mw, auto_select_default=False)
+            self.sync_all_from_config(mw)
+            mw.log_panel.appendLog("ℹ️ Restored last saved config.")
+        except Exception as e:
+            mw.log_panel.appendLog(f"❌ Failed to restore config: {e}")
+
+    def restore_default_config(self, mw) -> None:
+        """Restore all configuration to default values"""
+        try:
+            # Load default configuration from default_config.toml
+            default_config_path = mw.project_root / "src" / "mdxscraper" / "config" / "default_config.toml"
+            if default_config_path.exists():
+                # autosave Untitled before overwrite
+                mw.preset_coordinator.autosave_untitled_if_needed(mw)
+                # Replace current config with default config
+                self.settings.replace_config(self.settings.cm._read_toml(default_config_path))
+                # Reload presets first, then sync from config to preserve preset selection
+                mw.preset_coordinator.reload_presets(mw, auto_select_default=False)
+                self.sync_all_from_config(mw)
+                mw.log_panel.appendLog("ℹ️ Restored default configuration.")
+            else:
+                mw.log_panel.appendLog("❌ Default config file not found.")
+        except Exception as e:
+            mw.log_panel.appendLog(f"❌ Failed to restore default config: {e}")
 
     # --- Advanced helpers ---
     def validate_wkhtmltopdf(self, path: str, force_redetect: bool = False) -> tuple[bool, str, str]:

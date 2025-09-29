@@ -207,6 +207,8 @@ class MainWindow(QMainWindow):
         self.tab_advanced.wkhtmltopdf_path_changed.connect(lambda: self.cfgc.sync_all_to_config(self))
         # Open user data directory
         self.tab_advanced.open_user_data_requested.connect(lambda: self.filec.open_user_data_dir(self))
+        # Restore default config
+        self.tab_advanced.restore_default_config_requested.connect(lambda: self.cfgc.restore_default_config(self))
 
         # After UI ready, show normalization log if any
         if hasattr(self, 'log_message_later') and self.log_message_later:
@@ -437,15 +439,8 @@ class MainWindow(QMainWindow):
 
     # --- Config buttons ---
     def restore_last_config(self):
-        try:
-            # Reload latest config from disk and refresh GUI
-            self.settings.load()
-            # Reload presets first, then sync from config to preserve preset selection
-            self.reload_presets(auto_select_default=False)
-            self.cfgc.sync_all_from_config(self)
-            self.log_panel.appendLog("ℹ️ Restored last saved config.")
-        except Exception as e:
-            self.log_panel.appendLog(f"❌ Failed to restore config: {e}")
+        """Restore last saved configuration from disk"""
+        self.cfgc.restore_last_config(self)
 
     def import_config(self):
         start_dir = str((self.project_root / "data" / "configs").resolve())
@@ -476,10 +471,7 @@ class MainWindow(QMainWindow):
         )
         if not file:
             return
-        try:
-            self.cfgc.export_config(self, Path(file))
-        except Exception as e:
-            self.log_panel.appendLog(f"❌ Failed to export config: {e}")
+        self.cfgc.export_config(self, Path(file))
 
     # --- Field edit handlers ---
     def on_input_edited(self):
