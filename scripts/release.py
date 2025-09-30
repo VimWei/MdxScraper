@@ -248,19 +248,19 @@ def _auto_fix_code_style() -> bool:
         run_command("uv run isort .", capture_output=False)
         run_command("uv run black .", capture_output=False)
         print("✅ Auto-fix completed")
-        
+
         # Step 3: Auto re-check (no need for manual re-run)
         print("🔍 Re-checking after auto-fix...")
         run_command("uv run black --check .", capture_output=False)
         run_command("uv run isort --check-only .", capture_output=False)
         print("✅ Re-check passed")
-        
+
         # Step 4: Create a separate "Style" commit for the formatted files
         print("\n📦 Creating 'Style: format with isort/black' commit (release snapshot)...")
         run_command("git add .")
         run_command('git commit -m "Style: format with isort/black"')
         print("📦 Style commit created on release snapshot\n")
-        
+
         return True
     except SystemExit:
         print("❌ Auto-fix failed")
@@ -299,7 +299,7 @@ def check_code_quality() -> bool:
             # Run auto-fix on the release snapshot (includes steps 2-4)
             if not _auto_fix_code_style():
                 return False
-            
+
             print("✅ Code quality checks passed after auto-fix")
             return True
     finally:
@@ -307,7 +307,7 @@ def check_code_quality() -> bool:
         if stashed:
             print("\n🔁 Restoring your unstaged changes from stash...")
             _pop_stash_quiet()
-        
+
         # Always sync formatting across the working tree (no commit)
         print("\n♻️  Sync formatting in working tree (no commit)...")
         run_command("uv run isort .", capture_output=False)
