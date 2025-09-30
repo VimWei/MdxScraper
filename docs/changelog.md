@@ -1,5 +1,9 @@
 # 更新日志
 
+## [5.2.3] - 2025-09-30
+
+- Update project description and remove repository URL from pyproject.toml
+
 ## [5.2.2] - 2025-09-30
 
 - feat: Add Full Changelog link to release notes in GitHub workflow
