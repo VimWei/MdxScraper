@@ -1,7 +1,7 @@
 [project]
 name = "MdxScraper"
 version = "5.2.2"
-description = "Scraping web pages and convert to clean, readable Markdown files."
+description = "Extract specific words from an MDX dictionary and generate HTML, WEBP/PNG/JPG or PDF files with ease."
 readme = "README.md"
 requires-python = ">=3.11"
 license = { text = "GPL-3.0" }
@@ -22,7 +22,6 @@ dependencies = [
 
 [project.urls]
 Homepage = "https://github.com/VimWei/MdxScraper"
-Repository = "https://github.com/VimWei/MdxScraper"
 
 [project.scripts]
 mdxscraper = "mdxscraper.gui.main_window:run_gui"
