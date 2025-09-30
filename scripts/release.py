@@ -381,7 +381,7 @@ def release(bump_type: str = "patch") -> None:
 
     # 12. Success message
     print(f"\n🎉 Release {new_version} completed successfully!")
-    
+
     # Show releases URL if available
     releases_url = get_releases_url()
     if releases_url:
