@@ -1,5 +1,10 @@
 # 更新日志
 
+## [5.2.4] - 2025-09-30
+
+- refactor: align release script with documentation workflow
+- feat: Add release URLs at the end.
+
 ## [5.2.3] - 2025-09-30
 
 - Update project description and remove repository URL from pyproject.toml
