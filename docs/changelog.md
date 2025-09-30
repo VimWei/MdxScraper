@@ -1,5 +1,9 @@
 # 更新日志
 
+## [5.2.5] - 2025-09-30
+
+- chore: update .gitignore and version-check workflow
+
 ## [5.2.4] - 2025-09-30
 
 - refactor: align release script with documentation workflow
