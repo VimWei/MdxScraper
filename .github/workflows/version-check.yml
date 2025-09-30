@@ -97,8 +97,8 @@ jobs:
             exit 1
           fi
           
-          # Check for proper header format
-          if ! grep -q "^# 更新日志" docs/changelog.md; then
+          # Check for proper header format (accept Chinese or English)
+          if ! grep -Eq "^# (更新日志|Changelog)" docs/changelog.md; then
             echo "❌ changelog.md missing proper header"
             exit 1
           fi
