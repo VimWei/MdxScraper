@@ -233,15 +233,34 @@ def _pop_stash_quiet() -> None:
 
 
 def _auto_fix_code_style() -> bool:
-    """Attempt to auto-fix code style issues using isort + black.
+    """Attempt to auto-fix code style issues using isort + black on release snapshot.
+
+    This function performs steps 2-4 from the documentation:
+    2) Execute auto-fix on the "release snapshot"
+    3) Auto re-check (no need for manual re-run)
+    4) Create a separate "Style" commit for the formatted files
 
     Returns True if auto-fix completed successfully, otherwise False.
     """
     print("🛠️  Attempting to auto-fix style (isort + black)...")
     try:
+        # Step 2: Execute auto-fix on the "release snapshot"
         run_command("uv run isort .", capture_output=False)
         run_command("uv run black .", capture_output=False)
         print("✅ Auto-fix completed")
+        
+        # Step 3: Auto re-check (no need for manual re-run)
+        print("🔍 Re-checking after auto-fix...")
+        run_command("uv run black --check .", capture_output=False)
+        run_command("uv run isort --check-only .", capture_output=False)
+        print("✅ Re-check passed")
+        
+        # Step 4: Create a separate "Style" commit for the formatted files
+        print("\n📦 Creating 'Style: format with isort/black' commit (release snapshot)...")
+        run_command("git add .")
+        run_command('git commit -m "Style: format with isort/black"')
+        print("📦 Style commit created on release snapshot\n")
+        
         return True
     except SystemExit:
         print("❌ Auto-fix failed")
@@ -277,34 +296,23 @@ def check_code_quality() -> bool:
             if try_fix.lower() != "y":
                 return False
 
-            # Run auto-fix on the release snapshot
+            # Run auto-fix on the release snapshot (includes steps 2-4)
             if not _auto_fix_code_style():
                 return False
-            # Mandatory: create a separate Style commit for snapshot formatting
-            print("\n📦 Creating 'Style: format with isort/black' commit (release snapshot)...")
-            run_command("git add .")
-            run_command('git commit -m "Style: format with isort/black"')
-            print("📦 Style commit created on release snapshot")
-
-            # Re-check
-            try:
-                run_command("uv run black --check .", capture_output=False)
-                run_command("uv run isort --check-only .", capture_output=False)
-                print("✅ Code quality checks passed after auto-fix")
-                return True
-            except SystemExit:
-                print("❌ Checks still failing after auto-fix")
-                return False
+            
+            print("✅ Code quality checks passed after auto-fix")
+            return True
     finally:
-        # 2) Restore user's unstaged changes and optionally sync formatting to working tree
+        # Step 5: Restore your unstaged changes and sync formatting in working tree (no commit)
         if stashed:
             print("\n🔁 Restoring your unstaged changes from stash...")
             _pop_stash_quiet()
-            # Mandatory: sync formatting across the working tree (no commit)
-            print("\n♻️  Sync formatting in working tree (no commit)...")
-            run_command("uv run isort .", capture_output=False)
-            run_command("uv run black .", capture_output=False)
-            print("♻️  Workspace formatting synced")
+        
+        # Always sync formatting across the working tree (no commit)
+        print("\n♻️  Sync formatting in working tree (no commit)...")
+        run_command("uv run isort .", capture_output=False)
+        run_command("uv run black .", capture_output=False)
+        print("♻️  Workspace formatting synced")
 
 
 def release(bump_type: str = "patch") -> None:
