@@ -1,5 +1,10 @@
 # 更新日志
 
+## [5.2.7] - 2025-10-01
+
+- feat: Implement version check feature in AboutPage
+- feat: Add version to window title
+
 ## [5.2.6] - 2025-10-01
 
 - chore(release): use concise pytest
