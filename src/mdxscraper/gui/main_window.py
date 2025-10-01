@@ -33,12 +33,13 @@ from mdxscraper.gui.pages.pdf_page import PdfPage
 from mdxscraper.gui.styles.theme_loader import ThemeLoader
 from mdxscraper.services.presets_service import PresetsService
 from mdxscraper.services.settings_service import SettingsService
+from mdxscraper.version import get_app_title
 
 
 class MainWindow(QMainWindow):
     def __init__(self, project_root: Path):
         super().__init__()
-        self.setWindowTitle("MdxScraper")
+        self.setWindowTitle(get_app_title())
         self.project_root = project_root
 
         # Set window icon
