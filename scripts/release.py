@@ -24,7 +24,6 @@ from typing import Optional
 # Valid bump types
 VALID_BUMP_TYPES = ["patch", "minor", "major", "alpha", "beta", "rc", "dev"]
 
-
 def get_project_url() -> str:
     """Get project URL from pyproject.toml"""
     try:
@@ -33,7 +32,6 @@ def get_project_url() -> str:
         return data.get("project", {}).get("urls", {}).get("Homepage", "")
     except (FileNotFoundError, KeyError, tomllib.TOMLDecodeError):
         return ""
-
 
 def get_releases_url() -> str:
     """Get project releases URL"""
@@ -44,7 +42,6 @@ def get_releases_url() -> str:
         return f"{project_url}/releases"
     else:
         return ""
-
 
 def run_command(
     cmd: str, check: bool = True, capture_output: bool = True
@@ -57,12 +54,10 @@ def run_command(
         sys.exit(1)
     return result
 
-
 def get_current_version() -> str:
     """Get current version from uv"""
     result = run_command("uv version --short")
     return result.stdout.strip()
-
 
 def check_git_status() -> bool:
     """Guardrail around staged/unstaged changes.
@@ -110,7 +105,6 @@ def check_git_status() -> bool:
 
     return True
 
-
 def _git_output(cmd: str) -> str:
     """Run a git command and return stdout (empty if fails)."""
     try:
@@ -118,7 +112,6 @@ def _git_output(cmd: str) -> str:
         return result.stdout.strip()
     except SystemExit:
         return ""
-
 
 def _collect_commits_since_last_tag() -> list[str]:
     """Collect commit subjects since the previous tag.
@@ -133,7 +126,6 @@ def _collect_commits_since_last_tag() -> list[str]:
     # Filter out non-essential style-only commits created during release formatting
     subjects = [s for s in subjects if s != "Style: format with isort/black"]
     return subjects
-
 
 def update_changelog(new_version: str, bump_type: str) -> None:
     """Update changelog.md with new version.
@@ -200,18 +192,16 @@ def update_changelog(new_version: str, bump_type: str) -> None:
 
     print(f"✅ Updated changelog.md with version {new_version}")
 
-
 def run_tests() -> bool:
     """Run project tests"""
     print("🧪 Running tests...")
     try:
-        result = run_command("uv run pytest", capture_output=False)
+        result = run_command("uv run pytest tests/ --tb=no -q", capture_output=False)
         print("✅ Tests passed")
         return True
     except SystemExit:
         print("❌ Tests failed")
         return False
-
 
 def _stash_unstaged_if_any() -> tuple[bool, str]:
     """Stash unstaged/untracked changes keeping index. Returns (stashed, stash_name)."""
@@ -226,11 +216,9 @@ def _stash_unstaged_if_any() -> tuple[bool, str]:
     run_command(f"git stash push -u -k -m {name}")
     return True, name
 
-
 def _pop_stash_quiet() -> None:
     # Pop latest stash quietly (ignore failures)
     run_command("git stash pop -q", check=False)
-
 
 def _auto_fix_code_style() -> bool:
     """Attempt to auto-fix code style issues using isort + black on release snapshot.
@@ -265,7 +253,6 @@ def _auto_fix_code_style() -> bool:
     except SystemExit:
         print("❌ Auto-fix failed")
         return False
-
 
 def check_code_quality() -> bool:
     """Check code quality on the release snapshot and optionally sync formatting.
@@ -313,7 +300,6 @@ def check_code_quality() -> bool:
         run_command("uv run isort .", capture_output=False)
         run_command("uv run black .", capture_output=False)
         print("♻️  Workspace formatting synced")
-
 
 def release(bump_type: str = "patch") -> None:
     """Release a new version"""
@@ -395,14 +381,12 @@ def release(bump_type: str = "patch") -> None:
     if releases_url:
         print(f"📦 View releases: {releases_url}")
 
-
 def show_help() -> None:
     """Show help message"""
     print(__doc__)
     print(f"\nValid bump types:")
     for bump_type in VALID_BUMP_TYPES:
         print(f"  - {bump_type}")
-
 
 def main() -> None:
     """Main function"""
@@ -422,7 +406,6 @@ def main() -> None:
     except Exception as e:
         print(f"\n❌ Unexpected error: {e}")
         sys.exit(1)
-
 
 if __name__ == "__main__":
     main()
