@@ -16,13 +16,13 @@ from mdxscraper.services.version_check_service import VersionCheckService
 
 class VersionCheckThread(QThread):
     """Thread for checking version updates without blocking UI."""
-    
+
     update_available = Signal(bool, str, str)  # is_latest, message, latest_version
-    
+
     def __init__(self):
         super().__init__()
         self.version_service = VersionCheckService()
-    
+
     def run(self):
         """Run version check in background thread."""
         is_latest, message, latest_version = self.version_service.check_for_updates()
@@ -68,13 +68,13 @@ class AboutPage(QWidget):
         self.update_status_label.setAlignment(Qt.AlignLeft | Qt.AlignVCenter)
         self.update_status_label.setSizePolicy(QSizePolicy.Expanding, QSizePolicy.Fixed)
         update_row.addWidget(self.update_status_label, 1)
-        
+
         # Check for updates button
         self.check_updates_btn = QPushButton("Check for Updates", self)
         self.check_updates_btn.clicked.connect(self.check_for_updates)
         self.check_updates_btn.setSizePolicy(QSizePolicy.Fixed, QSizePolicy.Fixed)
         update_row.addWidget(self.check_updates_btn)
-        
+
         layout.addLayout(update_row)
 
         # Make label columns share the same width
@@ -84,36 +84,36 @@ class AboutPage(QWidget):
 
         # Keep rows at the top; prevent vertical stretch of rows when resizing
         layout.addStretch(1)
-        
+
         # Initialize version check thread
         self.version_thread = None
-    
+
     def check_for_updates(self):
         """Start checking for updates in background thread."""
         if self.version_thread and self.version_thread.isRunning():
             return  # Already checking
-        
+
         # Update UI to show checking status
         self.update_status_label.setText("Checking for updates...")
         self.check_updates_btn.setEnabled(False)
         self.check_updates_btn.setText("Checking...")
-        
+
         # Create and start version check thread
         self.version_thread = VersionCheckThread()
         self.version_thread.update_available.connect(self.on_update_check_complete)
         self.version_thread.finished.connect(self.on_version_thread_finished)
         self.version_thread.start()
-    
+
     def on_update_check_complete(self, is_latest: bool, message: str, latest_version: str):
         """Handle update check completion."""
         self.update_status_label.setText(message)
-        
+
         # Update button text based on result
         if is_latest:
             self.check_updates_btn.setText("Check Again")
         else:
             self.check_updates_btn.setText("Check Again")
-    
+
     def on_version_thread_finished(self):
         """Handle version check thread completion."""
         self.check_updates_btn.setEnabled(True)
