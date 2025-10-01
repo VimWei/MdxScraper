@@ -10,9 +10,8 @@ appDir = CreateObject("Scripting.FileSystemObject").GetParentFolderName(WScript.
 q = chr(34)
 
 ' Use uv run to automatically manage environment
-uvPath = "uv"
 cdCmd = "cd /D " & q & appDir & q
-uvCmd = uvPath & " run mdxscraper"
+uvCmd = "uv run mdxscraper"
 
 ' Command using uv run
 fullCommand = cdCmd & " & " & uvCmd
