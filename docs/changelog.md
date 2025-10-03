@@ -1,5 +1,10 @@
 # 更新日志
 
+## [5.2.9] - 2025-10-03
+
+- Remove coverage fail-under threshold from pytest-cov configuration in pyproject.toml
+- Enhance testing coverage with pytest-cov integration
+
 ## [5.2.8] - 2025-10-03
 
 - Update README.md for clarity and organization
