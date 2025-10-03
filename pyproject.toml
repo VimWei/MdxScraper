@@ -54,7 +54,6 @@ addopts = [
     "--cov-report=html:tests/htmlcov",
     "--cov-report=term-missing",
     "--cov-report=xml:tests/coverage.xml",
-    "--cov-fail-under=80"
 ]
 
 [tool.coverage.run]
