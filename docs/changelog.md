@@ -2,9 +2,7 @@
 
 ## [5.2.8] - 2025-10-03
 
-- Revert "Bump version to 5.2.8"
 - Update README.md for clarity and organization
-- Bump version to 5.2.8
 
 ## [5.2.7] - 2025-10-01
 

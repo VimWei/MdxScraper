@@ -30,5 +30,8 @@ tests/.pytest_cache/
 tests/temp_*
 tests/test_data/
 tests/*.tmp
+tests/.coverage
+tests/coverage.xml
+tests/htmlcov/
 !tests/test_*.py
 !tests/__init__.py

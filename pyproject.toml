@@ -32,6 +32,7 @@ package = true
 [dependency-groups]
 dev = [
     'pytest>=8.3.0',
+    'pytest-cov>=6.0.0',
     'black>=24.8.0',
     'isort>=5.13.2',
     'mypy>=1.11.2',
@@ -48,3 +49,34 @@ target-version = ["py311"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 cache_dir = "tests/.pytest_cache"
+addopts = [
+    "--cov=src/mdxscraper",
+    "--cov-report=html:tests/htmlcov",
+    "--cov-report=term-missing",
+    "--cov-report=xml:tests/coverage.xml",
+    "--cov-fail-under=80"
+]
+
+[tool.coverage.run]
+source = ["src/mdxscraper"]
+omit = [
+    "*/tests/*",
+    "*/test_*",
+    "*/__pycache__/*",
+    "*/migrations/*"
+]
+data_file = "tests/.coverage"
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "if self.debug:",
+    "if settings.DEBUG",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if 0:",
+    "if __name__ == .__main__.:",
+    "class .*\\bProtocol\\):",
+    "@(abc\\.)?abstractmethod"
+]
