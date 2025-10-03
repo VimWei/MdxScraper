@@ -1,5 +1,10 @@
 # 更新日志
 
+## [5.2.10] - 2025-10-03
+
+- Update coverage exclusions in pyproject.toml to include vendor directory
+- Remove unused ConfigDialog class from the GUI module
+
 ## [5.2.9] - 2025-10-03
 
 - Remove coverage fail-under threshold from pytest-cov configuration in pyproject.toml
