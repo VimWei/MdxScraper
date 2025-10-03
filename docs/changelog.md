@@ -1,5 +1,9 @@
 # 更新日志
 
+## [5.2.12] - 2025-10-03
+
+- tests: raise coverage to 89% with config and GUI unit tests
+
 ## [5.2.11] - 2025-10-03
 
 - Update default config path resolution in ConfigManager
