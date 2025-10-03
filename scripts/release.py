@@ -51,7 +51,15 @@ def run_command(
 ) -> subprocess.CompletedProcess:
     """Run a command and return the result"""
     print(f"🔧 Running: {cmd}")
-    result = subprocess.run(cmd, shell=True, capture_output=capture_output, text=True)
+    # Force UTF-8 decoding to avoid Windows locale (e.g., gbk) UnicodeDecodeError
+    result = subprocess.run(
+        cmd,
+        shell=True,
+        capture_output=capture_output,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+    )
     if check and result.returncode != 0:
         print(f"❌ Error: {result.stderr}")
         sys.exit(1)
