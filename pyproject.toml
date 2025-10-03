@@ -1,6 +1,6 @@
 [project]
 name = "MdxScraper"
-version = "5.2.7"
+version = "5.2.8"
 description = "Extract specific words from an MDX dictionary and generate HTML, WEBP/PNG/JPG or PDF files with ease."
 readme = "README.md"
 requires-python = ">=3.11"
