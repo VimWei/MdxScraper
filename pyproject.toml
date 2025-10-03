@@ -62,7 +62,8 @@ omit = [
     "*/tests/*",
     "*/test_*",
     "*/__pycache__/*",
-    "*/migrations/*"
+    "*/migrations/*",
+    "*/mdict/vendor/*"
 ]
 data_file = "tests/.coverage"
 
