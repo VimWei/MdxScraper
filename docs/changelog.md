@@ -1,5 +1,9 @@
 # 更新日志
 
+## [5.2.13] - 2025-10-03
+
+- Fix: enforce UTF-8 encoding to prevent UnicodeDecodeError on Windows
+
 ## [5.2.12] - 2025-10-03
 
 - tests: raise coverage to 89% with config and GUI unit tests
