@@ -41,15 +41,26 @@ def test_run_conversion_and_refresh_save_flows(monkeypatch, tmp_path: Path):
     # Monkeypatch file dialogs to return paths
     from PySide6.QtWidgets import QFileDialog
 
-    monkeypatch.setattr(QFileDialog, "getSaveFileName", lambda *a, **k: (str(tmp_path / "saved.toml"), ""))
+    monkeypatch.setattr(
+        QFileDialog, "getSaveFileName", lambda *a, **k: (str(tmp_path / "saved.toml"), "")
+    )
 
     # Capture saves via PresetsService
-    monkeypatch.setattr(w.presets, "save_preset_text", lambda path, text: called.__setitem__("pdf_save" if "pdf" in str(path).lower() or called["pdf_save"] == 0 else "css_save", (called["pdf_save"] + 1) if called["pdf_save"] == 0 else (called["css_save"] + 1)))
+    monkeypatch.setattr(
+        w.presets,
+        "save_preset_text",
+        lambda path, text: called.__setitem__(
+            "pdf_save" if "pdf" in str(path).lower() or called["pdf_save"] == 0 else "css_save",
+            (called["pdf_save"] + 1) if called["pdf_save"] == 0 else (called["css_save"] + 1),
+        ),
+    )
 
     # Since method chooses directory per kind before dialog, call separately
     w.on_pdf_save_clicked()
     # Next save call for CSS
-    monkeypatch.setattr(QFileDialog, "getSaveFileName", lambda *a, **k: (str(tmp_path / "saved_css.toml"), ""))
+    monkeypatch.setattr(
+        QFileDialog, "getSaveFileName", lambda *a, **k: (str(tmp_path / "saved_css.toml"), "")
+    )
     w.on_css_save_clicked()
 
     # Refresh triggers reload_presets; ensure it does not raise
@@ -59,5 +70,3 @@ def test_run_conversion_and_refresh_save_flows(monkeypatch, tmp_path: Path):
     # We cannot assert exact counters for save because of the lambda above. Ensure no crash and dirty flags cleared
     assert w.pdf_dirty in (False, getattr(w, "pdf_dirty", False))
     assert w.css_dirty in (False, getattr(w, "css_dirty", False))
-
-

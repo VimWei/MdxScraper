@@ -52,7 +52,9 @@ def test_auto_detect_triggers_validation(monkeypatch):
     page.edit_wkhtmltopdf_path.setText("manual")
     page._auto_detect()
     # Should be set to detected path by validation
-    assert page.edit_wkhtmltopdf_path.text() == "" or page.edit_wkhtmltopdf_path.text().endswith("wkhtmltopdf.exe")
+    assert page.edit_wkhtmltopdf_path.text() == "" or page.edit_wkhtmltopdf_path.text().endswith(
+        "wkhtmltopdf.exe"
+    )
 
 
 @pytest.mark.usefixtures("mock_qt_application")
@@ -60,7 +62,9 @@ def test_browse_wkhtmltopdf_and_get_config(monkeypatch):
     page = AdvancedPage()
 
     # Monkeypatch file dialog to return a path
-    monkeypatch.setattr(QFileDialog, "getOpenFileName", lambda *a, **k: ("C:/p/wkhtmltopdf.exe", ""))
+    monkeypatch.setattr(
+        QFileDialog, "getOpenFileName", lambda *a, **k: ("C:/p/wkhtmltopdf.exe", "")
+    )
 
     # Stub validation to accept
     class StubCfgc:
@@ -76,5 +80,3 @@ def test_browse_wkhtmltopdf_and_get_config(monkeypatch):
     cfg = page.get_config()
     assert hasattr(cfg, "wkhtmltopdf_path")
     assert cfg.wkhtmltopdf_path.endswith("wkhtmltopdf.exe")
-
-

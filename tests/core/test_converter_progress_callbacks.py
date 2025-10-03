@@ -116,5 +116,3 @@ def test_mdx2img_progress_scaling(monkeypatch, inner_progress, expected_scaled):
         )
 
     assert any(p == expected_scaled for p, _ in reported)
-
-

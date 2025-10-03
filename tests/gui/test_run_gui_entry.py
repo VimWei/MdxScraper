@@ -60,5 +60,3 @@ def test_run_gui_invokes_qapp_and_mainwindow(monkeypatch, tmp_path: Path):
     assert (e.value.code or 0) == 0
     assert isinstance(created.get("root"), Path)
     assert created.get("shown", False) is True
-
-

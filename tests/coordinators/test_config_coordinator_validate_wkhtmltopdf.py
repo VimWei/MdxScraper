@@ -2,10 +2,10 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from mdxscraper.config.config_manager import ConfigManager
 from mdxscraper.coordinators.config_coordinator import ConfigCoordinator
 from mdxscraper.services.presets_service import PresetsService
 from mdxscraper.services.settings_service import SettingsService
-from mdxscraper.config.config_manager import ConfigManager
 
 
 def test_validate_wkhtmltopdf_auto_and_manual(monkeypatch, tmp_path: Path):
@@ -31,5 +31,3 @@ def test_validate_wkhtmltopdf_auto_and_manual(monkeypatch, tmp_path: Path):
     monkeypatch.setattr(pu, "validate_wkhtmltopdf_path", lambda p: (False, "bad"))
     ok2, resolved2, msg2 = cc.validate_wkhtmltopdf("/nope/wkhtmltopdf")
     assert ok2 is False and resolved2 == ""
-
-

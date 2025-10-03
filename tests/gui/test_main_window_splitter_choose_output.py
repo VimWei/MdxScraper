@@ -36,8 +36,9 @@ def test_on_splitter_moved_enforces_min(tmp_path: Path):
 
 @pytest.mark.usefixtures("mock_qt_application")
 def test_choose_output_uses_output_dir_and_default_name(monkeypatch, tmp_path: Path):
-    from mdxscraper.gui.main_window import MainWindow
     from PySide6.QtWidgets import QFileDialog
+
+    from mdxscraper.gui.main_window import MainWindow
 
     seed_defaults_and_theme(tmp_path)
     w = MainWindow(tmp_path)
@@ -67,5 +68,3 @@ def test_choose_output_uses_output_dir_and_default_name(monkeypatch, tmp_path: P
 
     # Settings reflect chosen file
     assert w.settings.get("basic.output_file").endswith(inp.stem + ".html")
-
-

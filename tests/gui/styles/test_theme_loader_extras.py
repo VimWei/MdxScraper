@@ -10,11 +10,15 @@ def write_theme(root: Path, name: str, qss: str, base_style: str | None = None):
     themes.mkdir(parents=True, exist_ok=True)
     (themes / f"{name}.qss").write_text(qss, encoding="utf-8")
     if base_style is not None:
-        (themes / f"{name}.json").write_text(f'{"{"}"base_style" : "' + base_style + '"}', encoding="utf-8")
+        (themes / f"{name}.json").write_text(
+            f'{"{"}"base_style" : "' + base_style + '"}', encoding="utf-8"
+        )
 
 
 def test_theme_loader_load_extract_and_cache(tmp_path: Path):
-    write_theme(tmp_path, "default", ".btn { color: red; }\n.other { padding: 4px; }", base_style="Fusion")
+    write_theme(
+        tmp_path, "default", ".btn { color: red; }\n.other { padding: 4px; }", base_style="Fusion"
+    )
 
     tl = ThemeLoader(tmp_path)
     content1 = tl.load_theme("default")
@@ -38,5 +42,3 @@ def test_theme_loader_load_extract_and_cache(tmp_path: Path):
     # clear cache
     tl.clear_cache()
     assert tl.load_theme("default") == content1
-
-

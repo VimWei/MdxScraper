@@ -74,5 +74,3 @@ def test_presets_dirs_and_iter_and_snapshot(tmp_path: Path) -> None:
     # snapshot
     snap = ps.create_untitled_snapshot("pdf", "[pdf]\na=1\n")
     assert snap.is_file()
-
-

@@ -3,8 +3,8 @@ from __future__ import annotations
 from pathlib import Path
 
 from mdxscraper.config.config_manager import ConfigManager
+from mdxscraper.models.config_models import CssConfig, PdfConfig
 from mdxscraper.services.settings_service import SettingsService
-from mdxscraper.models.config_models import PdfConfig, CssConfig
 
 
 def seed_defaults(root: Path) -> None:
@@ -39,5 +39,3 @@ def test_persist_session_and_pdf_css_helpers(tmp_path: Path) -> None:
     ss.persist_session_state(pdf_text="X", pdf_label="P2", css_text="Y", css_label="S2")
     assert ss.get("pdf.preset_label") == "P2"
     assert ss.get("css.preset_label") == "S2"
-
-

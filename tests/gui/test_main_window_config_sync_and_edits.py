@@ -26,8 +26,16 @@ def test_restore_last_config_and_sync_shims(monkeypatch, tmp_path: Path):
 
     called = {"restore": 0, "sync_from": 0}
 
-    monkeypatch.setattr(w.cfgc, "restore_last_config", lambda _mw: called.__setitem__("restore", called["restore"] + 1))
-    monkeypatch.setattr(w.cfgc, "sync_all_from_config", lambda _mw: called.__setitem__("sync_from", called["sync_from"] + 1))
+    monkeypatch.setattr(
+        w.cfgc,
+        "restore_last_config",
+        lambda _mw: called.__setitem__("restore", called["restore"] + 1),
+    )
+    monkeypatch.setattr(
+        w.cfgc,
+        "sync_all_from_config",
+        lambda _mw: called.__setitem__("sync_from", called["sync_from"] + 1),
+    )
 
     w.restore_last_config()
     assert called["restore"] == 1
@@ -43,7 +51,9 @@ def test_iter_presets_and_on_edited_updates_settings(monkeypatch, tmp_path: Path
     w = MainWindow(tmp_path)
 
     # _iter_presets delegates to presets.iter_presets
-    monkeypatch.setattr(w.presets, "iter_presets", lambda kind: iter([("A", "fileA"), ("B", "fileB")]))
+    monkeypatch.setattr(
+        w.presets, "iter_presets", lambda kind: iter([("A", "fileA"), ("B", "fileB")])
+    )
     assert list(w._iter_presets("pdf")) == [("A", "fileA"), ("B", "fileB")]
 
     # on_input_edited also adjusts output filename base
@@ -62,5 +72,3 @@ def test_iter_presets_and_on_edited_updates_settings(monkeypatch, tmp_path: Path
     w.edit_output.setText("final.html")
     w.on_output_edited()
     assert w.settings.get("basic.output_file").endswith("final.html")
-
-

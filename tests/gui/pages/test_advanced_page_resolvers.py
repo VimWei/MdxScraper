@@ -53,5 +53,3 @@ def test_resolve_helpers_return_none_on_errors(monkeypatch):
 
     assert page._resolve_filec() is None
     assert page._resolve_cfgc() is None
-
-

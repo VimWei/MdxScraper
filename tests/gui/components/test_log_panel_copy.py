@@ -26,5 +26,3 @@ def test_log_panel_on_copy_log_copies_all_text():
     assert "line 1" in text
     assert "line 2" in text
     assert "line 3" in text
-
-

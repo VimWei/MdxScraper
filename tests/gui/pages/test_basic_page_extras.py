@@ -27,5 +27,3 @@ def test_basic_page_get_set_config():
     assert got.backup_input is False
     assert got.save_invalid_words is True
     assert got.with_toc is False
-
-

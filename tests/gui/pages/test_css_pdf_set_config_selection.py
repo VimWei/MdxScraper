@@ -44,5 +44,3 @@ def test_pdf_page_set_config_selection(items, label, expected_text):
 
     page.set_config(PdfConfig(preset_text="", preset_label=label))
     assert page.pdf_combo.currentText() == expected_text
-
-

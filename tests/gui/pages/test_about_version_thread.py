@@ -30,5 +30,3 @@ def test_version_check_thread_run_emits_signal(monkeypatch):
 
     # Assert: emitted values match stub
     assert captured["args"] == (True, "You are up to date", "1.2.3")
-
-

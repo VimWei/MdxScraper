@@ -1,10 +1,9 @@
 from __future__ import annotations
 
-
 from pathlib import Path
 
-from mdxscraper.coordinators.conversion_coordinator import ConversionCoordinator
 from mdxscraper.config.config_manager import ConfigManager
+from mdxscraper.coordinators.conversion_coordinator import ConversionCoordinator
 from mdxscraper.services.presets_service import PresetsService
 from mdxscraper.services.settings_service import SettingsService
 
@@ -38,5 +37,3 @@ def test_on_log_filters_progress_messages(tmp_path: Path):
     cc.on_log(mw, "Progress: 40%")
     cc.on_log(mw, "Normal log")
     assert mw.logs == ["Normal log"]
-
-

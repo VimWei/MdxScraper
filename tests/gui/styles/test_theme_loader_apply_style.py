@@ -39,5 +39,3 @@ def test_apply_style_sets_stylesheet_and_base_style(tmp_path: Path):
     # Accept either exact class wrapper or whole theme containing the rule
     assert "testClass" in ss or "QWidget.testClass" in ss
     assert "rgb(1,2,3)" in ss
-
-

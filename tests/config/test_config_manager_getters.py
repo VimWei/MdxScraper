@@ -30,5 +30,3 @@ def test_get_dictionary_and_output_files(tmp_path: Path) -> None:
     got_out = cm.get_output_file()
     assert isinstance(got_dict, str) and got_dict.replace("\\", "/").endswith("data/mdict/D.mdx")
     assert isinstance(got_out, str) and got_out.replace("\\", "/").endswith("data/output/out.html")
-
-

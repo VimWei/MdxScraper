@@ -28,7 +28,9 @@ def test_main_window_smoke_and_slots(monkeypatch, tmp_path: Path):
     w = MainWindow(tmp_path)
 
     # on_log filters progress
-    initial_count = len(w.log_panel.text_edit.toPlainText()) if hasattr(w.log_panel, "text_edit") else 0
+    initial_count = (
+        len(w.log_panel.text_edit.toPlainText()) if hasattr(w.log_panel, "text_edit") else 0
+    )
     w.on_log("Progress: 10%")
     w.on_log("Hello")
     # Just ensure it didn't crash and something got appended for non-progress
@@ -74,5 +76,3 @@ def test_main_window_smoke_and_slots(monkeypatch, tmp_path: Path):
 
     # autosave helpers should not crash
     w.autosave_untitled_if_needed()
-
-

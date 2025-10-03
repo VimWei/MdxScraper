@@ -4,8 +4,8 @@ from pathlib import Path
 
 import pytest
 from PySide6.QtCore import QTimer
-from PySide6.QtWidgets import QApplication
 from PySide6.QtGui import QShowEvent
+from PySide6.QtWidgets import QApplication
 
 from mdxscraper.gui.main_window import MainWindow
 
@@ -114,5 +114,3 @@ def test_close_event_saves_and_accepts(monkeypatch, tmp_path: Path):
     assert called["autosave"] >= 1
     assert called["save"] >= 1
     assert called["accepted"] == 1
-
-

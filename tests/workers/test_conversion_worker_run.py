@@ -19,8 +19,8 @@ def seed_defaults_and_theme(root: Path) -> None:
 
 @pytest.mark.usefixtures("mock_qt_application")
 def test_conversion_worker_missing_fields_emits_error(monkeypatch, tmp_path: Path):
-    from mdxscraper.workers.conversion_worker import ConversionWorker
     from mdxscraper.config.config_manager import ConfigManager
+    from mdxscraper.workers.conversion_worker import ConversionWorker
 
     cm = ConfigManager(tmp_path)
     seed_defaults_and_theme(tmp_path)
@@ -61,8 +61,8 @@ def test_conversion_worker_missing_fields_emits_error(monkeypatch, tmp_path: Pat
 
 @pytest.mark.usefixtures("mock_qt_application")
 def test_conversion_worker_success_flow(monkeypatch, tmp_path: Path):
-    from mdxscraper.workers.conversion_worker import ConversionWorker
     from mdxscraper.config.config_manager import ConfigManager
+    from mdxscraper.workers.conversion_worker import ConversionWorker
 
     cm = ConfigManager(tmp_path)
     seed_defaults_and_theme(tmp_path)
@@ -100,7 +100,7 @@ def test_conversion_worker_success_flow(monkeypatch, tmp_path: Path):
             return 1, 0, {}
 
     monkeypatch.setattr(mod, "ExportService", lambda *a, **k: StubExport())
-    
+
     # Avoid actual copy2 by monkeypatching shutil.copy2
     import shutil
 
@@ -130,4 +130,3 @@ def test_conversion_worker_success_flow(monkeypatch, tmp_path: Path):
     assert progresses.values and any(p >= 50 for p, _ in progresses.values)
     assert finished.values and "Done." in finished.values[0]
     assert out.exists()
-

@@ -21,5 +21,3 @@ def test_log_panel_init_and_actions(monkeypatch):
     monkeypatch.setattr(w, "_on_copy_log", lambda: None)
     w._on_copy_log()
     w._on_clear_log()
-
-

@@ -55,5 +55,3 @@ def test_open_encoding_file_detects_or_falls_back(monkeypatch, detect_result, ex
             assert f.readline().strip() == "line1"
         finally:
             f.close()
-
-

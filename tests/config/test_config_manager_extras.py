@@ -1,8 +1,7 @@
 from __future__ import annotations
 
-from pathlib import Path
-
 import tomllib
+from pathlib import Path
 
 from mdxscraper.config.config_manager import ConfigManager
 
@@ -34,7 +33,10 @@ def test_save_and_backup_and_list_and_apply_scheme(tmp_path: Path) -> None:
 
     # Create a scheme and list it
     scheme_path = configs_dir / "my_scheme.toml"
-    write_toml(scheme_path, {"basic": {"input_file": "a.txt", "dictionary_file": "d.mdx", "output_file": "o.html"}})
+    write_toml(
+        scheme_path,
+        {"basic": {"input_file": "a.txt", "dictionary_file": "d.mdx", "output_file": "o.html"}},
+    )
     schemes = cm.list_schemes()
     assert "my_scheme.toml" in schemes
 
@@ -83,5 +85,3 @@ def test_validate_and_path_helpers(tmp_path: Path) -> None:
     # _resolve_path returns absolute path, relative preserved by getters
     assert cm.get_input_file().endswith("data/input/words.txt")
     assert cm._resolve_path(cm.get_input_file()).is_absolute()
-
-

@@ -34,5 +34,3 @@ def test_dictionary_context_and_impl_and_lookup(monkeypatch, tmp_path):
         assert d.lookup_html("LINK") == "<div>hello</div>"
         # fallback behavior for missing
         assert d.lookup_html("missing") == ""
-
-

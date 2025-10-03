@@ -3,9 +3,9 @@ from __future__ import annotations
 import pytest
 
 from mdxscraper.gui.pages.css_page import CssPage
-from mdxscraper.gui.pages.pdf_page import PdfPage
 from mdxscraper.gui.pages.image_page import ImagePage
-from mdxscraper.models.config_models import CssConfig, PdfConfig, ImageConfig
+from mdxscraper.gui.pages.pdf_page import PdfPage
+from mdxscraper.models.config_models import CssConfig, ImageConfig, PdfConfig
 
 
 @pytest.mark.usefixtures("mock_qt_application")
@@ -52,5 +52,3 @@ def test_image_page_get_set_config():
     assert got.width == 800
     assert abs(got.zoom - 1.5) < 1e-6
     assert got.jpg_quality == 90 and got.png_compress_level == 5 and got.webp_quality == 88
-
-

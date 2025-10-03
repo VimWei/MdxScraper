@@ -20,5 +20,3 @@ def test_command_panel_init_and_controls():
     assert not w.isEnabled()
     w.setEnabled(True)
     assert w.isEnabled()
-
-

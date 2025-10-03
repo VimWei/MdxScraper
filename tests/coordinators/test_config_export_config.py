@@ -102,8 +102,12 @@ class MW:
         self.tab_basic = type("T", (), {"get_config": lambda self: object()})()
         self.tab_image = type("T", (), {"get_config": lambda self: object()})()
         self.tab_advanced = type("T", (), {"get_config": lambda self: object()})()
-        self.tab_pdf = type("T", (), {"get_config": lambda self: object(), "show_dirty": lambda self, flag: None})()
-        self.tab_css = type("T", (), {"get_config": lambda self: object(), "show_dirty": lambda self, flag: None})()
+        self.tab_pdf = type(
+            "T", (), {"get_config": lambda self: object(), "show_dirty": lambda self, flag: None}
+        )()
+        self.tab_css = type(
+            "T", (), {"get_config": lambda self: object(), "show_dirty": lambda self, flag: None}
+        )()
         self.settings = settings
         self.presets = presets
         self.preset_coordinator = presets
@@ -172,5 +176,3 @@ def test_export_config_handles_io_errors(monkeypatch, tmp_path: Path):
 
     joined = "\n".join(mw.log_panel.messages)
     assert "Failed to export config" in joined
-
-
