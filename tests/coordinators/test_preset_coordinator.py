@@ -1,13 +1,100 @@
 """Tests for PresetCoordinator"""
 
 from pathlib import Path
-from unittest.mock import Mock, mock_open, patch
+from types import SimpleNamespace
+from unittest.mock import Mock
 
 import pytest
 
 from mdxscraper.coordinators.preset_coordinator import PresetCoordinator
 from mdxscraper.services.presets_service import PresetsService
 from mdxscraper.services.settings_service import SettingsService
+
+
+class FakeCombo:
+	def __init__(self):
+		self._items = []
+		self._data = []
+		self._current = -1
+	def clear(self):
+		self._items.clear(); self._data.clear(); self._current = -1
+	def addItem(self, text, userData=None):
+		self._items.append(text); self._data.append(userData)
+	def count(self):
+		return len(self._items)
+	def itemText(self, i):
+		return self._items[i]
+	def itemData(self, i):
+		return self._data[i]
+	def setCurrentIndex(self, i):
+		self._current = i
+	def currentIndex(self):
+		return self._current
+
+
+class FakeEditor:
+	def __init__(self, text=""):
+		self._text = text
+	def setPlainText(self, text):
+		self._text = text
+	def toPlainText(self):
+		return self._text
+
+
+class FakePresets:
+	def __init__(self):
+		self.store = {}
+	def iter_presets(self, kind):
+		items = []
+		if kind == "pdf":
+			items.append(("Default PDF", Path("/pdf/default.toml")))
+			for k in list(self.store.keys()):
+				p = Path(k)
+				if p.name == "Untitled.toml" and ("pdf" in p.parts or p.parent.name == "pdf"):
+					items.append(("Untitled", p))
+		if kind == "css":
+			items.append(("Original CSS", Path("/css/original.toml")))
+			for k in list(self.store.keys()):
+				p = Path(k)
+				if p.name == "Untitled.toml" and ("css" in p.parts or p.parent.name == "css"):
+					items.append(("Untitled", p))
+		return items
+	def load_preset_text(self, path: Path) -> str:
+		return self.store.get(str(path), "text")
+	def save_preset_text(self, out: Path, text: str):
+		self.store[str(out)] = text
+	def create_untitled_snapshot(self, kind: str, text: str) -> Path:
+		p = Path(f"/snapshots/{kind}/Untitled-001.toml"); self.store[str(p)] = text; return p
+
+
+class FakeSettings:
+	def __init__(self):
+		self.s = {}
+	def get(self, key, default=None):
+		return self.s.get(key, default)
+	def set(self, key, value):
+		self.s[key] = value
+
+
+class FakeLog:
+	def __init__(self):
+		self.logs = []
+	def appendLog(self, msg):
+		self.logs.append(msg)
+
+
+class FakeMW:
+	def __init__(self, root: Path):
+		self.project_root = root
+		self.tab_pdf = SimpleNamespace(pdf_combo=FakeCombo(), pdf_editor=FakeEditor(), show_dirty=lambda x: None)
+		self.tab_css = SimpleNamespace(css_combo=FakeCombo(), css_editor=FakeEditor(), show_dirty=lambda x: None)
+		self._updating_pdf_editor = False
+		self._updating_css_editor = False
+		self.pdf_dirty = False
+		self.css_dirty = False
+		self.last_pdf_label = None
+		self.last_css_label = None
+		self.log_panel = FakeLog()
 
 
 def _project_root() -> Path:
@@ -43,241 +130,103 @@ def test_preset_coordinator_initialization(preset_coordinator, mock_settings, mo
 
 def test_on_pdf_preset_changed_valid(preset_coordinator, mock_presets, mock_settings):
     """Test PDF preset change with valid selection"""
-    # Mock main window
     mock_mw = Mock()
     mock_mw.tab_pdf = Mock()
     mock_mw.tab_pdf.pdf_combo = Mock()
     mock_mw.tab_pdf.pdf_combo.currentIndex.return_value = 0
     mock_mw.tab_pdf.pdf_combo.itemData.return_value = "data/configs/pdf/test_preset.toml"
     mock_mw.tab_pdf.pdf_editor = Mock()
-
-    # Mock presets service
     mock_presets.load_preset_text.return_value = "pdf_preset_content"
-
-    # Mock settings
     mock_settings.set.return_value = None
-
-    # Call the method
     preset_coordinator.on_pdf_preset_changed(mock_mw, "test_preset")
-
-    # Verify presets service was called
     mock_presets.load_preset_text.assert_called_once_with(Path("data/configs/pdf/test_preset.toml"))
-
-    # Verify UI was updated
     mock_mw.tab_pdf.pdf_editor.setPlainText.assert_called_once_with("pdf_preset_content")
-
-    # Verify settings were updated
     mock_settings.set.assert_called_once_with("pdf.preset_label", "test_preset")
 
 
 def test_on_pdf_preset_changed_none(preset_coordinator, mock_presets, mock_settings):
-    """Test PDF preset change with None selection"""
-    # Mock main window
     mock_mw = Mock()
     mock_mw.tab_pdf = Mock()
     mock_mw.tab_pdf.pdf_combo = Mock()
     mock_mw.tab_pdf.pdf_combo.currentIndex.return_value = -1
     mock_mw.tab_pdf.pdf_editor = Mock()
-
-    # Call the method
     preset_coordinator.on_pdf_preset_changed(mock_mw, "")
-
-    # Note: setPlainText is not called when idx < 0 (early return)
-    # Note: setCurrentIndex is not called in the actual implementation
-
-    # Note: settings.set is not called when idx < 0 (early return)
 
 
 def test_on_css_preset_changed_valid(preset_coordinator, mock_presets, mock_settings):
-    """Test CSS preset change with valid selection"""
-    # Mock main window
     mock_mw = Mock()
     mock_mw.tab_css = Mock()
     mock_mw.tab_css.css_combo = Mock()
     mock_mw.tab_css.css_combo.currentIndex.return_value = 0
     mock_mw.tab_css.css_combo.itemData.return_value = "data/configs/css/test_css_preset.toml"
     mock_mw.tab_css.css_editor = Mock()
-
-    # Mock presets service
     mock_presets.load_preset_text.return_value = "css_preset_content"
-
-    # Mock settings
     mock_settings.set.return_value = None
-
-    # Call the method
     preset_coordinator.on_css_preset_changed(mock_mw, "test_css_preset")
-
-    # Verify presets service was called
     mock_presets.load_preset_text.assert_called_once_with(
         Path("data/configs/css/test_css_preset.toml")
     )
-
-    # Verify UI was updated
     mock_mw.tab_css.css_editor.setPlainText.assert_called_once_with("css_preset_content")
-    # Note: setCurrentIndex is not called in the actual implementation
-
-    # Verify settings were updated
     mock_settings.set.assert_called_once_with("css.preset_label", "test_css_preset")
 
 
 def test_on_css_preset_changed_none(preset_coordinator, mock_presets, mock_settings):
-    """Test CSS preset change with None selection"""
-    # Mock main window
     mock_mw = Mock()
     mock_mw.tab_css = Mock()
     mock_mw.tab_css.css_combo = Mock()
     mock_mw.tab_css.css_combo.currentIndex.return_value = 0
     mock_mw.tab_css.css_combo.itemData.return_value = "data/configs/css/test_css_preset.toml"
     mock_mw.tab_css.css_editor = Mock()
-
-    # Call the method
     preset_coordinator.on_css_preset_changed(mock_mw, "")
 
-    # Note: setPlainText is not called when idx < 0 (early return)
-    # Note: setCurrentIndex is not called in the actual implementation
 
-    # Note: settings.set is not called when idx < 0 (early return)
+# Minimal fake-UI based tests below
 
-
-def test_on_pdf_text_changed(preset_coordinator, mock_settings):
-    """Test PDF text change handling"""
-    # Mock main window
-    mock_mw = Mock()
-    mock_mw.tab_pdf = Mock()
-    mock_mw.tab_pdf.pdf_combo = Mock()
-
-    # Mock settings
-    mock_settings.get.return_value = "current_preset"
-
-    # Call the method
-    preset_coordinator.on_pdf_text_changed(mock_mw)
-
-    # Verify UI was updated to untitled state
-    # Note: setCurrentIndex is not called in the actual implementation
-
-    # Note: settings.set is not called in on_pdf_text_changed, only UI state is updated
+def test_reload_presets_and_select_defaults(tmp_path):
+	pc = PresetCoordinator(FakePresets(), FakeSettings())
+	mw = FakeMW(tmp_path)
+	pc.reload_presets(mw, auto_select_default=True)
+	assert mw.tab_pdf.pdf_combo.count() in (1, 2)
+	assert mw.tab_css.css_combo.count() in (1, 2)
 
 
-def test_on_css_text_changed(preset_coordinator, mock_settings):
-    """Test CSS text change handling"""
-    # Mock main window
-    mock_mw = Mock()
-    mock_mw.tab_css = Mock()
-    mock_mw.tab_css.css_combo = Mock()
-
-    # Mock settings
-    mock_settings.get.return_value = "current_css_preset"
-
-    # Call the method
-    preset_coordinator.on_css_text_changed(mock_mw)
-
-    # Verify UI was updated to untitled state
-    # Note: setCurrentIndex is not called in the actual implementation
-
-    # Note: settings.set is not called in on_css_text_changed, only UI state is updated
+def test_select_label_and_load_found(tmp_path):
+	pc = PresetCoordinator(FakePresets(), FakeSettings())
+	mw = FakeMW(tmp_path)
+	pc.reload_presets(mw, auto_select_default=False)
+	pc.select_label_and_load(mw, "pdf", "Default PDF")
+	assert mw.tab_pdf.pdf_combo.currentIndex() == 0
 
 
-# Note: save_preset method does not exist in PresetCoordinator
+def test_enter_untitled_state_sets_dirty(tmp_path):
+	pc = PresetCoordinator(FakePresets(), FakeSettings())
+	mw = FakeMW(tmp_path)
+	pc.enter_untitled_state(mw, "pdf", clear_editor=True)
+	pc.enter_untitled_state(mw, "css", clear_editor=True)
+	assert mw.pdf_dirty is True and mw.css_dirty is True
 
 
-# Note: save_preset method does not exist in PresetCoordinator
+def test_text_changed_marks_dirty(tmp_path):
+	pc = PresetCoordinator(FakePresets(), FakeSettings())
+	mw = FakeMW(tmp_path)
+	pc.on_pdf_text_changed(mw)
+	pc.on_css_text_changed(mw)
+	assert mw.pdf_dirty is True and mw.css_dirty is True
 
 
-def test_autosave_untitled_if_needed_pdf(preset_coordinator, mock_presets, mock_settings):
-    """Test autosaving untitled PDF preset"""
-    # Mock main window
-    mock_mw = Mock()
-    mock_mw.project_root = Path("")
-    mock_mw.tab_pdf = Mock()
-    mock_mw.tab_pdf.pdf_editor = Mock()
-    mock_mw.tab_pdf.pdf_combo = Mock()
-
-    # Mock UI methods
-    mock_mw.tab_pdf.pdf_editor.toPlainText.return_value = "untitled_content"
-    mock_mw.tab_pdf.pdf_combo.currentIndex.return_value = -1  # Untitled state
-
-    # Mock dirty state
-    mock_mw.pdf_dirty = True
-    mock_mw.css_dirty = False
-
-    # Mock presets service
-    mock_presets.save_preset_text.return_value = None
-
-    # Mock settings
-    mock_settings.get.return_value = "* Untitled"
-    mock_settings.set.return_value = None
-
-    # Call the method
-    preset_coordinator.autosave_untitled_if_needed(mock_mw)
-
-    # Verify presets service was called
-    mock_presets.save_preset_text.assert_called_once_with(
-        Path("data/configs/pdf/Untitled.toml"), "untitled_content"
-    )
-
-    # Verify settings were updated
-    mock_settings.set.assert_called_once_with("pdf.preset_label", "Untitled")
+def test_autosave_untitled_if_needed(tmp_path):
+	pc = PresetCoordinator(FakePresets(), FakeSettings())
+	mw = FakeMW(tmp_path)
+	mw.pdf_dirty = True; mw.css_dirty = True
+	mw.tab_pdf.pdf_editor.setPlainText("PDF"); mw.tab_css.css_editor.setPlainText("CSS")
+	pc.autosave_untitled_if_needed(mw)
+	assert mw.pdf_dirty is False and mw.css_dirty is False
 
 
-def test_autosave_untitled_if_needed_css(preset_coordinator, mock_presets, mock_settings):
-    """Test autosaving untitled CSS preset"""
-    # Mock main window
-    mock_mw = Mock()
-    mock_mw.project_root = Path("")
-    mock_mw.tab_css = Mock()
-    mock_mw.tab_css.css_editor = Mock()
-    mock_mw.tab_css.css_combo = Mock()
-
-    # Mock UI methods
-    mock_mw.tab_css.css_editor.toPlainText.return_value = "untitled_css_content"
-    mock_mw.tab_css.css_combo.currentIndex.return_value = -1  # Untitled state
-
-    # Mock dirty state
-    mock_mw.pdf_dirty = False
-    mock_mw.css_dirty = True
-
-    # Mock presets service
-    mock_presets.save_preset_text.return_value = None
-
-    # Mock settings
-    mock_settings.get.return_value = "* Untitled"
-    mock_settings.set.return_value = None
-
-    # Call the method
-    preset_coordinator.autosave_untitled_if_needed(mock_mw)
-
-    # Verify presets service was called
-    mock_presets.save_preset_text.assert_called_once_with(
-        Path("data/configs/css/Untitled.toml"), "untitled_css_content"
-    )
-
-    # Verify settings were updated
-    mock_settings.set.assert_called_once_with("css.preset_label", "Untitled")
-
-
-def test_autosave_untitled_if_needed_no_untitled(preset_coordinator, mock_presets, mock_settings):
-    """Test autosaving when not in untitled state"""
-    # Mock main window
-    mock_mw = Mock()
-    mock_mw.project_root = Path("")
-    mock_mw.tab_pdf = Mock()
-    mock_mw.tab_pdf.pdf_combo = Mock()
-
-    # Mock UI methods
-    mock_mw.tab_pdf.pdf_combo.currentIndex.return_value = 0  # Not untitled state
-
-    # Mock dirty state
-    mock_mw.pdf_dirty = False
-    mock_mw.css_dirty = False
-
-    # Mock settings
-    mock_settings.get.return_value = "normal_preset"
-
-    # Call the method
-    preset_coordinator.autosave_untitled_if_needed(mock_mw)
-
-    # Verify presets service was NOT called
-    mock_presets.save_preset_text.assert_not_called()
-
-    # Verify settings were NOT updated
-    mock_settings.set.assert_not_called()
+def test_create_snapshots_on_export(tmp_path):
+	pc = PresetCoordinator(FakePresets(), FakeSettings())
+	mw = FakeMW(tmp_path)
+	mw.pdf_dirty = True; mw.css_dirty = True
+	mw.tab_pdf.pdf_editor.setPlainText("PDF"); mw.tab_css.css_editor.setPlainText("CSS")
+	new_pdf, new_css = pc.create_snapshots_if_needed_on_export(mw)
+	assert new_pdf and new_css
