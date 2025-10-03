@@ -54,6 +54,16 @@ addopts = [
     "--cov-report=html:tests/htmlcov",
     "--cov-report=term-missing",
     "--cov-report=xml:tests/coverage.xml",
+    "--cov-branch",
+    "--strict-markers",
+    "--strict-config",
+]
+markers = [
+    "unit: Unit tests",
+    "integration: Integration tests", 
+    "gui: GUI tests",
+    "slow: Slow running tests",
+    "requires_mdx: Tests that require MDX files",
 ]
 
 [tool.coverage.run]
