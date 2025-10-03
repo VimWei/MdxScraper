@@ -1,15 +1,15 @@
 """测试用的Mock对象和夹具"""
 
 from pathlib import Path
-from unittest.mock import Mock, MagicMock
-from typing import Dict, Any
+from typing import Any, Dict
+from unittest.mock import MagicMock, Mock
 
 import pytest
 from PySide6.QtWidgets import QApplication
 
-from mdxscraper.models.config_models import BasicConfig, AdvancedConfig, ImageConfig
-from mdxscraper.services.settings_service import SettingsService
+from mdxscraper.models.config_models import AdvancedConfig, BasicConfig, ImageConfig
 from mdxscraper.services.presets_service import PresetsService
+from mdxscraper.services.settings_service import SettingsService
 
 
 @pytest.fixture
@@ -68,32 +68,20 @@ def mock_presets_service():
 def sample_basic_config():
     """示例基础配置"""
     return BasicConfig(
-        mdx_file="test.mdx",
-        input_file="test.txt",
-        output_dir="output",
-        output_format="html"
+        mdx_file="test.mdx", input_file="test.txt", output_dir="output", output_format="html"
     )
 
 
 @pytest.fixture
 def sample_advanced_config():
     """示例高级配置"""
-    return AdvancedConfig(
-        css_style="classic",
-        pdf_options="classic",
-        max_workers=4
-    )
+    return AdvancedConfig(css_style="classic", pdf_options="classic", max_workers=4)
 
 
 @pytest.fixture
 def sample_image_config():
     """示例图像配置"""
-    return ImageConfig(
-        image_format="webp",
-        image_quality=85,
-        image_width=800,
-        image_height=600
-    )
+    return ImageConfig(image_format="webp", image_quality=85, image_width=800, image_height=600)
 
 
 @pytest.fixture
@@ -128,7 +116,7 @@ def mock_dictionary():
         "word": "test",
         "definition": "A test definition",
         "pronunciation": "/test/",
-        "examples": ["This is a test example."]
+        "examples": ["This is a test example."],
     }
     mock_dict.get_keys.return_value = ["test", "testing", "tested"]
     return mock_dict

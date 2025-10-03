@@ -19,29 +19,36 @@ SAMPLE_INPUT_FILES = {
 
 # 示例词汇列表
 SAMPLE_WORDS = [
-    "apple", "banana", "cherry", "date", "elderberry",
-    "fig", "grape", "honeydew", "kiwi", "lemon"
+    "apple",
+    "banana",
+    "cherry",
+    "date",
+    "elderberry",
+    "fig",
+    "grape",
+    "honeydew",
+    "kiwi",
+    "lemon",
 ]
 
 SAMPLE_CHINESE_WORDS = [
-    "苹果", "香蕉", "樱桃", "枣", "接骨木莓",
-    "无花果", "葡萄", "蜜瓜", "猕猴桃", "柠檬"
+    "苹果",
+    "香蕉",
+    "樱桃",
+    "枣",
+    "接骨木莓",
+    "无花果",
+    "葡萄",
+    "蜜瓜",
+    "猕猴桃",
+    "柠檬",
 ]
 
 # 示例课程数据
 SAMPLE_LESSONS = [
-    {
-        "name": "Lesson 1: Fruits",
-        "words": ["apple", "banana", "cherry"]
-    },
-    {
-        "name": "Lesson 2: Colors", 
-        "words": ["red", "blue", "green"]
-    },
-    {
-        "name": "Lesson 3: Animals",
-        "words": ["cat", "dog", "bird"]
-    }
+    {"name": "Lesson 1: Fruits", "words": ["apple", "banana", "cherry"]},
+    {"name": "Lesson 2: Colors", "words": ["red", "blue", "green"]},
+    {"name": "Lesson 3: Animals", "words": ["cat", "dog", "bird"]},
 ]
 
 # 示例配置数据
@@ -49,7 +56,7 @@ SAMPLE_BASIC_CONFIG = {
     "mdx_file": str(SAMPLE_MDX_FILES["ahd"]),
     "input_file": str(SAMPLE_INPUT_FILES["english_words"]),
     "output_dir": "data/output",
-    "output_format": "html"
+    "output_format": "html",
 }
 
 SAMPLE_ADVANCED_CONFIG = {
@@ -57,7 +64,7 @@ SAMPLE_ADVANCED_CONFIG = {
     "pdf_options": "classic",
     "image_format": "webp",
     "image_quality": 85,
-    "max_workers": 4
+    "max_workers": 4,
 }
 
 # 示例预设数据
@@ -65,7 +72,7 @@ SAMPLE_PRESETS = {
     "basic_html": {
         "name": "Basic HTML",
         "description": "Basic HTML output with default styling",
-        "config": SAMPLE_BASIC_CONFIG
+        "config": SAMPLE_BASIC_CONFIG,
     },
     "high_quality_pdf": {
         "name": "High Quality PDF",
@@ -74,7 +81,7 @@ SAMPLE_PRESETS = {
             **SAMPLE_BASIC_CONFIG,
             "output_format": "pdf",
             "css_style": "classic",
-            "pdf_options": "classic"
-        }
-    }
+            "pdf_options": "classic",
+        },
+    },
 }

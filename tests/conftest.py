@@ -13,59 +13,60 @@ sys.path.insert(0, str(project_root / "src"))
 # 导入共享夹具
 try:
     from fixtures.mock_objects import (
-        mock_mdx_file,
-        mock_input_file,
-        mock_output_dir,
-        mock_settings_service,
-        mock_presets_service,
-        sample_basic_config,
-        sample_advanced_config,
-        sample_image_config,
-        mock_qt_application,
-        mock_file_system,
-        mock_dictionary,
         mock_converter,
+        mock_dictionary,
+        mock_file_system,
+        mock_input_file,
+        mock_mdx_file,
+        mock_output_dir,
+        mock_presets_service,
+        mock_qt_application,
+        mock_settings_service,
+        sample_advanced_config,
+        sample_basic_config,
+        sample_image_config,
     )
     from fixtures.sample_data import (
-        SAMPLE_MDX_FILES,
-        SAMPLE_INPUT_FILES,
-        SAMPLE_WORDS,
-        SAMPLE_CHINESE_WORDS,
-        SAMPLE_LESSONS,
-        SAMPLE_BASIC_CONFIG,
         SAMPLE_ADVANCED_CONFIG,
+        SAMPLE_BASIC_CONFIG,
+        SAMPLE_CHINESE_WORDS,
+        SAMPLE_INPUT_FILES,
+        SAMPLE_LESSONS,
+        SAMPLE_MDX_FILES,
         SAMPLE_PRESETS,
+        SAMPLE_WORDS,
     )
 except ImportError:
     # 如果相对导入失败，尝试绝对导入
     import sys
     from pathlib import Path
+
     fixtures_path = Path(__file__).parent / "fixtures"
     sys.path.insert(0, str(fixtures_path))
-    
+
     from mock_objects import (
-        mock_mdx_file,
-        mock_input_file,
-        mock_output_dir,
-        mock_settings_service,
-        mock_presets_service,
-        sample_basic_config,
-        sample_advanced_config,
-        sample_image_config,
-        mock_qt_application,
-        mock_file_system,
-        mock_dictionary,
         mock_converter,
+        mock_dictionary,
+        mock_file_system,
+        mock_input_file,
+        mock_mdx_file,
+        mock_output_dir,
+        mock_presets_service,
+        mock_qt_application,
+        mock_settings_service,
+        sample_advanced_config,
+        sample_basic_config,
+        sample_image_config,
     )
     from sample_data import (
-        SAMPLE_MDX_FILES,
-        SAMPLE_INPUT_FILES,
-        SAMPLE_WORDS,
-        SAMPLE_CHINESE_WORDS,
-        SAMPLE_LESSONS,
-        SAMPLE_BASIC_CONFIG,
         SAMPLE_ADVANCED_CONFIG,
+        SAMPLE_BASIC_CONFIG,
+        SAMPLE_CHINESE_WORDS,
+        SAMPLE_INPUT_FILES,
+        SAMPLE_LESSONS,
+        SAMPLE_MDX_FILES,
         SAMPLE_PRESETS,
+        SAMPLE_WORDS,
     )
 
 
@@ -132,7 +133,7 @@ def sample_presets():
 # 重新导出所有Mock夹具
 __all__ = [
     "mock_mdx_file",
-    "mock_input_file", 
+    "mock_input_file",
     "mock_output_dir",
     "mock_settings_service",
     "mock_presets_service",
