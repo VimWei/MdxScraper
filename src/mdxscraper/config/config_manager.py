@@ -31,9 +31,9 @@ class ConfigManager:
         self.project_root = project_root or Path(__file__).resolve().parents[3]
         self.data_dir = self.project_root / "data"
         self.configs_dir = self.data_dir / "configs"
-        self.default_config_path = (
-            self.project_root / "src" / "mdxscraper" / "config" / "default_config.toml"
-        )
+        # Always resolve defaults from the installed package location, not project_root
+        # so that tests (which pass a tmp project_root) can still find them.
+        self.default_config_path = Path(__file__).resolve().parent / "default_config.toml"
         self.latest_config_path = self.configs_dir / "config_latest.toml"
         self._config: Dict[str, Any] = {}
         # Normalization reporting state (consumed once by GUI)
