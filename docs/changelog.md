@@ -1,5 +1,10 @@
 # 更新日志
 
+## [5.2.11] - 2025-10-03
+
+- Update default config path resolution in ConfigManager
+- Enhance testing framework and documentation
+
 ## [5.2.10] - 2025-10-03
 
 - Update coverage exclusions in pyproject.toml to include vendor directory
