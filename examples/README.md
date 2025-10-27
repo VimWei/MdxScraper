@@ -32,6 +32,38 @@ python examples/rebuild_index.py "your_dictionary.mdx"
 
 💡 **提示**：如果遇到 `IndexError: tuple index out of range` 错误，请先运行此工具！
 
+### 🎵 Audio Extraction (`extract_audio.py`) ⭐ NEW
+Extract audio files from MDX dictionaries (perfect for NHK Japanese Dictionary):
+```bash
+# Extract single word audio
+python examples/extract_audio.py あい --mdx "NHK日本語発音アクセント辞書.mdx"
+
+# List audio info without saving
+python examples/extract_audio.py hello --mdx dict.mdx --list-only
+
+# Batch extract from word list
+python examples/extract_audio.py --batch words.txt --mdx dict.mdx
+```
+
+**功能特点**：
+- 🎵 提取单个或批量词条的音频文件
+- 💾 保存音频到磁盘（MP3, WAV, OGG等）
+- 🔗 生成 base64 data URI 用于网页播放
+- 📄 生成可点击播放的 HTML 文件
+- 🌐 支持多种音频格式
+
+**支持的格式**：
+- Audio: MP3, WAV, OGG, M4A, AAC, FLAC, WebM, Opus
+- Protocol: `sound://`, `entry://sound/`, `<source>` tags
+
+**使用场景**：
+- 为 Anki 等记忆软件生成带发音的单词卡片
+- 提取词典发音用于语音学习应用
+- 创建离线发音库
+- 网站集成音频播放功能
+
+📖 详细文档：[AUDIO_SUPPORT.md](../docs/AUDIO_SUPPORT.md)
+
 ### 1. Basic Query (`basic_query.py`)
 Demonstrates basic dictionary query operations:
 - Simple word lookup

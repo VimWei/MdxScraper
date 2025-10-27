@@ -44,6 +44,16 @@ from mdxscraper.core import (
     mdx2pdf,
 )
 
+# Audio extraction functionality
+from mdxscraper.core.audio import (
+    AudioInfo,
+    embed_audio_in_html,
+    extract_audio_paths_from_html,
+    get_audio_info,
+    lookup_audio,
+    save_audio_file,
+)
+
 __version__ = "5.2.13"
 
 __all__ = [
@@ -53,6 +63,13 @@ __all__ = [
     "mdx2html",
     "mdx2pdf",
     "mdx2img",
+    # Audio API
+    "AudioInfo",
+    "get_audio_info",
+    "lookup_audio",
+    "save_audio_file",
+    "extract_audio_paths_from_html",
+    "embed_audio_in_html",
     # Version
     "__version__",
 ]
