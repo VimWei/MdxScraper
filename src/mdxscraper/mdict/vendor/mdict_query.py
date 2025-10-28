@@ -62,38 +62,75 @@ class IndexBuilder(object):
 
         if os.path.isfile(self._mdx_db):
             # read from META table
-            conn = sqlite3.connect(self._mdx_db)
-            # cursor = conn.execute("SELECT * FROM META")
-            cursor = conn.execute('SELECT * FROM META WHERE key = "version"')
-            # 判断有无版本号
-            for cc in cursor:
-                self._version = cc[1]
-            ################# if not version in fo #############
-            if not self._version:
-                print("version info not found")
+            try:
+                conn = sqlite3.connect(self._mdx_db)
+                
+                # Verify MDX_INDEX table exists
+                cursor = conn.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='MDX_INDEX'")
+                if not cursor.fetchone():
+                    print(f"Warning: MDX_INDEX table not found in {self._mdx_db}, rebuilding...")
+                    conn.close()
+                    self._make_mdx_index(self._mdx_db)
+                    conn = sqlite3.connect(self._mdx_db)
+                else:
+                    # Verify table structure (9 columns expected)
+                    cursor = conn.execute("PRAGMA table_info(MDX_INDEX)")
+                    columns = cursor.fetchall()
+                    expected_columns = [
+                        'key_text', 'file_path', 'file_pos', 'compressed_size',
+                        'decompressed_size', 'record_block_type', 'record_start',
+                        'record_end', 'offset'
+                    ]
+                    actual_columns = [col[1] for col in columns]
+                    
+                    if len(columns) != 9 or actual_columns != expected_columns:
+                        print(f"Warning: Incompatible table structure in {self._mdx_db}")
+                        print(f"  Expected: {expected_columns}")
+                        print(f"  Found: {actual_columns}")
+                        print(f"  Rebuilding with correct structure...")
+                        conn.close()
+                        self._make_mdx_index(self._mdx_db)
+                        conn = sqlite3.connect(self._mdx_db)
+                
+                # cursor = conn.execute("SELECT * FROM META")
+                cursor = conn.execute('SELECT * FROM META WHERE key = "version"')
+                # 判断有无版本号
+                for cc in cursor:
+                    self._version = cc[1]
+                ################# if not version in fo #############
+                if not self._version:
+                    print("version info not found")
+                    conn.close()
+                    self._make_mdx_index(self._mdx_db)
+                    print("mdx.db rebuilt!")
+                    if os.path.isfile(_filename + ".mdd"):
+                        self._mdd_file = _filename + ".mdd"
+                        self._mdd_db = _filename + ".mdd.db"
+                        self._make_mdd_index(self._mdd_db)
+                        print("mdd.db rebuilt!")
+                    return None
+                cursor = conn.execute('SELECT * FROM META WHERE key = "encoding"')
+                for cc in cursor:
+                    self._encoding = cc[1]
+                cursor = conn.execute('SELECT * FROM META WHERE key = "stylesheet"')
+                for cc in cursor:
+                    self._stylesheet = json.loads(cc[1])
+
+                cursor = conn.execute('SELECT * FROM META WHERE key = "title"')
+                for cc in cursor:
+                    self._title = cc[1]
+
+                cursor = conn.execute('SELECT * FROM META WHERE key = "description"')
+                for cc in cursor:
+                    self._description = cc[1]
+                
                 conn.close()
+            except sqlite3.Error as e:
+                print(f"Database error: {e}")
+                print(f"Rebuilding index for {fname}...")
+                if 'conn' in locals():
+                    conn.close()
                 self._make_mdx_index(self._mdx_db)
-                print("mdx.db rebuilt!")
-                if os.path.isfile(_filename + ".mdd"):
-                    self._mdd_file = _filename + ".mdd"
-                    self._mdd_db = _filename + ".mdd.db"
-                    self._make_mdd_index(self._mdd_db)
-                    print("mdd.db rebuilt!")
-                return None
-            cursor = conn.execute('SELECT * FROM META WHERE key = "encoding"')
-            for cc in cursor:
-                self._encoding = cc[1]
-            cursor = conn.execute('SELECT * FROM META WHERE key = "stylesheet"')
-            for cc in cursor:
-                self._stylesheet = json.loads(cc[1])
-
-            cursor = conn.execute('SELECT * FROM META WHERE key = "title"')
-            for cc in cursor:
-                self._title = cc[1]
-
-            cursor = conn.execute('SELECT * FROM META WHERE key = "description"')
-            for cc in cursor:
-                self._description = cc[1]
 
             # for cc in cursor:
             #    if cc[0] == 'encoding':
@@ -365,23 +402,39 @@ class IndexBuilder(object):
     def lookup_indexes(db, keyword, ignorecase=None):
         indexes = []
         if ignorecase:
-            sql = 'SELECT * FROM MDX_INDEX WHERE lower(key_text) = lower("{}")'.format(keyword)
+            sql = 'SELECT * FROM MDX_INDEX WHERE lower(key_text) = lower(?)'
+            params = (keyword,)
         else:
-            sql = 'SELECT * FROM MDX_INDEX WHERE key_text = "{}"'.format(keyword)
-        with sqlite3.connect(db) as conn:
-            cursor = conn.execute(sql)
-            for result in cursor:
-                index = {}
-                index["file_pos"] = result[2]
-                index["file_name"] = result[1]
-                index["compressed_size"] = result[3]
-                index["decompressed_size"] = result[4]
-                index["record_block_type"] = result[5]
-                index["record_start"] = result[6]
-                index["record_end"] = result[7]
-                index["offset"] = result[8]
+            sql = 'SELECT * FROM MDX_INDEX WHERE key_text = ?'
+            params = (keyword,)
+        
+        try:
+            with sqlite3.connect(db) as conn:
+                cursor = conn.execute(sql, params)
+                for result in cursor:
+                    # Validate result tuple length
+                    if len(result) < 9:
+                        print(f"Warning: Incomplete index entry for '{keyword}': expected 9 fields, got {len(result)}")
+                        print(f"Result: {result}")
+                        continue
+                    
+                    # Table structure: key_text, file_path, file_pos, compressed_size, 
+                    # decompressed_size, record_block_type, record_start, record_end, offset
+                    index = {}
+                    index["file_pos"] = result[2]
+                    index["file_name"] = result[1]
+                    index["compressed_size"] = result[3]
+                    index["decompressed_size"] = result[4]
+                    index["record_block_type"] = result[5]
+                    index["record_start"] = result[6]
+                    index["record_end"] = result[7]
+                    index["offset"] = result[8]
 
-                indexes.append(index)
+                    indexes.append(index)
+        except sqlite3.Error as e:
+            print(f"Database error when looking up '{keyword}' in {db}: {e}")
+            return []
+        
         return indexes
 
     def mdx_lookup(self, keyword, ignorecase=None):
@@ -417,11 +470,13 @@ class IndexBuilder(object):
                 query = query.replace("*", "%")
             else:
                 query = query + "%"
-            sql = 'SELECT key_text FROM MDX_INDEX WHERE key_text LIKE "' + query + '"'
+            sql = 'SELECT key_text FROM MDX_INDEX WHERE key_text LIKE ?'
+            params = (query,)
         else:
             sql = "SELECT key_text FROM MDX_INDEX"
+            params = ()
         with sqlite3.connect(db) as conn:
-            cursor = conn.execute(sql)
+            cursor = conn.execute(sql, params) if params else conn.execute(sql)
             keys = [item[0] for item in cursor]
             return keys
 

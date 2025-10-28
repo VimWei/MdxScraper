@@ -1,21 +1,37 @@
 [project]
 name = "MdxScraper"
 version = "5.2.13"
-description = "Extract specific words from an MDX dictionary and generate HTML, WEBP/PNG/JPG or PDF files with ease."
+description = "Extract specific words from an MDX dictionary and generate HTML, WEBP/PNG/JPG or PDF files with ease. Can be used as a headless library or a GUI application."
 readme = "README.md"
 requires-python = ">=3.11"
 license = { text = "GPL-3.0" }
 authors = [
   { name = "VimWei" }
 ]
+# Core dependencies (headless mode)
 dependencies = [
-    'imgkit>=1.2.3',
-    'pdfkit>=1.0.0',
     'openpyxl>=3.1.5',
     'chardet>=5.2.0',
     'beautifulsoup4>=4.13.5',
     'lxml>=6.0.1',
+    'chardet>=5.2.0',
+    'openpyxl>=3.1.5',
+    'Pillow>=10.0.0',
+]
+
+[project.optional-dependencies]
+# GUI dependencies (optional)
+gui = [
+    'PySide6>=6.7.0',
     'tomli-w>=1.0.0',
+]
+# Conversion dependencies (optional, for PDF/Image output)
+conversion = [
+    'pdfkit>=1.0.0',
+    'imgkit>=1.2.3',
+]
+# Full installation (all features)
+all = [
     'PySide6>=6.7.0',
     'Pillow>=10.0.0',
 ]
@@ -24,6 +40,7 @@ dependencies = [
 Homepage = "https://github.com/VimWei/MdxScraper"
 
 [project.scripts]
+# GUI entry point (requires 'gui' extra)
 mdxscraper = "mdxscraper.gui.main_window:run_gui"
 
 [tool.uv]
