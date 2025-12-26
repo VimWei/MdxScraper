@@ -27,22 +27,22 @@
 ## 安装
 
 1. **克隆仓库或直接下载到任意目录：**
-   ```bash
-   git clone https://github.com/VimWei/MdxScraper
-   ```
+```bash
+git clone https://github.com/VimWei/MdxScraper
+```
 2. **安装 Python 运行环境：**
-   ```bash
-   # 2.1 安装 uv （Python 虚拟环境管理器）
-   ## Windows (PowerShell)
-   powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
-   ## Linux/macOS
-   curl -LsSf https://astral.sh/uv/install.sh | sh
+```bash
+# 2.1 安装 uv （Python 虚拟环境管理器）
+## Windows (PowerShell)
+powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
+## Linux/macOS
+curl -LsSf https://astral.sh/uv/install.sh | sh
 
-   # 2.2 同步 python 环境
-   cd MdxScraper
-   uv sync
-   ```
-4. **安装 wkhtmltopdf:**
+# 2.2 同步 python 环境
+cd MdxScraper
+uv sync
+```
+3. **安装 wkhtmltopdf:**
    输出图片和 PDF 时，需要用到它，请访问其官网下载安装
    * https://wkhtmltopdf.org/downloads.html
 
@@ -54,7 +54,7 @@
 2. 按需配置参数，主要是 输入/词典/输出，其他都是高级选项，慢慢探索
 3. 点击按钮 Scrape，查看输出成果
 
-### 用户数据目录
+## 用户数据目录
 
 MdxScraper 使用 `data/` 目录作为用户数据存储位置，所有用户相关的文件都存储在此目录下：
 
