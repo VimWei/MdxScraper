@@ -192,6 +192,22 @@ def test_get_wkhtmltopdf_path_string_input():
             assert result == provided_path
 
 
+def test_validate_wkhtmltopdf_path_uses_no_window_flag():
+    """The version probe must not flash a console window on Windows."""
+    from mdxscraper.utils.win_process import NO_WINDOW
+
+    test_path = "test_wkhtmltopdf.exe"
+
+    with patch("pathlib.Path.exists", return_value=True):
+        with patch("subprocess.run") as mock_run:
+            mock_run.return_value.returncode = 0
+            mock_run.return_value.stdout = "wkhtmltopdf 0.12.6"
+
+            validate_wkhtmltopdf_path(test_path)
+
+            assert mock_run.call_args.kwargs["creationflags"] == NO_WINDOW
+
+
 def test_validate_wkhtmltopdf_path_subprocess_exception():
     """Test validating wkhtmltopdf path when subprocess raises exception"""
     test_path = "test_wkhtmltopdf.exe"

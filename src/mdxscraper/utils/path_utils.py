@@ -6,6 +6,8 @@ import platform
 import subprocess
 from pathlib import Path
 
+from .win_process import NO_WINDOW
+
 # In-memory cache for current session only (portable-friendly)
 _session_cache = {"detected_path": None, "is_valid": None, "message": None}
 
@@ -64,7 +66,9 @@ def validate_wkhtmltopdf_path(path: str) -> tuple[bool, str]:
 
     # Try to run wkhtmltopdf --version to check if it's working
     try:
-        result = subprocess.run([path, "--version"], capture_output=True, text=True, timeout=10)
+        result = subprocess.run(
+            [path, "--version"], capture_output=True, text=True, timeout=10, creationflags=NO_WINDOW
+        )
         if result.returncode == 0:
             version_info = (
                 result.stdout.strip().split("\n")[0] if result.stdout else "Unknown version"

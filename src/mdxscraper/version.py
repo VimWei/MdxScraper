@@ -9,6 +9,8 @@ import subprocess
 from pathlib import Path
 from typing import Optional, Tuple
 
+from .utils.win_process import NO_WINDOW
+
 
 def get_version() -> str:
     """Get the current version from uv.
@@ -27,6 +29,7 @@ def get_version() -> str:
             text=True,
             check=True,
             cwd=Path(__file__).parent.parent.parent,
+            creationflags=NO_WINDOW,
         )
         version = result.stdout.strip()
         if version:

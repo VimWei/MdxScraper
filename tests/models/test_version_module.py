@@ -26,6 +26,20 @@ def test_get_version_uses_uv_when_available(monkeypatch, tmp_path):
     fake_run.assert_called()
 
 
+def test_get_version_does_not_flash_console(monkeypatch):
+    """``uv version`` is a console app and must not open a console window."""
+    from mdxscraper.utils.win_process import NO_WINDOW
+
+    class FakeCompleted:
+        stdout = "5.2.3\n"
+
+    fake_run = MagicMock(return_value=FakeCompleted())
+    monkeypatch.setattr(version_module.subprocess, "run", fake_run)
+    version_module.get_version()
+
+    assert fake_run.call_args.kwargs["creationflags"] == NO_WINDOW
+
+
 def test_get_version_falls_back_to_pyproject(monkeypatch, tmp_path):
     def raise_called(*a, **kw):
         raise FileNotFoundError()
