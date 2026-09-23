@@ -50,7 +50,7 @@ uv sync
 
 1. 启动程序
     * 方法 1: (Windows/Linux/macOS) 命令行输入：`uv run mdxscraper`
-    * 方法 2: (Windows) 直接双击文件 `MdxScraper.vbs`
+    * 方法 2: (Windows) 直接双击文件 `MdxScraper.pyw`（无控制台窗口；首次运行会自动打开可见窗口显示 uv 安装进度，后台输出与错误写入 `%LOCALAPPDATA%\MdxScraper\launcher.log`）
 2. 按需配置参数，主要是 输入/词典/输出，其他都是高级选项，慢慢探索
 3. 点击按钮 Scrape，查看输出成果
 

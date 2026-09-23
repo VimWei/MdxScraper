@@ -1,5 +1,9 @@
 # 更新日志
 
+## [Unreleased]
+
+- feat(windows): 用 `MdxScraper.pyw` 取代 VBScript 启动器，静默启动且无控制台窗口
+
 ## [5.2.13] - 2025-10-03
 
 - Fix: enforce UTF-8 encoding to prevent UnicodeDecodeError on Windows
